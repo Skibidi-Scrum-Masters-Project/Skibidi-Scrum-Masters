@@ -1,0 +1,50 @@
+# Fitness App CI/CD Pipeline
+# This workflow builds and tests all microservices in the fitness application
+
+name: Fitness App CI/CD
+
+on:
+  push:
+    branches: [ "main", "development" ]
+  pull_request:
+    branches: [ "main", "development" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore FitnessApp.sln
+
+    - name: Build solution
+      run: dotnet build FitnessApp.sln --no-restore --configuration Release
+
+    - name: Run AuthService Tests
+      run: dotnet test AuthService.Tests/AuthService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/AuthService
+
+    - name: Run UserService Tests
+      run: dotnet test UserService.Tests/UserService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/UserService
+
+    - name: Run ClassService Tests
+      run: dotnet test ClassService.Tests/ClassService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/ClassService
+
+    - name: Run WorkoutService Tests
+      run: dotnet test WorkoutService.Tests/WorkoutService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/WorkoutService
+
+    - name: Run LockerService Tests
+      run: dotnet test LockerService.Tests/LockerService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/LockerService
+
+    - name: Run FriendService Tests
+      run: dotnet test FriendService.Tests/FriendService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/FriendService
+
