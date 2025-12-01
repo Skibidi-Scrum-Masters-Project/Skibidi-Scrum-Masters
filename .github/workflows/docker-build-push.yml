@@ -19,22 +19,22 @@ jobs:
       matrix:
         service:
           - name: authservice
-            context: ./AuthService
+            context: .
             dockerfile: ./AuthService/Dockerfile
           - name: userservice
-            context: ./UserService
+            context: .
             dockerfile: ./UserService/Dockerfile
           - name: classservice
-            context: ./ClassService
+            context: .
             dockerfile: ./ClassService/Dockerfile
           - name: workoutservice
-            context: ./WorkoutService
+            context: .
             dockerfile: ./WorkoutService/Dockerfile
           - name: lockerservice
-            context: ./LockerService
+            context: .
             dockerfile: ./LockerService/Dockerfile
           - name: friendservice
-            context: ./FriendService
+            context: .
             dockerfile: ./FriendService/Dockerfile
 
     steps:
