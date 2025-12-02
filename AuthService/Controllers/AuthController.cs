@@ -20,4 +20,10 @@ public class AuthController : ControllerBase
         // TBA: Implement authentication logic
         return Ok(new { message = "Login endpoint - TBA" });
     }
+    [HttpPost("status")]
+    public ActionResult Status()
+    {
+        // TBA: Implement status check logic
+        return Ok(new { message = "Status endpoint - TBA" });
+    }
 }

@@ -1,0 +1,64 @@
+services:
+  # Fitness App Microservices
+  authservice:
+    image: asgermunk/fitnessapp-authservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  userservice:
+    image: asgermunk/fitnessapp-userservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  classservice:
+    image: asgermunk/fitnessapp-classservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  workoutservice:
+    image: asgermunk/fitnessapp-workoutservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  lockerservice:
+    image: asgermunk/fitnessapp-lockerservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  friendservice:
+    image: asgermunk/fitnessapp-friendservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  # NGINX API Gateway
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - authservice
+      - userservice
+      - classservice
+      - workoutservice
+      - lockerservice
+      - friendservice
+    ports:
+      - "4000:80"
+    networks:
+      - skibidi
+
+networks:
+  skibidi:
+    external: true
