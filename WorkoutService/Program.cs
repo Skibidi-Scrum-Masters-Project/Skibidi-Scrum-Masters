@@ -2,10 +2,17 @@ using VaultSharp;
 using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var EndPoint = "https://localhost:8201/";
+// Bypass SSL certificate validation globally for vault connections
+ServicePointManager.ServerCertificateValidationCallback = 
+    (sender, certificate, chain, sslPolicyErrors) => true;
+
+var EndPoint = "https://test.fitlife.qzz.io:8201/";
 var httpClientHandler = new HttpClientHandler();
 httpClientHandler.ServerCertificateCustomValidationCallback =
 (message, cert, chain, sslPolicyErrors) => { return true; };
