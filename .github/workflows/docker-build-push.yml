@@ -59,5 +59,3 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_USERNAME }}/fitnessapp-${{ matrix.service.name }}:latest
           platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
