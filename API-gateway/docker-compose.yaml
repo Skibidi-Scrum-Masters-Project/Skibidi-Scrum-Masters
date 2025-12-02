@@ -42,6 +42,13 @@ services:
     networks:
       - skibidi
 
+  frontend:
+    image: asgermunk/fitnessapp-frontend:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
   # NGINX API Gateway
   nginx:
     image: nginx:latest
@@ -54,6 +61,7 @@ services:
       - workoutservice
       - lockerservice
       - friendservice
+      - frontend
     ports:
       - "4000:80"
     networks:
