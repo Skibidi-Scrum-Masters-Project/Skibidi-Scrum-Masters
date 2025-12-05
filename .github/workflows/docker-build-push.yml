@@ -3,6 +3,8 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [ main]
+  pull_request:
+    branches: [ main, development]
 
 env:
   REGISTRY: docker.io
@@ -25,15 +27,21 @@ jobs:
           - name: classservice
             context: .
             dockerfile: ./ClassService/Dockerfile
-          - name: workoutservice
+          - name: socialservice
             context: .
-            dockerfile: ./WorkoutService/Dockerfile
-          - name: lockerservice
+            dockerfile: ./SocialService/Dockerfile
+          - name: solotrainingservice
             context: .
-            dockerfile: ./LockerService/Dockerfile
-          - name: friendservice
+            dockerfile: ./SoloTrainingService/Dockerfile
+          - name: accesscontrolservice
             context: .
-            dockerfile: ./FriendService/Dockerfile
+            dockerfile: ./AccessControlService/Dockerfile
+          - name: coachingservice
+            context: .
+            dockerfile: ./CoachingService/Dockerfile
+          - name: analyticsservice
+            context: .
+            dockerfile: ./AnalyticsService/Dockerfile
           - name: frontend
             context: .
             dockerfile: ./Frontend/Dockerfile

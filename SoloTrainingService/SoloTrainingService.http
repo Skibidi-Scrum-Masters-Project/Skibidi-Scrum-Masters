@@ -1,0 +1,6 @@
+@SoloTrainingService_HostAddress = http://localhost:5022
+
+GET {{SoloTrainingService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
