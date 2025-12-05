@@ -53,6 +53,24 @@ public class UserRepository : IUserRepository
         return _usersCollection.Find(new BsonDocument()).ToList();
     }
 
+    public User? GetUserById(string id)
+    {
+        try
+        {
+            return _usersCollection.Find(u => u.Id == id).FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving user by ID {id}: {ex.Message}");
+            return null;
+        }
+    }
+
+    public User? GetUserByUsername(string username)
+    {
+        return _usersCollection.Find(u => u.Username == username).FirstOrDefault();
+    }
+
     public User HashPassword(User user)
     {
         string unhashedPassword = user.HashedPassword!;

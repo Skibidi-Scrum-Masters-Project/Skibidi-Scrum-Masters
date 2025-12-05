@@ -52,10 +52,38 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
+    [HttpGet("username/{username}")]
+    public ActionResult<User> GetUserByUsername(string username)
+    {
+        try
+        {
+            var user = _userRepository.GetUserByUsername(username);
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found", message = $"User with username '{username}' does not exist" });
+            }
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
     [HttpGet("{id}")]
     public ActionResult<User> GetUserById(string id)
     {
-        // TBA: Implement get user by id
-        return Ok(new { message = $"Get user by id {id} - TBA" });
+        try
+        {
+            var user = _userRepository.GetUserById(id);
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found", message = $"User with ID '{id}' does not exist" });
+            }
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
     }
 }

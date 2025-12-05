@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
+using AuthService.Models;
 
 namespace AuthService.Controllers;
 
@@ -15,10 +16,25 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public ActionResult Login([FromBody] LoginRequest request)
+    public async Task<ActionResult> Login([FromBody] LoginRequest request)
     {
-        // TBA: Implement authentication logic
-        return Ok(new { message = "Login endpoint - TBA" });
+        try
+        {
+            var loginResponse = await _authRepository.Login(request);
+            if (loginResponse == null)
+            {
+                return Unauthorized(new { error = "Invalid credentials", message = "Username or password is incorrect" });
+            }
+            return Ok(loginResponse);
+        }
+        catch (ArgumentNullException ex)
+        {
+            return BadRequest(new { error = "Invalid input", message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
     }
     [HttpPost("status")]
     public ActionResult Status()
