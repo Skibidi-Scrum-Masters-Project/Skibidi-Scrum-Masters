@@ -17,13 +17,10 @@ namespace FitnessApp.Shared.Models
         [Required]
         public string Email { get; set; } = string.Empty;
         public string? LicensePlate { get; set; }
-        public List<Workout> Workouts { get; set; } = new List<Workout>();
-        public List<Role> Roles { get; set; } = new List<Role>();
+        public Role Role { get; set; } = Role.Member;
         public string? Salt { get; set; }
         public string? HashedPassword { get; set; }
-        public List<string> FriendIds { get; set; } = new List<string>();
-        public List<string> Classes { get; set; } = new List<string>();
-        public List<string> Waitlist { get; set; } = new List<string>();
-        public string? LockerId { get; set; }
+
+
     }
 }
