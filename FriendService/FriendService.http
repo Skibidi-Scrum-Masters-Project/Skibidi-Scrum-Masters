@@ -1,6 +1,0 @@
-@FriendService_HostAddress = http://localhost:5077
-
-GET {{FriendService_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
