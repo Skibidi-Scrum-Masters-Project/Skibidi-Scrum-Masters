@@ -22,7 +22,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        dotnet-version: '9.0.x'
 
     - name: Restore dependencies
       run: dotnet restore FitnessApp.sln
@@ -39,12 +39,18 @@ jobs:
     - name: Run ClassService Tests
       run: dotnet test ClassService.Tests/ClassService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/ClassService
 
-    - name: Run WorkoutService Tests
-      run: dotnet test WorkoutService.Tests/WorkoutService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/WorkoutService
+    - name: Run SocialService Tests
+      run: dotnet test SocialService.Tests/SocialService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/SocialService
 
-    - name: Run LockerService Tests
-      run: dotnet test LockerService.Tests/LockerService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/LockerService
+    - name: Run SoloTrainingService Tests
+      run: dotnet test SoloTrainingService.Tests/SoloTrainingService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/SoloTrainingService
 
-    - name: Run FriendService Tests
-      run: dotnet test FriendService.Tests/FriendService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/FriendService
+    - name: Run AccessControlService Tests
+      run: dotnet test AccessControlService.Tests/AccessControlService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/AccessControlService
+
+    - name: Run CoachingService Tests
+      run: dotnet test CoachingService.Tests/CoachingService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/CoachingService
+
+    - name: Run AnalyticsService Tests
+      run: dotnet test AnalyticsService.Tests/AnalyticsService.Tests.csproj --no-build --configuration Release --logger trx --results-directory TestResults/AnalyticsService
 
