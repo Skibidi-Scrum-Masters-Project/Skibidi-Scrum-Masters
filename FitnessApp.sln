@@ -11,21 +11,29 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassService", "ClassServic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassService.Tests", "ClassService.Tests\ClassService.Tests.csproj", "{C6E1382C-40EA-437E-8D48-CF789859D1F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LockerService", "LockerService\LockerService.csproj", "{F0778A3C-37AC-4E34-BBA7-58BB6F70C0EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccessControlService", "AccessControlService\AccessControlService.csproj", "{F0778A3C-37AC-4E34-BBA7-58BB6F70C0EA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LockerService.Tests", "LockerService.Tests\LockerService.Tests.csproj", "{43B9300C-B477-4858-A006-8F59D2CB510C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccessControlService.Tests", "AccessControlService.Tests\AccessControlService.Tests.csproj", "{43B9300C-B477-4858-A006-8F59D2CB510C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkoutService", "WorkoutService\WorkoutService.csproj", "{D217CD88-2077-48F4-A91A-06D2C404F9AB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoloTrainingService", "SoloTrainingService\SoloTrainingService.csproj", "{D217CD88-2077-48F4-A91A-06D2C404F9AB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkoutService.Tests", "WorkoutService.Tests\WorkoutService.Tests.csproj", "{0B91FD10-6096-4581-AAB5-360C45C7394E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoloTrainingService.Tests", "SoloTrainingService.Tests\SoloTrainingService.Tests.csproj", "{0B91FD10-6096-4581-AAB5-360C45C7394E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthService", "AuthService\AuthService.csproj", "{BB73657A-88D8-45B9-984E-3D00493E7B04}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AuthService.Tests", "AuthService.Tests\AuthService.Tests.csproj", "{64A84A47-5428-41EA-8DD3-AD72E227331E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FriendService", "FriendService\FriendService.csproj", "{6BA4D5A5-28D0-4476-9672-EA2A54917BC0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialService", "SocialService\SocialService.csproj", "{6BA4D5A5-28D0-4476-9672-EA2A54917BC0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FriendService.Tests", "FriendService.Tests\FriendService.Tests.csproj", "{E74CFD4F-D968-4FE2-A334-C3D7EB7E2014}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialService.Tests", "SocialService.Tests\SocialService.Tests.csproj", "{E74CFD4F-D968-4FE2-A334-C3D7EB7E2014}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoachingService", "CoachingService\CoachingService.csproj", "{62F97EF4-5003-493A-9C50-92D44B13004D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoachingService.Tests", "CoachingService.Tests\CoachingService.Tests.csproj", "{501661DD-13C3-4C23-834E-C3ABAF97E6F9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnalyticsService", "AnalyticsService\AnalyticsService.csproj", "{BC8CC769-6CDD-49C6-8C54-6D3ED4B10620}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AnalyticsService.Tests", "AnalyticsService.Tests\AnalyticsService.Tests.csproj", "{E15B12C5-6B47-44F7-9233-04E6E74E0528}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{1D9F515A-A660-47A8-82EC-1C2F4E037199}"
 EndProject
@@ -90,6 +98,22 @@ Global
 		{E74CFD4F-D968-4FE2-A334-C3D7EB7E2014}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E74CFD4F-D968-4FE2-A334-C3D7EB7E2014}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E74CFD4F-D968-4FE2-A334-C3D7EB7E2014}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62F97EF4-5003-493A-9C50-92D44B13004D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62F97EF4-5003-493A-9C50-92D44B13004D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62F97EF4-5003-493A-9C50-92D44B13004D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62F97EF4-5003-493A-9C50-92D44B13004D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{501661DD-13C3-4C23-834E-C3ABAF97E6F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{501661DD-13C3-4C23-834E-C3ABAF97E6F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{501661DD-13C3-4C23-834E-C3ABAF97E6F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{501661DD-13C3-4C23-834E-C3ABAF97E6F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC8CC769-6CDD-49C6-8C54-6D3ED4B10620}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC8CC769-6CDD-49C6-8C54-6D3ED4B10620}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC8CC769-6CDD-49C6-8C54-6D3ED4B10620}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC8CC769-6CDD-49C6-8C54-6D3ED4B10620}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E15B12C5-6B47-44F7-9233-04E6E74E0528}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E15B12C5-6B47-44F7-9233-04E6E74E0528}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E15B12C5-6B47-44F7-9233-04E6E74E0528}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E15B12C5-6B47-44F7-9233-04E6E74E0528}.Release|Any CPU.Build.0 = Release|Any CPU
 		{0C604052-8657-4686-AA93-2AA32D8F6BD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0C604052-8657-4686-AA93-2AA32D8F6BD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C604052-8657-4686-AA93-2AA32D8F6BD0}.Release|Any CPU.ActiveCfg = Release|Any CPU

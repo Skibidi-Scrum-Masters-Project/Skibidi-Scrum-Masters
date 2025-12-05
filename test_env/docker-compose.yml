@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # Fitness App Microservices - Built locally
+  authservice:
+    build:
+      context: ..
+      dockerfile: AuthService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../AuthService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  userservice:
+    build:
+      context: ..
+      dockerfile: UserService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../UserService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  classservice:
+    build:
+      context: ..
+      dockerfile: ClassService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../ClassService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  socialservice:
+    build:
+      context: ..
+      dockerfile: SocialService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../SocialService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  solotrainingservice:
+    build:
+      context: ..
+      dockerfile: SoloTrainingService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../SoloTrainingService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  accesscontrolservice:
+    build:
+      context: ..
+      dockerfile: AccessControlService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../AccessControlService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  coachingservice:
+    build:
+      context: ..
+      dockerfile: CoachingService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../CoachingService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  analyticsservice:
+    build:
+      context: ..
+      dockerfile: AnalyticsService/Dockerfile
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ../AnalyticsService/appsettings.Development.json:/app/appsettings.Development.json:ro
+    networks:
+      - skibidi
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: Frontend/Dockerfile
+    ports:
+      - "3001:8080"
+    environment:
+      - NODE_ENV=development
+    networks:
+      - skibidi
+
+  # NGINX API Gateway
+  nginx:
+    image: nginx:latest
+    container_name: fitness_gateway
+    volumes:
+      - ../API-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - authservice
+      - userservice
+      - classservice
+      - socialservice
+      - solotrainingservice
+      - accesscontrolservice
+      - coachingservice
+      - analyticsservice
+      - frontend
+    ports:
+      - "4000:80"
+    networks:
+      - skibidi
+
+networks:
+  skibidi:
+    external: true

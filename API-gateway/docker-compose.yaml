@@ -21,22 +21,36 @@ services:
     networks:
       - skibidi
 
-  workoutservice:
-    image: asgermunk/fitnessapp-workoutservice:latest
+  socialservice:
+    image: asgermunk/fitnessapp-socialservice:latest
     expose:
       - "8080"
     networks:
       - skibidi
 
-  lockerservice:
-    image: asgermunk/fitnessapp-lockerservice:latest
+  solotrainingservice:
+    image: asgermunk/fitnessapp-solotrainingservice:latest
     expose:
       - "8080"
     networks:
       - skibidi
 
-  friendservice:
-    image: asgermunk/fitnessapp-friendservice:latest
+  accesscontrolservice:
+    image: asgermunk/fitnessapp-accesscontrolservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  coachingservice:
+    image: asgermunk/fitnessapp-coachingservice:latest
+    expose:
+      - "8080"
+    networks:
+      - skibidi
+
+  analyticsservice:
+    image: asgermunk/fitnessapp-analyticsservice:latest
     expose:
       - "8080"
     networks:
@@ -58,9 +72,11 @@ services:
       - authservice
       - userservice
       - classservice
-      - workoutservice
-      - lockerservice
-      - friendservice
+      - socialservice
+      - solotrainingservice
+      - accesscontrolservice
+      - coachingservice
+      - analyticsservice
       - frontend
     ports:
       - "4000:80"

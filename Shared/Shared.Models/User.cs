@@ -1,29 +1,44 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace FitnessApp.Shared.Models
 {
     public class User
     {
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        [BsonElement("_id")]
+        public string? Id { get; set; }
+        
         [Required]
-        public string UserId { get; set; } = string.Empty;
-        [Required]
+        [BsonElement("username")]
         public string Username { get; set; } = string.Empty;
+        
         [Required]
+        [BsonElement("firstName")]
         public string FirstName { get; set; } = string.Empty;
+        
         [Required]
+        [BsonElement("lastName")]
         public string LastName { get; set; } = string.Empty;
+        
         [Required]
+        [BsonElement("email")]
         public string Email { get; set; } = string.Empty;
+        
+        [BsonElement("licensePlate")]
         public string? LicensePlate { get; set; }
-        public List<Workout> Workouts { get; set; } = new List<Workout>();
-        public List<Role> Roles { get; set; } = new List<Role>();
+        
+        [BsonElement("role")]
+        public Role Role { get; set; } = Role.Member;
+        
+        [BsonElement("salt")]
         public string? Salt { get; set; }
+        
+        [BsonElement("hashedPassword")]
         public string? HashedPassword { get; set; }
-        public List<string> FriendIds { get; set; } = new List<string>();
-        public List<string> Classes { get; set; } = new List<string>();
-        public List<string> Waitlist { get; set; } = new List<string>();
-        public string? LockerId { get; set; }
     }
 }
