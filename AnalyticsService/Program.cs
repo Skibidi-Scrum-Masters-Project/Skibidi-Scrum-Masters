@@ -1,4 +1,4 @@
-using VaultSharp;
+﻿using VaultSharp;
 using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
@@ -10,12 +10,18 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using FitnessApp.Shared.Models;
+using NLog;
+using NLog.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Bypass SSL certificate validation globally for vault connections
-ServicePointManager.ServerCertificateValidationCallback = 
-    (sender, certificate, chain, sslPolicyErrors) => true;
+// Configure NLog
+var logger = NLog.LogManager.Setup().LoadConfigurationFromFile("NLog.config").GetCurrentClassLogger();
+logger.Debug("Starting AnalyticsService application");
+
+// Configure NLog with ASP.NET Core
+builder.Logging.ClearProviders();
+builder.Logging.AddNLog();
 
 // Configure Vault client
 var vaultAddress = builder.Configuration["Vault:Address"] ?? "https://test.fitlife.qzz.io:8201/";
@@ -96,3 +102,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+
+
+

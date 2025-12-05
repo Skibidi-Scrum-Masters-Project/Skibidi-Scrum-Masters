@@ -9,10 +9,12 @@ using System.Text;
 public class AuthRepository : IAuthRepository
 {
     private readonly JwtSettings _jwtSettings;
+    private readonly ILogger<AuthRepository> _logger;
 
-    public AuthRepository(IOptions<JwtSettings> jwtSettings)
+    public AuthRepository(IOptions<JwtSettings> jwtSettings, ILogger<AuthRepository> logger)
     {
         _jwtSettings = jwtSettings.Value;
+        _logger = logger;
     }
     //TBA
     public async Task<LoginResponse?> Login(LoginRequest request)
@@ -36,6 +38,10 @@ public class AuthRepository : IAuthRepository
                         User = user,
                         ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes)
                     };
+                }
+                else if (user != null)
+                {
+                    _logger.LogWarning("Failed login attempt for username: {Username} - Invalid password", request.Username);
                 }
             }
             return null;

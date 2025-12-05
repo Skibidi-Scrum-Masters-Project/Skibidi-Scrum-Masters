@@ -1,4 +1,4 @@
-using VaultSharp;
+﻿using VaultSharp;
 using VaultSharp.V1.AuthMethods.Token;
 using VaultSharp.V1.AuthMethods;
 using VaultSharp.V1.Commons;
@@ -14,8 +14,18 @@ using AuthService.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using NLog;
+using NLog.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure NLog
+var logger = NLog.LogManager.Setup().LoadConfigurationFromFile("NLog.config").GetCurrentClassLogger();
+logger.Debug("Starting AuthService application");
+
+// Configure NLog with ASP.NET Core
+builder.Logging.ClearProviders();
+builder.Logging.AddNLog();
 
 
 // Configure Vault client
@@ -139,3 +149,4 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
