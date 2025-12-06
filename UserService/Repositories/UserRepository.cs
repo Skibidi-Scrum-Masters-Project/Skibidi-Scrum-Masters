@@ -21,6 +21,8 @@ public class UserRepository : IUserRepository
             
             if (string.IsNullOrWhiteSpace(user.Username))
                 throw new ArgumentException("Username is required", nameof(user));
+            if (GetUserByUsername(user.Username) != null)
+                throw new ArgumentException("Username already exists", nameof(user));
                 
             if (string.IsNullOrWhiteSpace(user.Email))
                 throw new ArgumentException("Email is required", nameof(user));
