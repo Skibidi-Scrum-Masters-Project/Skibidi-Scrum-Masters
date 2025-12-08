@@ -9,7 +9,7 @@ namespace SocialService.Repositories;
 
 public class FriendshipRepository : IFriendshipRepository
 {
-    private readonly IMongoCollection<Friendship> FriendshipCollection;
+    private readonly IMongoCollection<Friendship> _friendshipCollection;
     
     public FriendshipRepository(IConfiguration configuration)
     {
@@ -21,14 +21,14 @@ public class FriendshipRepository : IFriendshipRepository
         var database = mongoClient.GetDatabase("FitnessAppDB");
 
         // Collection navn
-        FriendshipCollection = database.GetCollection<Friendship>("Friendships");
+        _friendshipCollection = database.GetCollection<Friendship>("Friendships");
     }
 
     public async Task<Friendship> SendFriendRequestAsync(int senderId, int receiverId)
     {
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
-        var existingFriendshipRequest = await FriendshipCollection
+        var existingFriendshipRequest = await _friendshipCollection
             .Find(friendship => (friendship.SenderId == senderId && friendship.ReceiverId == receiverId)
                                 || (friendship.ReceiverId == senderId && friendship.SenderId == receiverId))
             .FirstOrDefaultAsync();
@@ -45,7 +45,7 @@ public class FriendshipRepository : IFriendshipRepository
                 FriendShipStatus = FriendshipStatus.Pending,
             };
             
-            await  FriendshipCollection.InsertOneAsync(friendship);
+            await  _friendshipCollection.InsertOneAsync(friendship);
             return friendship;
 
     }
@@ -54,7 +54,7 @@ public class FriendshipRepository : IFriendshipRepository
     {
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
-        var existingFriendshipRequest = await FriendshipCollection
+        var existingFriendshipRequest = await _friendshipCollection
             .Find(friendship => (friendship.SenderId == senderId && friendship.ReceiverId == receiverId)
                                 || (friendship.ReceiverId == senderId && friendship.SenderId == receiverId))
             .FirstOrDefaultAsync();
@@ -70,7 +70,7 @@ public class FriendshipRepository : IFriendshipRepository
         {
             var update = Builders<Friendship>.Update.Set(friendship => friendship.FriendShipStatus, FriendshipStatus.Declined);
              
-            await FriendshipCollection.UpdateOneAsync(
+            await _friendshipCollection.UpdateOneAsync(
                 friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
                 update
             );
