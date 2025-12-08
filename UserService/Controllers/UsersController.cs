@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FitnessApp.Shared.Models;
 
 namespace UserService.Controllers;
@@ -15,6 +16,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Coach")]
     public ActionResult<IEnumerable<User>> GetUsers()
     {
         try
@@ -86,4 +88,58 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
+    [HttpDelete("{id}")]
+    public ActionResult DeleteUser(string id)
+    {
+        try
+        {
+            bool deleted = _userRepository.DeleteUser(id);
+            if (!deleted)
+            {
+                return NotFound(new { error = "User not found", message = $"User with ID '{id}' does not exist" });
+            }
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+    [HttpPut("{id}")]
+    public ActionResult<User> UpdateUser(User updatedUser)
+    {
+        try
+        {
+            var userInDb = _userRepository.GetUserById(updatedUser.Id!);
+            if (userInDb == null)
+            {
+                return NotFound(new { error = "User not found", message = $"User with ID '{updatedUser.Id}' does not exist" });
+            }
+
+            User user = _userRepository.UpdateUser(updatedUser);
+            return Ok(user);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = "Validation error", message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+    [HttpGet("role/{role}")]
+    public ActionResult<List<User>> GetUsersByRole(Role role)
+    {
+        try
+        {
+            var users = _userRepository.GetUsersByRole(role);
+            return Ok(users);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+    
 }
