@@ -11,13 +11,18 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Install MongoDB native deps (libssl1.1)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libssl1.1 || sudo apt-get install -y libssl1.1=1.1.1f-1ubuntu2.19 || true
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
