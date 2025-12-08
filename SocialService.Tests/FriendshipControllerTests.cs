@@ -2,20 +2,21 @@ using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using SocialService.Controllers;
 using Moq;
+using SocialService.Repositories;
 
 namespace SocialService.Tests;
 
 [TestClass]
-public class FriendsControllerTests
+public class FriendshipControllerTests
 {
-    private FriendsController _controller = null!;
-    private Mock<IFriendRepository> _mockRepository = null!;
+    private FriendshipController _controller = null!;
+    private Mock<IFriendshipRepository> _mockRepository = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _mockRepository = new Mock<IFriendRepository>();
-        _controller = new FriendsController(_mockRepository.Object);
+        _mockRepository = new Mock<IFriendshipRepository>();
+        _controller = new FriendshipController(_mockRepository.Object);
     }
 
     [TestMethod]

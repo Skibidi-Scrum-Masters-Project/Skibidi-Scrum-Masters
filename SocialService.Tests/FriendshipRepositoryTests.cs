@@ -3,7 +3,7 @@ using FitnessApp.Shared.Models;
 namespace SocialService.Tests;
 
 [TestClass]
-public class FriendRepositoryTests
+public class FriendshipRepositoryTests
 {
     [TestInitialize]
     public void Setup()
