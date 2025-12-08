@@ -12,6 +12,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using FitnessApp.Shared.Models;
 using NLog;
 using NLog.Extensions.Logging;
+using AccessControlService.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
