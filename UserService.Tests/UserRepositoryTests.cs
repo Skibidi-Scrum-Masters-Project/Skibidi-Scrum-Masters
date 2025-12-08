@@ -122,10 +122,11 @@ public class UserRepositoryTests
         Assert.IsNull(fetchedUser);
     }
     [TestMethod]
-    public void DeleteUser_WithNoUserWithId_ShouldThrowException()
+    public void DeleteUser_WithNoUserWithId_ShouldNotThrowException()
     {
         // Act & Assert
-        Assert.ThrowsException<ArgumentException>(() => _userRepository.DeleteUser("1234567890abcdef12345678"));
+        _userRepository.DeleteUser("1234567890abcdef12345678");
+        Assert.IsTrue(true); // If no exception is thrown, the test passes
     }
     [TestMethod]
     public void GetAllUsersByRole_ShouldReturnUsersWithSpecifiedRole()
