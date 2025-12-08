@@ -21,6 +21,8 @@ public class UserRepository : IUserRepository
             
             if (string.IsNullOrWhiteSpace(user.Username))
                 throw new ArgumentException("Username is required", nameof(user));
+            if (GetUserByUsername(user.Username) != null)
+                throw new ArgumentException("Username already exists", nameof(user));
                 
             if (string.IsNullOrWhiteSpace(user.Email))
                 throw new ArgumentException("Email is required", nameof(user));
@@ -68,7 +70,15 @@ public class UserRepository : IUserRepository
 
     public User? GetUserByUsername(string username)
     {
+        try
+        {
         return _usersCollection.Find(u => u.Username == username).FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving user by username {username}: {ex.Message}");
+            return null;
+        }
     }
 
     public User HashPassword(User user)
@@ -80,4 +90,23 @@ public class UserRepository : IUserRepository
         user.HashedPassword = hashedPassword;
         return user;
     }
+    public User UpdateUser(User user)
+    {
+        var userInDb = GetUserById(user.Id!);
+        if (userInDb == null)
+        {
+            throw new ArgumentException("User not found", nameof(user));
+        }
+        _usersCollection.ReplaceOne(u => u.Id == user.Id, user);
+        return GetUserById(user.Id!)!;
+    }
+    public void DeleteUser(string id)
+    {
+        _usersCollection.DeleteOne(u => u.Id == id);
+    }
+    public List<User> GetAllUsersByRole(Role role)
+    {
+        var users = _usersCollection.Find(u => u.Role == role).ToList();
+        return users;
+    }   
 }
