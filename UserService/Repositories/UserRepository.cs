@@ -90,23 +90,30 @@ public class UserRepository : IUserRepository
         user.HashedPassword = hashedPassword;
         return user;
     }
-    public User UpdateUser(User user)
+    public User UpdateUser(User updatedUser)
     {
-        var userInDb = GetUserById(user.Id!);
+        var userInDb = GetUserById(updatedUser.Id!);
         if (userInDb == null)
         {
-            throw new ArgumentException("User not found", nameof(user));
+            throw new ArgumentException("User not found", nameof(updatedUser));
         }
-        _usersCollection.ReplaceOne(u => u.Id == user.Id, user);
-        return GetUserById(user.Id!)!;
+        _usersCollection.ReplaceOne(u => u.Id == updatedUser.Id, updatedUser);
+        return GetUserById(updatedUser.Id!)!;
     }
-    public void DeleteUser(string id)
+    public bool DeleteUser(string id)
     {
+        var userInDb = GetUserById(id);
+        if (userInDb == null)
+        {
+            return false;
+        }
+
         _usersCollection.DeleteOne(u => u.Id == id);
+        return true;
     }
-    public List<User> GetAllUsersByRole(Role role)
+    public List<User> GetUsersByRole(Role role)
     {
         var users = _usersCollection.Find(u => u.Role == role).ToList();
         return users;
-    }   
+    }
 }

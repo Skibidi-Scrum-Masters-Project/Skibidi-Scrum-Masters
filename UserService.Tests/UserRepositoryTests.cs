@@ -122,6 +122,13 @@ public class UserRepositoryTests
         Assert.IsNull(fetchedUser);
     }
     [TestMethod]
+    public void DeleteUser_WithNoUserWithId_ShouldNotThrowException()
+    {
+        // Act & Assert
+        _userRepository.DeleteUser("1234567890abcdef12345678");
+        Assert.IsTrue(true); // If no exception is thrown, the test passes
+    }
+    [TestMethod]
     public void GetAllUsersByRole_ShouldReturnUsersWithSpecifiedRole()
     {
         // Arrange
@@ -142,8 +149,8 @@ public class UserRepositoryTests
         _userRepository.CreateUser(adminUser);
         _userRepository.CreateUser(regularUser);
         // Act
-        var adminUsers = _userRepository.GetAllUsersByRole(Role.Admin);
-        var memberUsers = _userRepository.GetAllUsersByRole(Role.Member);
+        var adminUsers = _userRepository.GetUsersByRole(Role.Admin);
+        var memberUsers = _userRepository.GetUsersByRole(Role.Member);
         // Assert
         Assert.AreEqual(1, adminUsers.Count);
         Assert.AreEqual("adminuser", adminUsers[0].Username);
@@ -155,7 +162,7 @@ public class UserRepositoryTests
     public void GetAllUsersByRole_WithNoUsers_ShouldReturnEmptyList()
     {
         // Act
-        var guestUsers = _userRepository.GetAllUsersByRole(Role.Admin);
+        var guestUsers = _userRepository.GetUsersByRole(Role.Admin);
         // Assert
         Assert.IsNotNull(guestUsers);
         Assert.AreEqual(0, guestUsers.Count);
