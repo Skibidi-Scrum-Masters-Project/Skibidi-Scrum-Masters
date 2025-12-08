@@ -122,6 +122,12 @@ public class UserRepositoryTests
         Assert.IsNull(fetchedUser);
     }
     [TestMethod]
+    public void DeleteUser_WithNoUserWithId_ShouldThrowException()
+    {
+        // Act & Assert
+        Assert.ThrowsException<ArgumentException>(() => _userRepository.DeleteUser("1234567890abcdef12345678"));
+    }
+    [TestMethod]
     public void GetAllUsersByRole_ShouldReturnUsersWithSpecifiedRole()
     {
         // Arrange
