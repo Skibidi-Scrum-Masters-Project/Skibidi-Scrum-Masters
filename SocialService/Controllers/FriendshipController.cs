@@ -45,5 +45,27 @@ public class FriendshipController : ControllerBase
             return StatusCode(500, "An unexpected error occurred.");
         }
     }
+
+    [HttpPut]
+    public async Task<ActionResult> DeclineFriendRequestAsync([FromBody] Friendship friendship)
+    {
+        // Tjekker, at vi ikke afviser Friend request til os selv.
+        if (friendship.SenderId == friendship.ReceiverId)
+            return BadRequest("You cannot decline a friend request to yourself.");
+        
+        //Tjekker at man afviser en friend request til andre end 0, da 0 ikke findes.
+        if (friendship.SenderId <= 0 || friendship.ReceiverId <= 0)
+            return BadRequest("SenderId and ReceiverId must be valid ids.");
+
+        try
+        {
+            var declineFriendship = await _friendshipRepository.DeclineFriendRequestAsync(friendship.SenderId, friendship.ReceiverId);
+            return Ok(declineFriendship.FriendShipStatus);
+        }
+        catch (Exception e)
+        {
+            return StatusCode(500, "An unexpected error occurred.");
+        }
+    }
     
 }
