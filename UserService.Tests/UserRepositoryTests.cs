@@ -142,8 +142,8 @@ public class UserRepositoryTests
         _userRepository.CreateUser(adminUser);
         _userRepository.CreateUser(regularUser);
         // Act
-        var adminUsers = _userRepository.GetAllUsersByRole(Role.Admin);
-        var memberUsers = _userRepository.GetAllUsersByRole(Role.Member);
+        var adminUsers = _userRepository.GetUsersByRole(Role.Admin);
+        var memberUsers = _userRepository.GetUsersByRole(Role.Member);
         // Assert
         Assert.AreEqual(1, adminUsers.Count);
         Assert.AreEqual("adminuser", adminUsers[0].Username);
@@ -155,7 +155,7 @@ public class UserRepositoryTests
     public void GetAllUsersByRole_WithNoUsers_ShouldReturnEmptyList()
     {
         // Act
-        var guestUsers = _userRepository.GetAllUsersByRole(Role.Admin);
+        var guestUsers = _userRepository.GetUsersByRole(Role.Admin);
         // Assert
         Assert.IsNotNull(guestUsers);
         Assert.AreEqual(0, guestUsers.Count);

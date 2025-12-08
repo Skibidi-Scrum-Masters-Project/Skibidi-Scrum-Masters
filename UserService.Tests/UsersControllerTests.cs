@@ -269,4 +269,104 @@ public class UsersControllerTests
 
         _mockRepository.Verify(repo => repo.CreateUser(It.IsAny<User>()), Times.Once);
     }
+    [TestMethod]
+    public void GetUserById_ShouldReturnUser()
+    {
+        // Arrange
+    }
+
+    [TestMethod]
+    public void GetUserById_WhenUserNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        var userId = "nonexistentid";
+        _mockRepository.Setup(repo => repo.GetUserById(userId)).Returns((User?)null);
+        // Act
+        var result = _controller.GetUserById(userId);
+        // Assert
+        var notFoundResult = result.Result as NotFoundObjectResult;
+        Assert.IsNotNull(notFoundResult, "Expected NotFoundObjectResult");
+        Assert.AreEqual(404, notFoundResult.StatusCode, "Expected status code 404");
+        _mockRepository.Verify(repo => repo.GetUserById(userId), Times.Once);
+    }
+    [TestMethod]
+    public void GetUserById_ShouldReturnOkResult()
+    {
+        // Arrange
+        var userId = "1";
+        var user = new User
+        {
+            Id = userId,
+            Username = "testuser",
+            Email = "testuser@example.com"
+        };
+        _mockRepository.Setup(repo => repo.GetUserById(userId)).Returns(user);
+        // Act
+        var result = _controller.GetUserById(userId);
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(200, okResult.StatusCode, "Expected status code 200");
+        var returnedUser = okResult.Value as User;
+        Assert.IsNotNull(returnedUser, "Expected a user object");
+        Assert.AreEqual(userId, returnedUser.Id, "User IDs should match");
+        _mockRepository.Verify(repo => repo.GetUserById(userId), Times.Once);
+    }
+    [TestMethod]
+    public void DeleteUser_ShouldReturnNoContentWhenUserExists()
+    {
+        // Arrange
+        var userId = "1";
+        _mockRepository.Setup(repo => repo.DeleteUser(userId)).Returns(true);
+        // Act
+        var result = _controller.DeleteUser(userId);
+        // Assert
+        var noContentResult = result as NoContentResult;
+        Assert.IsNotNull(noContentResult, "Expected NoContentResult");
+        _mockRepository.Verify(repo => repo.DeleteUser(userId), Times.Once);
+    }
+    [TestMethod]
+    public void DeleteUser_ShouldReturnFalseWhenUserDoesNotExist()
+    {
+        // Arrange
+        var userId = "nonexistentid";
+        _mockRepository.Setup(repo => repo.DeleteUser(userId)).Returns(false);
+        // Act
+        var result = _controller.DeleteUser(userId);
+        // Assert
+        var notFoundResult = result as NotFoundObjectResult;
+        Assert.IsNotNull(notFoundResult, "Expected NotFoundObjectResult");
+        Assert.AreEqual(404, notFoundResult.StatusCode, "Expected status code 404");
+        _mockRepository.Verify(repo => repo.DeleteUser(userId), Times.Once);
+    }
+    [TestMethod]
+    public void UpdateUser_ShouldReturnUpdatedUser()
+    {
+        // Arrange
+        var userId = "1";
+        var existingUser = new User
+        {
+            Id = userId,
+            Username = "olduser",
+            Email = "olduser@example.com"
+        };
+        var updatedUser = new User
+        {
+            Id = userId,
+            Username = "updateduser",
+            Email = "updateduser@example.com"
+        };
+        _mockRepository.Setup(repo => repo.GetUserById(userId)).Returns(existingUser);
+        _mockRepository.Setup(repo => repo.UpdateUser(updatedUser)).Returns(updatedUser);
+        // Act
+        var result = _controller.UpdateUser(updatedUser);
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(200, okResult.StatusCode, "Expected status code 200");
+        var returnedUser = okResult.Value as User;
+        Assert.IsNotNull(returnedUser, "Expected a user object");
+        Assert.AreEqual(updatedUser.Username, returnedUser.Username, "Usernames should match");
+        _mockRepository.Verify(repo => repo.UpdateUser(updatedUser), Times.Once);
+    }
 }
