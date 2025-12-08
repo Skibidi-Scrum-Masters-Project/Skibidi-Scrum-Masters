@@ -1,6 +1,6 @@
 # Fitness App CI/CD Pipeline
 # This workflow builds and tests all microservices in the fitness application
-
+# Triggered on pushes and pull requests to main and development branches
 name: Fitness App CI/CD
 
 on:
