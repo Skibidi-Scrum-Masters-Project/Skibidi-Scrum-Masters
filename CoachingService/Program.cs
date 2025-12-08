@@ -13,6 +13,7 @@ using FitnessApp.Shared.Models;
 using NLog;
 using NLog.Extensions.Logging;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure NLog
@@ -82,7 +83,7 @@ builder.Services.AddScoped<IMongoDatabase>(serviceProvider =>
 });
 
 // Register repositories
-builder.Services.AddScoped<ICoachRepository, CoachRepository>();
+builder.Services.AddScoped<ICoachingRepository, CoachingRepository>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -100,6 +101,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 app.Run();
 
