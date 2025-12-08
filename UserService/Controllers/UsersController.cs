@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using FitnessApp.Shared.Models;
 
 namespace UserService.Controllers;
@@ -15,6 +16,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Coach")]
     public ActionResult<IEnumerable<User>> GetUsers()
     {
         try
