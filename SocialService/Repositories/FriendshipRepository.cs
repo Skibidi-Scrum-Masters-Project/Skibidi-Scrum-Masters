@@ -18,7 +18,7 @@ public class FriendshipRepository : IFriendshipRepository
         var mongoClient = new MongoClient(connectionString);
 
         // Database navn
-        var database = mongoClient.GetDatabase("SocialServiceDb");
+        var database = mongoClient.GetDatabase("FitnessAppDB");
 
         // Collection navn
         FriendshipCollection = database.GetCollection<Friendship>("Friendships");
