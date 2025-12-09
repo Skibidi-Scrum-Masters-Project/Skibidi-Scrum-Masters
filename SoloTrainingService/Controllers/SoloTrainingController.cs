@@ -36,10 +36,13 @@ public class SoloTrainingController : ControllerBase
         }
        
     }
-    [HttpGet]
-    public ActionResult<IEnumerable<Workout>> GetSoloTrainings()
+    [HttpGet("{userId}")]
+    public ActionResult<IEnumerable<SoloTrainingSession>> GetAllSoloTrainingsForUser(string userId)
     {
-        // TBA: Implement get all solo trainings
-        return Ok(new { message = "Get solo trainings - TBA" });
+        if(string.IsNullOrEmpty(userId))
+            return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
+    
+        List<SoloTrainingSession> soloTrainings = _soloTrainingRepository.GetAllSoloTrainingsForUser(userId);
+        return Ok(soloTrainings);
     }
 }
