@@ -1,6 +1,7 @@
 using FitnessApp.Shared.Models;
 using MongoDB.Driver;
 using MongoDB.Bson;
+
 public class SoloTrainingRepository : ISoloTrainingRepository
 {
         private readonly IMongoCollection<SoloTrainingSession> _SolotrainingCollection;
@@ -15,5 +16,16 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         soloTraining.UserId = userId.ToString();
         _SolotrainingCollection.InsertOne(soloTraining);
         return soloTraining;
+    }
+
+    public List<SoloTrainingSession> GetAllSoloTrainingsForUser(string userId)
+    {
+        var filter = Builders<SoloTrainingSession>.Filter.Eq(s => s.UserId, userId);
+        var sessions = _SolotrainingCollection.Find(filter).ToList();
+        if (sessions == null)
+        {
+            return new List<SoloTrainingSession>();
+        }
+        return sessions;
     }
 }
