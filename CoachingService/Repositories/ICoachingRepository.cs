@@ -3,6 +3,7 @@ using FitnessApp.Shared.Models;
 
 public interface ICoachingRepository
 {
-        Session CreateSession(Session session);
-    
+        Session BookSession(Session session);
+
+        IEnumerable<Session> GetAllSessions();
 }
