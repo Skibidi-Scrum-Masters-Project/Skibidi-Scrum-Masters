@@ -3,31 +3,31 @@ using FitnessApp.Shared.Models;
 namespace SoloTrainingService.Tests;
 
 [TestClass]
-public class WorkoutRepositoryTests
+public class SoloTrainingRepositoryTests
 {
     [TestInitialize]
     public void Setup()
     {
         // TBA: Setup repository with test database/context
-        // var repository = new WorkoutRepository(testContext);
+        // var repository = new SoloTrainingRepository(testContext);
     }
 
     [TestMethod]
-    public void CreateWorkout_ShouldAddWorkoutToDatabase()
+    public void CreateSoloTraining_ShouldAddSoloTrainingToDatabase()
     {
-        // TBA: Implement workout creation test
+        // TBA: Implement solo training creation test
         Assert.Inconclusive("Test not implemented yet");
     }
 
     [TestMethod]
-    public void AddExerciseToWorkout_ShouldUpdateWorkout()
+    public void AddExerciseToSoloTraining_ShouldUpdateSoloTraining()
     {
         // TBA: Implement exercise addition test
         Assert.Inconclusive("Test not implemented yet");
     }
 
     [TestMethod]
-    public void CalculateWorkoutVolume_ShouldReturnCorrectTotal()
+    public void CalculateSoloTrainingVolume_ShouldReturnCorrectTotal()
     {
         // TBA: Implement volume calculation test
         Assert.Inconclusive("Test not implemented yet");
