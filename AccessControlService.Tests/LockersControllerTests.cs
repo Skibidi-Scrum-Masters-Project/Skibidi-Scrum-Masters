@@ -55,17 +55,60 @@ public class LockersControllerTests
 
         // Assert
 
-        // 1) Det skal være OkObjectResult
+        // 1) Controller should return an OkObjectResult
         var okResult = result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
 
-        // 2) Locker blev opdateret korrekt
+        // 2) Locker should now be assigned to the correct user and locked
         Assert.AreEqual(userId, locker.UserId);
         Assert.IsTrue(locker.IsLocked);
 
-        // 3) SaveAsync blev kaldt præcis én gang med vores lockerRoom
+        // 3) SaveAsync should only be called once with the same lockerRoom instance
         _mockRepository.Verify(
             r => r.SaveAsync(It.Is<LockerRoom>(lr => lr == lockerRoom)),
             Times.Once);
+    }
+
+
+    [TestMethod]
+    public async Task GetAvailableLockers_ShouldReturnOnlyUnlockedLockers()
+    {
+        // Arrange
+        int lockerRoomId = 1;
+
+        var lockers = new List<Locker>
+        {
+            new Locker { LockerId = 1, UserId = 0,  IsLocked = false }, // available
+            new Locker { LockerId = 2, UserId = 0,  IsLocked = true  }, // locked
+            new Locker { LockerId = 3, UserId = 99, IsLocked = false }  // taken by another user
+        };
+
+        var lockerRoom = new LockerRoom
+        {
+            LockerRoomId = lockerRoomId,
+            CenterId = 1,
+            Capacity = 10,
+            Lockers = lockers
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync(lockerRoom);
+
+        // Act
+        var result = await _controller.GetAvailableLockers(lockerRoomId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+
+        var returned = okResult.Value as IEnumerable<Locker>;
+        Assert.IsNotNull(returned, "Expected list of lockers");
+
+        var list = returned.ToList();
+
+        // Only lockerId = 1 should be available (!IsLocked && UserId == 0)
+        Assert.AreEqual(1, list.Count);
+        Assert.AreEqual(1, list[0].LockerId);
     }
 }

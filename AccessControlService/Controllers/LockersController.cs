@@ -1,3 +1,4 @@
+using AccessControlService.Models;
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using AccessControlService.Repositories;
@@ -15,37 +16,51 @@ public class LockersController : ControllerBase
         _lockerRepository = lockerRepository;
     }
 
-    [HttpGet]
-    public ActionResult<IEnumerable<Locker>> GetLockers()
+    
+    // FIND AVAILABLE LOCKERS
+    [HttpGet("{lockerRoomId}/available")]
+    public async Task<IActionResult> GetAvailableLockers(int lockerRoomId)
     {
-        // TBA: Implement get all lockers
-        return Ok(new { message = "Get lockers - TBA" });
+        // GET ALL LOCKERS
+        var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
+        if (lockerRoom == null)
+            return NotFound("Locker not found");
+        
+        // FILTER AVAILABLE LOCKERS
+        var availableLockers = lockerRoom.Lockers
+            .Where(l => !l.IsLocked && l.UserId == 0)
+            .ToList();
+        
+        // RETURN RESULT
+        return Ok(availableLockers);
     }
 
+    
+    // SET LOCK TO LOCKED
     [HttpPut("{lockerRoomId}/{lockerId}/{userId}")]
     public async Task<IActionResult> LockLocker(
         int lockerRoomId, int lockerId, int userId)
     {
-        // get locker room from db
+        // GET LOCKER ROOM FROM DB
         var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
         if (lockerRoom == null)
             return NotFound("Locker room not found");
 
-        // 2. Find locker in locker room
+        // FIND LOCKER IN LOCKER ROOM
         var locker = lockerRoom.Lockers
             .FirstOrDefault(l => l.LockerId == lockerId);
 
         if (locker == null)
             return NotFound("Locker not found");
 
-        // 3. Find lock on user id and set lock to locked
+        // FIND LOCK ON USERID AND SET IT TO LOCKED
         locker.UserId = userId;
         locker.IsLocked = true;
 
-        // 4. Save in database
+        // SAVE IN DATABASE
         await _lockerRepository.SaveAsync(lockerRoom);
 
-        // 5. Return Result
+        // RETURN RESULT
         return Ok(new 
         { 
             lockerRoomId,

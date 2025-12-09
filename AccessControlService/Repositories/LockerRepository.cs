@@ -12,11 +12,12 @@ public class LockerRepository : ILockerRepository
     public LockerRepository(IMongoDatabase database)
     {
         
-        _lockerRooms = database.GetCollection<LockerRoom>("LockerRoom");
+        _lockerRooms = database.GetCollection<LockerRoom>("LockerRooms");
     }
 
     public async Task<LockerRoom?> GetByIdAsync(int lockerRoomId)
     {
+        // FIND LOCKERS FOR LOCKER ROOM
         return await _lockerRooms
             .Find(lr => lr.LockerRoomId == lockerRoomId)
             .FirstOrDefaultAsync();
@@ -24,7 +25,7 @@ public class LockerRepository : ILockerRepository
     
     public async Task SaveAsync(LockerRoom lockerRoom)
     {
-        // Replace the whole document
+        // REPLACE THE WHOLE DOCUMENT
         await _lockerRooms.ReplaceOneAsync(
             lr => lr.LockerRoomId == lockerRoom.LockerRoomId,
             lockerRoom,
