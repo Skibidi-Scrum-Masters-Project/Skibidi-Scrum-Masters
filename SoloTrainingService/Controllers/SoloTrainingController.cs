@@ -54,4 +54,22 @@ public class SoloTrainingController : ControllerBase
         SoloTrainingSession recentSession = _soloTrainingRepository.GetMostRecentSoloTrainingForUser(userId);
         return Ok(recentSession);
     }
+    [HttpDelete("{trainingId}")]
+    public IActionResult DeleteSoloTraining(string trainingId)
+    {
+        if (string.IsNullOrEmpty(trainingId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "Training ID cannot be null or empty." });
+        }
+
+        try
+        {
+            _soloTrainingRepository.DeleteSoloTraining(trainingId);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
 }
