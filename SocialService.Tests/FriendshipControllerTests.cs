@@ -91,10 +91,46 @@ public class FriendshipControllerTests
     }
     
     [TestMethod]
-    public void GetUserFriends_ShouldReturnUsersFriends()
+    public async Task GetAllFriends_ShouldReturnListOfAllFriends_WhenSearchedForFriends()
     {
-        // TBA: Implement test for getting user's friends
-        Assert.Inconclusive("Test not implemented yet");
+        //Arrange
+        var senderId = 1;
+        var receiverId = senderId;
+
+        var FriendshipFromRepo = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = receiverId,
+            FriendShipStatus = FriendshipStatus.Accepted
+        };
+        
+        _mockRepository
+            .Setup(f => f.GetAllFriends(senderId))
+            .ReturnsAsync(new List<Friendship> { FriendshipFromRepo });
+        
+        //Act
+        var result = await _controller.GetAllFriends(senderId);
+        
+        
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+
+        // Assert at vi får en liste tilbage
+        var friends = okResult.Value as IEnumerable<Friendship>;
+        Assert.IsNotNull(friends, "Expected a list of friendships");
+
+        var friendsList = friends.ToList();
+        Assert.AreEqual(1, friendsList.Count, "Expected exactly one friendship");
+
+        // Assert at den returnerede friendship har korrekt SenderId og status
+        var friend = friendsList[0];
+        Assert.AreEqual(senderId, friend.SenderId, "SenderId should match");
+        Assert.AreEqual(FriendshipStatus.Accepted, friend.FriendShipStatus, "FriendshipStatus should be Accepted");
+
+        // Assert at repository metoden blev kaldt korrekt
+        _mockRepository.Verify(f => f.GetAllFriends(senderId), Times.Once);
     }
 
     [TestMethod]

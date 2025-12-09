@@ -94,5 +94,35 @@ public class FriendshipController : ControllerBase
         }
     }
 
+    [HttpGet("{senderId}/friends")]
+    public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(int senderId)
+    {
+
+        try
+        {
+            var listOfFriends = await _friendshipRepository.GetAllFriends(senderId);
+            return Ok(listOfFriends);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            // log her
+            return StatusCode(500, "An unexpected error occurred.");
+        }
+
+    }
+
+    
     
 }
