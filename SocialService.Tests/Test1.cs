@@ -1,4 +1,4 @@
 ﻿// This file has been replaced with specific test classes:
-// - FriendsControllerTests.cs
-// - FriendRepositoryTests.cs
+// - FriendshipControllerTests.cs
+// - FriendshipRepositoryTests.cs
 // Delete this file when ready.

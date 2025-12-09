@@ -15,6 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using NLog;
 using NLog.Extensions.Logging;
+using SocialService.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -119,7 +120,7 @@ builder.Services.AddScoped<IMongoDatabase>(serviceProvider =>
 });
 
 // Register repositories
-builder.Services.AddScoped<IFriendRepository, FriendRepository>();
+builder.Services.AddScoped<IFriendshipRepository, FriendshipRepository>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
