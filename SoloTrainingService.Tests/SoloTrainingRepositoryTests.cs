@@ -115,4 +115,42 @@ public class SoloTrainingRepositoryTests
         Assert.IsNotNull(result);
         Assert.AreEqual(0, result.Count);
     }
+
+    [TestMethod]
+    public void GetMostRecentSoloTrainingForUser_ReturnsLatestSession()
+    {
+        // Arrange
+        var userId = "user123";
+        var oldSession = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-2) };
+        var recentSession = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
+        var midSession = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) };
+        var otherUserSession = new SoloTrainingSession { UserId = "otherUser", Date = DateTime.UtcNow };
+        var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
+        collection.InsertOne(oldSession);
+        collection.InsertOne(recentSession);
+        collection.InsertOne(midSession);
+        collection.InsertOne(otherUserSession);
+
+        // Act
+        var result = _repository.GetMostRecentSoloTrainingForUser(userId);
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(userId, result.UserId);
+        Assert.IsTrue(Math.Abs((result.Date - recentSession.Date).TotalSeconds) < 2);
+    }
+
+    [TestMethod]
+    public void GetMostRecentSoloTrainingForUser_WhenNoSessions_ReturnsNull()
+    {
+        // Arrange
+        var userId = "user999";
+        // No sessions inserted for this user
+
+        // Act
+        var result = _repository.GetMostRecentSoloTrainingForUser(userId);
+
+        // Assert
+        Assert.IsNull(result);
+    }
 }

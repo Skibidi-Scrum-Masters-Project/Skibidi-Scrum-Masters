@@ -28,4 +28,11 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         }
         return sessions;
     }
+
+    public SoloTrainingSession GetMostRecentSoloTrainingForUser(string userId)
+    {
+        return _SolotrainingCollection.Find(s => s.UserId == userId)
+            .SortByDescending(s => s.Date)
+            .FirstOrDefault();
+    }
 }

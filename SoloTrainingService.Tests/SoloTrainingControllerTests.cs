@@ -167,4 +167,43 @@ public class SoloTrainingControllerTests
         Assert.IsNotNull(returnedSessions);
         Assert.AreEqual(0, returnedSessions.Count);
     }
+
+    [TestMethod]
+    public void GetMostRecentSoloTrainingForUser_ReturnsOkWithSession()
+    {
+        // Arrange
+        var userId = "user123";
+        var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
+        _mockRepository.Setup(r => r.GetMostRecentSoloTrainingForUser(userId)).Returns(session);
+
+        // Act
+        var result = _controller.GetMostRecentSoloTrainingForUser(userId);
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+        Assert.AreEqual(session, okResult.Value);
+    }
+
+    [TestMethod]
+    public void GetMostRecentSoloTrainingForUser_WhenNoSession_ReturnsEmptyList()
+    {
+        // Arrange
+        var userId = "user999";
+        _mockRepository.Setup(r => r.GetMostRecentSoloTrainingForUser(userId)).Returns((SoloTrainingSession)null!);
+
+        // Act
+        var result = _controller.GetMostRecentSoloTrainingForUser(userId);
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedList = okResult.Value as List<SoloTrainingSession>;
+        Assert.IsNull(returnedList);
+    }
 }

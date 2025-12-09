@@ -45,4 +45,13 @@ public class SoloTrainingController : ControllerBase
         List<SoloTrainingSession> soloTrainings = _soloTrainingRepository.GetAllSoloTrainingsForUser(userId);
         return Ok(soloTrainings);
     }
+    [HttpGet("recent/{userId}")]
+    public ActionResult<SoloTrainingSession> GetMostRecentSoloTrainingForUser(string userId)
+    {
+        if(string.IsNullOrEmpty(userId))
+            return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
+    
+        SoloTrainingSession recentSession = _soloTrainingRepository.GetMostRecentSoloTrainingForUser(userId);
+        return Ok(recentSession);
+    }
 }
