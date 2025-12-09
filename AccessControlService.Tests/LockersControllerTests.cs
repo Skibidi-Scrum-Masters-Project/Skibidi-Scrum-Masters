@@ -111,4 +111,51 @@ public class LockersControllerTests
         Assert.AreEqual(1, list.Count);
         Assert.AreEqual(1, list[0].LockerId);
     }
+    
+    
+    [TestMethod]
+    public async Task OpenLocker_ValidIds_ShouldUnlockLockerAndReturnOk()
+    {
+        // Arrange
+        int lockerRoomId = 1;
+        int lockerId = 5;
+
+        var locker = new Locker
+        {
+            LockerId = lockerId,
+            UserId = 42,
+            IsLocked = true
+        };
+
+        var lockerRoom = new LockerRoom
+        {
+            LockerRoomId = lockerRoomId,
+            CenterId = 1,
+            Capacity = 10,
+            Lockers = new List<Locker> { locker }
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync(lockerRoom);
+
+        _mockRepository
+            .Setup(r => r.SaveAsync(It.IsAny<LockerRoom>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _controller.OpenLocker(lockerRoomId, lockerId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+
+        // Locker should now be available again
+        Assert.AreEqual(0, locker.UserId);
+        Assert.IsFalse(locker.IsLocked);
+
+        _mockRepository.Verify(
+            r => r.SaveAsync(It.Is<LockerRoom>(lr => lr == lockerRoom)),
+            Times.Once);
+    }
 }

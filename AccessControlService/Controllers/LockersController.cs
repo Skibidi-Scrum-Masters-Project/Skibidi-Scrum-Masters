@@ -17,56 +17,91 @@ public class LockersController : ControllerBase
     }
 
     
-    // FIND AVAILABLE LOCKERS
+    // GET ALL AVAILABLE LOCKERS IN A LOCKER ROOM
     [HttpGet("{lockerRoomId}/available")]
     public async Task<IActionResult> GetAvailableLockers(int lockerRoomId)
     {
-        // GET ALL LOCKERS
+        // Retrieve locker room from database
         var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
         if (lockerRoom == null)
-            return NotFound("Locker not found");
+            return NotFound("Locker room not found");
         
-        // FILTER AVAILABLE LOCKERS
+        // Filter available lockers (not locked and not assigned to a user)
         var availableLockers = lockerRoom.Lockers
             .Where(l => !l.IsLocked && l.UserId == 0)
             .ToList();
         
-        // RETURN RESULT
+        // Return available lockers
         return Ok(availableLockers);
     }
 
     
-    // SET LOCK TO LOCKED
+    // LOCK A LOCKER AND ASSIGN IT TO A USER
     [HttpPut("{lockerRoomId}/{lockerId}/{userId}")]
     public async Task<IActionResult> LockLocker(
         int lockerRoomId, int lockerId, int userId)
     {
-        // GET LOCKER ROOM FROM DB
+        // Retrieve locker room from database
         var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
         if (lockerRoom == null)
             return NotFound("Locker room not found");
 
-        // FIND LOCKER IN LOCKER ROOM
+        // Find locker inside locker room
         var locker = lockerRoom.Lockers
             .FirstOrDefault(l => l.LockerId == lockerId);
 
         if (locker == null)
             return NotFound("Locker not found");
 
-        // FIND LOCK ON USERID AND SET IT TO LOCKED
+        // Lock the locker and assign user ID
         locker.UserId = userId;
         locker.IsLocked = true;
 
-        // SAVE IN DATABASE
+        // Save changes to database
         await _lockerRepository.SaveAsync(lockerRoom);
 
-        // RETURN RESULT
+        // Return result
         return Ok(new 
         { 
             lockerRoomId,
             lockerId,
             userId,
             isLocked = locker.IsLocked 
+        });
+    }
+
+    
+    // UNLOCK A LOCKER AND REMOVE USER ASSIGNMENT
+    [HttpPut("{lockerRoomId}/{lockerId}/open")]
+    public async Task<IActionResult> OpenLocker(int lockerRoomId, int lockerId)
+    {
+        // Retrieve locker room from database
+        var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
+        
+        if (lockerRoom == null)
+            return NotFound("Locker room not found");
+        
+        // Find locker inside locker room
+        var locker = lockerRoom.Lockers
+            .FirstOrDefault(l => l.LockerId == lockerId);
+        
+        if (locker == null)
+            return NotFound("Locker not found");
+
+        // Unlock the locker and clear user assignment
+        locker.UserId = 0;
+        locker.IsLocked = false;
+        
+        // Save changes to database
+        await _lockerRepository.SaveAsync(lockerRoom);
+
+        // Return result
+        return Ok(new
+        {
+            lockerRoomId,
+            lockerId,
+            userId = locker.UserId,
+            isLocked = locker.IsLocked
         });
     }
 }
