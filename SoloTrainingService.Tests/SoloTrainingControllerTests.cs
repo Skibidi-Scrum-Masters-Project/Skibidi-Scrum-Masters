@@ -112,4 +112,59 @@ public class SoloTrainingControllerTests
         Assert.IsNotNull(objectResult);
         Assert.AreEqual(400, objectResult.StatusCode);
     }
+
+    [TestMethod]
+    public void GetAllSoloTrainingsForUser_ReturnsOkResult_WithSessions()
+    {
+        // Arrange
+        var userId = "user123";
+        var sessions = new List<SoloTrainingSession>
+        {
+            new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow },
+            new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) }
+        };
+        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).Returns(sessions);
+
+        // Act
+        var result = _controller.GetAllSoloTrainingsForUser(userId);
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedSessions = okResult.Value as List<SoloTrainingSession>;
+        Assert.IsNotNull(returnedSessions);
+        Assert.AreEqual(2, returnedSessions.Count);
+    }
+
+    [TestMethod]
+    public void GetAllSoloTrainingsForUser_WhenUserIdIsMissing_ReturnsBadRequest()
+    {
+        // Arrange
+        string? userId = null;
+
+        // Act
+        var result = _controller.GetAllSoloTrainingsForUser(userId!);
+
+        // Assert
+        var badRequest = result.Result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequest);
+        Assert.AreEqual(400, badRequest.StatusCode);
+    }
+    [TestMethod]
+    public void GetAllSoloTrainingsForUser_WhenNoSessions_ReturnsEmptyList()
+    {
+        // Arrange
+        var userId = "user123";
+        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).Returns(new List<SoloTrainingSession>());
+
+        // Act
+        var result = _controller.GetAllSoloTrainingsForUser(userId);
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedSessions = okResult.Value as List<SoloTrainingSession>;
+        Assert.IsNotNull(returnedSessions);
+        Assert.AreEqual(0, returnedSessions.Count);
+    }
 }

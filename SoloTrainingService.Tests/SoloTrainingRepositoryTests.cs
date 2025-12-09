@@ -79,4 +79,40 @@ public class SoloTrainingRepositoryTests
         // TBA: Implement volume calculation test
         Assert.Inconclusive("Test not implemented yet");
     }
+
+    [TestMethod]
+    public void GetAllSoloTrainingsForUser_ReturnsSessionsForUser()
+    {
+        // Arrange
+        var userId = "user123";
+        var session1 = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
+        var session2 = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) };
+        var otherSession = new SoloTrainingSession { UserId = "otherUser", Date = DateTime.UtcNow };
+        var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
+        collection.InsertOne(session1);
+        collection.InsertOne(session2);
+        collection.InsertOne(otherSession);
+
+        // Act
+        var result = _repository.GetAllSoloTrainingsForUser(userId);
+
+        // Assert
+        Assert.AreEqual(2, result.Count);
+        Assert.IsTrue(result.All(s => s.UserId == userId));
+    }
+
+    [TestMethod]
+    public void GetAllSoloTrainingsForUser_WhenNoSessions_ReturnsEmptyList()
+    {
+        // Arrange
+        var userId = "user999";
+        // No sessions inserted for this user
+
+        // Act
+        var result = _repository.GetAllSoloTrainingsForUser(userId);
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result.Count);
+    }
 }

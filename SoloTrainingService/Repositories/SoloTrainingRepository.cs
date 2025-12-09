@@ -21,6 +21,11 @@ public class SoloTrainingRepository : ISoloTrainingRepository
     public List<SoloTrainingSession> GetAllSoloTrainingsForUser(string userId)
     {
         var filter = Builders<SoloTrainingSession>.Filter.Eq(s => s.UserId, userId);
-        return _SolotrainingCollection.Find(filter).ToList();
+        var sessions = _SolotrainingCollection.Find(filter).ToList();
+        if (sessions == null)
+        {
+            return new List<SoloTrainingSession>();
+        }
+        return sessions;
     }
 }
