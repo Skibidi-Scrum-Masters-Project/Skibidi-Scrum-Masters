@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using FitnessApp.Shared.Models;
-using AccessControlService.Controllers;
 using Moq;
+using AccessControlService.Controllers;
+using AccessControlService.Models;
+using AccessControlService.Repositories;
 
 namespace AccessControlService.Tests;
 
@@ -19,23 +20,95 @@ public class LockersControllerTests
     }
 
     [TestMethod]
-    public void GetLockers_ShouldReturnAllLockers()
+    public async Task LockLocker_ValidIds_ShouldLockLockerAndReturnOk()
     {
-        // TBA: Implement test for getting all lockers
-        Assert.Inconclusive("Test not implemented yet");
+        // Arrange
+        int lockerRoomId = 1;
+        int lockerId = 5;
+        int userId = 42;
+
+        var locker = new Locker
+        {
+            LockerId = lockerId,
+            UserId = 0,
+            IsLocked = false
+        };
+
+        var lockerRoom = new LockerRoom
+        {
+            LockerRoomId = lockerRoomId,
+            CenterId = 1,
+            Capacity = 10,
+            Lockers = new List<Locker> { locker }
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync(lockerRoom);
+
+        _mockRepository
+            .Setup(r => r.SaveAsync(It.IsAny<LockerRoom>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
+
+        // Assert
+
+        // 1) Controller should return an OkObjectResult
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+
+        // 2) Locker should now be assigned to the correct user and locked
+        Assert.AreEqual(userId, locker.UserId);
+        Assert.IsTrue(locker.IsLocked);
+
+        // 3) SaveAsync should only be called once with the same lockerRoom instance
+        _mockRepository.Verify(
+            r => r.SaveAsync(It.Is<LockerRoom>(lr => lr == lockerRoom)),
+            Times.Once);
     }
 
-    [TestMethod]
-    public void GetLockers_WhenNoLockers_ShouldReturnEmptyList()
-    {
-        // TBA: Implement test for empty locker list
-        Assert.Inconclusive("Test not implemented yet");
-    }
 
     [TestMethod]
-    public void GetLockers_ShouldReturnOkResult()
+    public async Task GetAvailableLockers_ShouldReturnOnlyUnlockedLockers()
     {
-        // TBA: Implement test for OK status code
-        Assert.Inconclusive("Test not implemented yet");
+        // Arrange
+        int lockerRoomId = 1;
+
+        var lockers = new List<Locker>
+        {
+            new Locker { LockerId = 1, UserId = 0,  IsLocked = false }, // available
+            new Locker { LockerId = 2, UserId = 0,  IsLocked = true  }, // locked
+            new Locker { LockerId = 3, UserId = 99, IsLocked = false }  // taken by another user
+        };
+
+        var lockerRoom = new LockerRoom
+        {
+            LockerRoomId = lockerRoomId,
+            CenterId = 1,
+            Capacity = 10,
+            Lockers = lockers
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync(lockerRoom);
+
+        // Act
+        var result = await _controller.GetAvailableLockers(lockerRoomId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+
+        var returned = okResult.Value as IEnumerable<Locker>;
+        Assert.IsNotNull(returned, "Expected list of lockers");
+
+        var list = returned.ToList();
+
+        // Only lockerId = 1 should be available (!IsLocked && UserId == 0)
+        Assert.AreEqual(1, list.Count);
+        Assert.AreEqual(1, list[0].LockerId);
     }
 }

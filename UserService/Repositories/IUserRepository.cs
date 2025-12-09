@@ -7,4 +7,7 @@ public interface IUserRepository
     List<User> GetAllUsers();
     User? GetUserById(string id);
     User? GetUserByUsername(string username);
+    bool DeleteUser(string id);
+    User UpdateUser(User updatedUser);
+    List<User> GetUsersByRole(Role role);
 }

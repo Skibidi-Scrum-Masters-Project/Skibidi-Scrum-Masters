@@ -1,0 +1,98 @@
+using CoachingService.Models;
+using Microsoft.AspNetCore.Mvc;
+using FitnessApp.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
+
+namespace CoachingService.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class CoachingController : ControllerBase
+{
+    private readonly ICoachingRepository _coachingRepository;
+
+    public CoachingController(ICoachingRepository coachingRepository)
+    {
+        _coachingRepository = coachingRepository;
+    }
+
+   
+    [HttpGet("AllSessions")]
+    public ActionResult<IEnumerable<Session>> GetAllSessions()
+    {
+        try
+        {
+            var sessions = _coachingRepository.GetAllSessions();
+            return Ok(sessions);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while retrieving sessions.", details = ex.Message });
+        }
+    }
+
+   
+    [HttpPost("Session")]
+    public ActionResult<Session> BookSession([FromBody] Session session)
+    {
+        try
+        {
+            if (session == null)
+            {
+                return BadRequest(new { message = "Session cannot be null" });
+            }
+
+            var created = _coachingRepository.BookSession(session);
+            return Ok(created);
+        }
+        catch (ArgumentNullException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while creating the session.", details = ex.Message });
+        }
+    }
+    
+    [HttpGet("Session/{id}")]
+    public ActionResult<Session> GetSessionById(string id)
+    {
+        try
+        {
+            var session = _coachingRepository.GetSessionById(id);
+
+            if (session == null)
+                return NotFound(new { message = $"Session with id {id} not found" });
+
+            return Ok(session);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while retrieving the session.", details = ex.Message });
+        }
+    }
+    
+    [HttpPut("CancelSession/{id}")]
+    public ActionResult<Session> CancelSession(string id)
+    {
+        try
+        {
+            var cancelled = _coachingRepository.CancelSession(id);
+            return Ok(cancelled);
+        }
+        catch (ArgumentNullException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while cancelling the session.", details = ex.Message });
+        }
+    }
+
+}
