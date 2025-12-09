@@ -177,6 +177,115 @@ namespace CoachingService.Tests
         Assert.AreEqual(500, objectResult.StatusCode);
     }
         
+        //GetSessionById Tests
+        
+        
+        
+        [TestMethod]
+        public void GetSessionById_ValidId_ReturnsOkWithSession()
+        {
+            var session = new Session
+            {
+                Id = "123",
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow.AddHours(1),
+                CurrentStatus = Session.Status.Planned
+            };
+
+            _mockRepository.Setup(r => r.GetSessionById("123"))
+                .Returns(session);
+
+            var result = _controller.GetSessionById("123");
+
+            var okResult = result.Result as OkObjectResult;
+            Assert.IsNotNull(okResult);
+            Assert.AreEqual(200, okResult.StatusCode);
+
+            var returnedSession = okResult.Value as Session;
+            Assert.IsNotNull(returnedSession);
+            Assert.AreEqual("123", returnedSession.Id);
+        }
+
+        [TestMethod]
+        public void GetSessionById_InvalidId_ReturnsNotFound()
+        {
+            _mockRepository.Setup(r => r.GetSessionById("999"))
+                .Returns((Session?)null);
+
+            var result = _controller.GetSessionById("999");
+
+            var notFoundResult = result.Result as NotFoundObjectResult;
+            Assert.IsNotNull(notFoundResult);
+            Assert.AreEqual(404, notFoundResult.StatusCode);
+        }
+
+        [TestMethod]
+        public void GetSessionById_RepositoryThrowsException_ReturnsInternalServerError()
+        {
+            _mockRepository.Setup(r => r.GetSessionById("123"))
+                .Throws(new Exception("Database error"));
+
+            var result = _controller.GetSessionById("123");
+
+            var objectResult = result.Result as ObjectResult;
+            Assert.IsNotNull(objectResult);
+            Assert.AreEqual(500, objectResult.StatusCode);
+        }
+        
+        
+        //CancelSession Tests
+        
+        
+        [TestMethod]
+        public void CancelSession_ValidId_ReturnsOkWithCancelledSession()
+        {
+            var session = new Session
+            {
+                Id = "123",
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow.AddHours(1),
+                CurrentStatus = Session.Status.Cancelled
+            };
+
+            _mockRepository.Setup(r => r.CancelSession("123"))
+                .Returns(session);
+
+            var result = _controller.CancelSession("123");
+
+            var okResult = result.Result as OkObjectResult;
+            Assert.IsNotNull(okResult);
+            Assert.AreEqual(200, okResult.StatusCode);
+
+            var returnedSession = okResult.Value as Session;
+            Assert.IsNotNull(returnedSession);
+            Assert.AreEqual(Session.Status.Cancelled, returnedSession.CurrentStatus);
+        }
+
+        [TestMethod]
+        public void CancelSession_InvalidId_ReturnsNotFound()
+        {
+            _mockRepository.Setup(r => r.CancelSession("999"))
+                .Throws(new ArgumentNullException("Session not found"));
+
+            var result = _controller.CancelSession("999");
+
+            var notFoundResult = result.Result as NotFoundObjectResult;
+            Assert.IsNotNull(notFoundResult);
+            Assert.AreEqual(404, notFoundResult.StatusCode);
+        }
+
+        [TestMethod]
+        public void CancelSession_RepositoryThrowsException_ReturnsInternalServerError()
+        {
+            _mockRepository.Setup(r => r.CancelSession("123"))
+                .Throws(new Exception("Database error"));
+
+            var result = _controller.CancelSession("123");
+
+            var objectResult = result.Result as ObjectResult;
+            Assert.IsNotNull(objectResult);
+            Assert.AreEqual(500, objectResult.StatusCode);
+        }
         
     }
 }

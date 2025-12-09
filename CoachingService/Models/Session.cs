@@ -27,6 +27,6 @@ public class Session
         Planned,
         Booked,
         Completed,
-        Canceled
+        Cancelled
     }
 }

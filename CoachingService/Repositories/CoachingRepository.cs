@@ -39,4 +39,24 @@ public class CoachingRepository : ICoachingRepository
     {
         return _sessionsCollection.Find(FilterDefinition<Session>.Empty).ToList();
     }
+    
+    public Session? GetSessionById(string id)
+    {
+        return _sessionsCollection.Find(s => s.Id == id).FirstOrDefault();
+    }
+    
+
+    public Session CancelSession(string id)
+    {
+        var session = GetSessionById(id);
+        if (session == null)
+            throw new ArgumentNullException(nameof(session), "Session not found");
+
+        session.CurrentStatus = Session.Status.Cancelled;
+
+        var filter = Builders<Session>.Filter.Eq(s => s.Id, id);
+        _sessionsCollection.ReplaceOne(filter, session);
+
+        return session;
+    }
 }

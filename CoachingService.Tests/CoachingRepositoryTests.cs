@@ -200,5 +200,136 @@ namespace CoachingService.Tests
             _repository.GetAllSessions(); // should throw }
 
         }
+
+
+        //GetSessionById Tests
+
+        [TestMethod]
+        public void GetSessionById_ValidId_ReturnsSession()
+        {
+            var session = new Session
+                { Id = "123", StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1) };
+
+            var mockCursor = new Mock<IAsyncCursor<Session>>();
+            mockCursor.SetupSequence(c => c.MoveNext(default))
+                .Returns(true)
+                .Returns(false);
+            mockCursor.SetupGet(c => c.Current).Returns(new List<Session> { session });
+
+            _mockCollection.Setup(c => c.FindSync(
+                    It.IsAny<FilterDefinition<Session>>(),
+                    It.IsAny<FindOptions<Session, Session>>(),
+                    default))
+                .Returns(mockCursor.Object);
+
+            var result = _repository.GetSessionById("123");
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual("123", result.Id);
+        }
+
+        [TestMethod]
+        public void GetSessionById_InvalidId_ReturnsNull()
+        {
+            var mockCursor = new Mock<IAsyncCursor<Session>>();
+            mockCursor.SetupSequence(c => c.MoveNext(default))
+                .Returns(false);
+            mockCursor.SetupGet(c => c.Current).Returns(new List<Session>());
+
+            _mockCollection.Setup(c => c.FindSync(
+                    It.IsAny<FilterDefinition<Session>>(),
+                    It.IsAny<FindOptions<Session, Session>>(),
+                    default))
+                .Returns(mockCursor.Object);
+
+            var result = _repository.GetSessionById("999");
+
+            Assert.IsNull(result);
+        }
+
+
+        //CancelSession Tests
+        
+        [TestMethod]
+public void CancelSession_ValidId_UpdatesStatusToCancelled()
+{
+    var session = new Session
+    {
+        Id = "123",
+        StartTime = DateTime.UtcNow,
+        EndTime = DateTime.UtcNow.AddHours(1),
+        CurrentStatus = Session.Status.Planned
+    };
+
+    var mockCursor = new Mock<IAsyncCursor<Session>>();
+    mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>()))
+              .Returns(true)
+              .Returns(false);
+    mockCursor.SetupGet(c => c.Current).Returns(new List<Session> { session });
+
+    _mockCollection.Setup(c => c.FindSync(
+        It.IsAny<FilterDefinition<Session>>(),
+        It.IsAny<FindOptions<Session, Session>>(),
+        It.IsAny<CancellationToken>()))
+        .Returns(mockCursor.Object);
+
+    var result = _repository.CancelSession("123");
+
+    Assert.IsNotNull(result);
+    Assert.AreEqual(Session.Status.Cancelled, result.CurrentStatus);
+
+    _mockCollection.Verify(c => c.ReplaceOne(
+        It.IsAny<FilterDefinition<Session>>(),
+        It.Is<Session>(s => s.CurrentStatus == Session.Status.Cancelled),
+        It.IsAny<ReplaceOptions>(),
+        It.IsAny<CancellationToken>()),
+        Times.Once);
+}
+
+[TestMethod]
+[ExpectedException(typeof(ArgumentNullException))]
+public void CancelSession_SessionNotFound_ThrowsArgumentNullException()
+{
+    var mockCursor = new Mock<IAsyncCursor<Session>>();
+    mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>()))
+              .Returns(false);
+    mockCursor.SetupGet(c => c.Current).Returns(new List<Session>());
+
+    _mockCollection.Setup(c => c.FindSync(
+        It.IsAny<FilterDefinition<Session>>(),
+        It.IsAny<FindOptions<Session, Session>>(),
+        It.IsAny<CancellationToken>()))
+        .Returns(mockCursor.Object);
+
+    _repository.CancelSession("not-found-id"); // should throw
+}
+
+[TestMethod]
+[ExpectedException(typeof(Exception))]
+public void CancelSession_ReplaceOneFails_ThrowsException()
+{
+    var session = new Session { Id = "123", CurrentStatus = Session.Status.Planned };
+
+    var mockCursor = new Mock<IAsyncCursor<Session>>();
+    mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>()))
+              .Returns(true)
+              .Returns(false);
+    mockCursor.SetupGet(c => c.Current).Returns(new List<Session> { session });
+
+    _mockCollection.Setup(c => c.FindSync(
+        It.IsAny<FilterDefinition<Session>>(),
+        It.IsAny<FindOptions<Session, Session>>(),
+        It.IsAny<CancellationToken>()))
+        .Returns(mockCursor.Object);
+
+    _mockCollection.Setup(c => c.ReplaceOne(
+        It.IsAny<FilterDefinition<Session>>(),
+        It.IsAny<Session>(),
+        It.IsAny<ReplaceOptions>(),                // disambiguate
+        It.IsAny<CancellationToken>()))
+        .Throws(new Exception("Database error"));
+
+    _repository.CancelSession("123"); // should throw
+}
     }
 }

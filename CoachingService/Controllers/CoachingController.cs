@@ -58,5 +58,41 @@ public class CoachingController : ControllerBase
             return StatusCode(500, new { message = "An error occurred while creating the session.", details = ex.Message });
         }
     }
+    
+    [HttpGet("Session/{id}")]
+    public ActionResult<Session> GetSessionById(string id)
+    {
+        try
+        {
+            var session = _coachingRepository.GetSessionById(id);
+
+            if (session == null)
+                return NotFound(new { message = $"Session with id {id} not found" });
+
+            return Ok(session);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while retrieving the session.", details = ex.Message });
+        }
+    }
+    
+    [HttpPut("CancelSession/{id}")]
+    public ActionResult<Session> CancelSession(string id)
+    {
+        try
+        {
+            var cancelled = _coachingRepository.CancelSession(id);
+            return Ok(cancelled);
+        }
+        catch (ArgumentNullException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "An error occurred while cancelling the session.", details = ex.Message });
+        }
+    }
 
 }
