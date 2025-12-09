@@ -30,6 +30,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpPost]
+    [Authorize]
     public ActionResult<User> CreateUser(User user)
     {
         try
