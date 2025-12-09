@@ -18,6 +18,17 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         return soloTraining;
     }
 
+    public void DeleteSoloTraining(string trainingId)
+    {
+        var filter = Builders<SoloTrainingSession>.Filter.Eq(s => s.Id, trainingId);
+        var sessionToDelete = _SolotrainingCollection.Find(filter).FirstOrDefault();
+        if (sessionToDelete == null)
+        {
+            throw new Exception("Solo training session not found.");
+        }
+        _SolotrainingCollection.DeleteOne(filter);
+    }
+
     public List<SoloTrainingSession> GetAllSoloTrainingsForUser(string userId)
     {
         var filter = Builders<SoloTrainingSession>.Filter.Eq(s => s.UserId, userId);
