@@ -13,7 +13,7 @@ namespace FitnessApp.Shared.Models
         [BsonRepresentation(BsonType.ObjectId)]
         [BsonElement("_id")]
         public string? Id { get; set; }
-        [Required]
+       
         [BsonElement("userId")]
         public string UserId { get; set; } = string.Empty;
         [Required]

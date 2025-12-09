@@ -14,6 +14,28 @@ public class SoloTrainingController : ControllerBase
         _soloTrainingRepository = soloTrainingRepository;
     }
 
+    [HttpPost("{userId}")]
+    public ActionResult<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining)
+    {
+        if(soloTraining == null)
+        {
+            return BadRequest(new { error = "Invalid input", message = "Solo training session cannot be null." });
+        }
+        if(string.IsNullOrEmpty(userId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
+        }
+        try
+        {
+            SoloTrainingSession soloTrainingSession = _soloTrainingRepository.CreateSoloTraining(userId, soloTraining);
+            return Ok(soloTrainingSession);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+       
+    }
     [HttpGet]
     public ActionResult<IEnumerable<Workout>> GetSoloTrainings()
     {
