@@ -1,6 +1,9 @@
-using FitnessApp.Shared.Models;
+namespace AccessControlService.Repositories;
+
+using AccessControlService.Models;
 
 public interface ILockerRepository
 {
-    //TBA
+    Task<LockerRoom?> GetByIdAsync(int lockerRoomId);
+    Task SaveAsync(LockerRoom lockerRoom);
 }
