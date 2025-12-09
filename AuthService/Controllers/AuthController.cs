@@ -18,6 +18,8 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult> Login([FromBody] LoginRequest request)
     {
+        if(request == null)
+        return BadRequest(new {error = "Request cant be null", message = "Request cant be null"});
         try
         {
             var loginResponse = await _authRepository.Login(request);
