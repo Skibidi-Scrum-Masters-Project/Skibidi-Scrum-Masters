@@ -1,24 +1,39 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
+using MongoDB.Driver;
+using SocialService.Models;
+using SocialService;
+using System;
 using FitnessApp.Shared.Models;
+using SocialService.Controllers;
+using SocialService.Repositories;
+
 
 namespace SocialService.Tests;
 
 [TestClass]
 public class FriendshipRepositoryTests
 {
+    private Mock<IMongoCollection<Friendship>> _mockCollection = null!;
+    private Mock<IMongoDatabase> _mockDatabase = null!;
+    private FriendshipRepository _repository = null!;
+
     [TestInitialize]
     public void Setup()
     {
-        // TBA: Setup repository with test database/context
-        // var repository = new FriendRepository(testContext);
-    }
+        _mockCollection = new Mock<IMongoCollection<Friendship>>();
+        _mockDatabase = new Mock<IMongoDatabase>();
 
-    [TestMethod]
-    public void SendFriendRequest_ShouldCreatePendingRequest()
-    {
-        // TBA: Implement friend request test
-        Assert.Inconclusive("Test not implemented yet");
-    }
+        _mockDatabase
+            .Setup(db => db.GetCollection<Friendship>(
+                "Friendships", 
+                It.IsAny<MongoCollectionSettings>()))
+            .Returns(_mockCollection.Object);
 
+        _repository = new FriendshipRepository(_mockDatabase.Object);
+    }
+    
+    
     [TestMethod]
     public void AcceptFriendRequest_ShouldCreateFriendship()
     {

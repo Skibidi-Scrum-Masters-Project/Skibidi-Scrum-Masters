@@ -14,3 +14,11 @@ public class Friendship
 
     
 }
+
+public enum FriendshipStatus
+{
+    None,
+    Pending, 
+    Accepted,
+    Declined
+}

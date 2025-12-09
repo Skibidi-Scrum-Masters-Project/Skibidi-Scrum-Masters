@@ -11,17 +11,10 @@ public class FriendshipRepository : IFriendshipRepository
 {
     private readonly IMongoCollection<Friendship> _friendshipCollection;
     
-    public FriendshipRepository(IConfiguration configuration)
+    public FriendshipRepository(IMongoDatabase database)
     {
-        // Henter MongoDB connection string fra appsettings.json
-        var connectionString = configuration.GetConnectionString("MongoDb");
-        var mongoClient = new MongoClient(connectionString);
-
-        // Database navn
-        var database = mongoClient.GetDatabase("FitnessAppDB");
-
-        // Collection navn
-        _friendshipCollection = database.GetCollection<Friendship>("Friendships");
+       
+        _friendshipCollection = database.GetCollection<Friendship>("Friendships"); 
     }
 
     public async Task<Friendship> SendFriendRequestAsync(int senderId, int receiverId)
@@ -29,8 +22,8 @@ public class FriendshipRepository : IFriendshipRepository
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
         var existingFriendship = await _friendshipCollection
-            .Find(friendship => (friendship.SenderId == senderId && friendship.ReceiverId == receiverId)
-                                || (friendship.ReceiverId == senderId && friendship.SenderId == receiverId))
+            .Find(f => (f.SenderId == senderId && f.ReceiverId == receiverId)
+                                || (f.ReceiverId == senderId && f.SenderId == receiverId))
             .FirstOrDefaultAsync();
 
         
@@ -41,14 +34,21 @@ public class FriendshipRepository : IFriendshipRepository
             {
                 throw new Exception("Friendship request already exists");
             }
-            else
+            
+            if (existingFriendship.FriendShipStatus == FriendshipStatus.Declined)
             {
                 //Hvis pending FriendRequest er Declined, laves der en ny update, hvor Status bliver sat tilbage til pending.
-                var updateExistingFriendship = Builders<Friendship>.Update.Set(friendship => friendship.FriendShipStatus, FriendshipStatus.Pending);
-                await _friendshipCollection.UpdateOneAsync(friendship => friendship.FriendshipId == existingFriendship.FriendshipId, updateExistingFriendship);
+                var updateExistingFriendship = Builders<Friendship>.Update
+                    .Set(f => f.FriendShipStatus, FriendshipStatus.Pending);
+                
+                await _friendshipCollection.UpdateOneAsync(
+                    f => f.FriendshipId == existingFriendship.FriendshipId, updateExistingFriendship);
+                
+                
                 existingFriendship.FriendShipStatus = FriendshipStatus.Pending;
                 return existingFriendship;
             }
+            throw new InvalidOperationException("Friendship already exists");
         }
         
         var friendship = new Friendship
@@ -68,8 +68,8 @@ public class FriendshipRepository : IFriendshipRepository
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
         var existingFriendshipRequest = await _friendshipCollection
-            .Find(friendship => (friendship.SenderId == senderId && friendship.ReceiverId == receiverId)
-                                || (friendship.ReceiverId == senderId && friendship.SenderId == receiverId))
+            .Find(f => (f.SenderId == senderId && f.ReceiverId == receiverId)
+                                || (f.ReceiverId == senderId && f.SenderId == receiverId))
             .FirstOrDefaultAsync();
         
         //Der findes ikke nogen friendship request
@@ -81,7 +81,7 @@ public class FriendshipRepository : IFriendshipRepository
         //Der findes en request, og den bliver ændret til Declined istedet for pending
         if (existingFriendshipRequest.FriendShipStatus == FriendshipStatus.Pending)
         {
-            var update = Builders<Friendship>.Update.Set(friendship => friendship.FriendShipStatus, FriendshipStatus.Declined);
+            var update = Builders<Friendship>.Update.Set(f => f.FriendShipStatus, FriendshipStatus.Declined);
              
             await _friendshipCollection.UpdateOneAsync(
                 friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
