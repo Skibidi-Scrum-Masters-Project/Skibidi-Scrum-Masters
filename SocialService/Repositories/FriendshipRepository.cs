@@ -28,14 +28,27 @@ public class FriendshipRepository : IFriendshipRepository
     {
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
-        var existingFriendshipRequest = await _friendshipCollection
+        var existingFriendship = await _friendshipCollection
             .Find(friendship => (friendship.SenderId == senderId && friendship.ReceiverId == receiverId)
                                 || (friendship.ReceiverId == senderId && friendship.SenderId == receiverId))
             .FirstOrDefaultAsync();
+
         
-        if (existingFriendshipRequest != null) 
+        if (existingFriendship != null)
         {
-            throw new Exception("Friendship request already exists"); 
+            //Tjekker om der allerede er en pending FriendRequest
+            if (existingFriendship.FriendShipStatus == FriendshipStatus.Pending)
+            {
+                throw new Exception("Friendship request already exists");
+            }
+            else
+            {
+                //Hvis pending FriendRequest er Declined, laves der en ny update, hvor Status bliver sat tilbage til pending.
+                var updateExistingFriendship = Builders<Friendship>.Update.Set(friendship => friendship.FriendShipStatus, FriendshipStatus.Pending);
+                await _friendshipCollection.UpdateOneAsync(friendship => friendship.FriendshipId == existingFriendship.FriendshipId, updateExistingFriendship);
+                existingFriendship.FriendShipStatus = FriendshipStatus.Pending;
+                return existingFriendship;
+            }
         }
         
         var friendship = new Friendship

@@ -46,20 +46,20 @@ public class FriendshipController : ControllerBase
         }
     }
 
-    [HttpPut]
-    public async Task<ActionResult> DeclineFriendRequestAsync([FromBody] Friendship friendship)
+    [HttpPut("decline/{senderId}/{receiverId}")]
+    public async Task<IActionResult> DeclineFriendRequestAsync(int senderId, int receiverId)
     {
         // Tjekker, at vi ikke afviser Friend request til os selv.
-        if (friendship.SenderId == friendship.ReceiverId)
+        if (senderId == receiverId)
             return BadRequest("You cannot decline a friend request to yourself.");
         
         //Tjekker at man afviser en friend request til andre end 0, da 0 ikke findes.
-        if (friendship.SenderId <= 0 || friendship.ReceiverId <= 0)
+        if (senderId <= 0 || receiverId <= 0)
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
         {
-            var declineFriendship = await _friendshipRepository.DeclineFriendRequestAsync(friendship.SenderId, friendship.ReceiverId);
+            var declineFriendship = await _friendshipRepository.DeclineFriendRequestAsync(senderId, receiverId);
             return Ok(declineFriendship.FriendShipStatus);
         }
         catch (Exception e)
