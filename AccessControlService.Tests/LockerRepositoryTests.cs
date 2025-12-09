@@ -1,35 +1,30 @@
-using FitnessApp.Shared.Models;
+using AccessControlService.Models;
 
 namespace AccessControlService.Tests;
 
 [TestClass]
 public class LockerRepositoryTests
 {
-    [TestInitialize]
-    public void Setup()
-    {
-        // TBA: Setup repository with test database/context
-        // var repository = new LockerRepository(testContext);
-    }
 
     [TestMethod]
-    public void RentLocker_ShouldAssignLockerToUser()
+    public void Locker_CanBeLockedForUser()
     {
-        // TBA: Implement locker rental test
-        Assert.Inconclusive("Test not implemented yet");
-    }
+        // Arrange
+        var locker = new Locker
+        {
+            LockerId = 5,
+            UserId = 0,
+            IsLocked = false
+        };
 
-    [TestMethod]
-    public void GetAvailableLockers_ShouldReturnUnrentedLockers()
-    {
-        // TBA: Implement available lockers test
-        Assert.Inconclusive("Test not implemented yet");
-    }
+        var userId = 42;
 
-    [TestMethod]
-    public void ReleaseLocker_ShouldMakeLockerAvailable()
-    {
-        // TBA: Implement locker release test
-        Assert.Inconclusive("Test not implemented yet");
+        // Act
+        locker.UserId = userId;
+        locker.IsLocked = true;
+
+        // Assert
+        Assert.AreEqual(userId, locker.UserId);
+        Assert.IsTrue(locker.IsLocked);
     }
 }

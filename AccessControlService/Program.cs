@@ -15,6 +15,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using NLog;
 using NLog.Extensions.Logging;
+using AccessControlService.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
