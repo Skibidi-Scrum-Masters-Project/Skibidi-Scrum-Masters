@@ -97,4 +97,14 @@ public class FriendshipRepository : IFriendshipRepository
         throw new Exception("Friendship request is not pending");
         
     }
+
+
+    public async Task<IEnumerable<Friendship>> GetAllFriends(int senderId)
+    {
+        var findFriendsForUser = await _friendshipCollection
+            .FindAsync(f => f.ReceiverId == senderId && f.FriendShipStatus == FriendshipStatus.Accepted);
+        
+        return await findFriendsForUser.ToListAsync();
+    }
+
 }
