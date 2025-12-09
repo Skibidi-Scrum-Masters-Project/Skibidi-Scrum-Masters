@@ -153,4 +153,31 @@ public class SoloTrainingRepositoryTests
         // Assert
         Assert.IsNull(result);
     }
+
+    [TestMethod]
+    public void DeleteSoloTraining_RemovesSession()
+    {
+        // Arrange
+        var userId = "user123";
+        var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
+        var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
+        collection.InsertOne(session);
+
+        // Act
+        _repository.DeleteSoloTraining(session.Id!);
+
+        // Assert
+        var found = collection.Find(s => s.Id == session.Id).FirstOrDefault();
+        Assert.IsNull(found);
+    }
+
+    [TestMethod]
+    public void DeleteSoloTraining_WhenSessionDoesNotExist_ThrowsException()
+    {
+        // Arrange
+        string nonExistentId = "607f1f77bcf86cd799439011";
+
+        // Act & Assert
+        Assert.ThrowsException<Exception>(() => _repository.DeleteSoloTraining(nonExistentId));
+    }
 }

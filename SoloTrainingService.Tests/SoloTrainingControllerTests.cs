@@ -206,4 +206,37 @@ public class SoloTrainingControllerTests
         var returnedList = okResult.Value as List<SoloTrainingSession>;
         Assert.IsNull(returnedList);
     }
+
+    [TestMethod]
+    public void DeleteSoloTraining_ReturnsNoContent_WhenDeleted()
+    {
+        // Arrange
+        var sessionId = "session123";
+        _mockRepository.Setup(r => r.DeleteSoloTraining(sessionId));
+
+        // Act
+        var result = _controller.DeleteSoloTraining(sessionId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(NoContentResult));
+        var noContentResult = result as NoContentResult;
+        Assert.IsNotNull(noContentResult);
+        Assert.AreEqual(204, noContentResult.StatusCode);
+    }
+
+    [TestMethod]
+    public void DeleteSoloTraining_ReturnsInternalServerError_WhenExceptionThrown()
+    {
+        // Arrange
+        var sessionId = "session123";
+        _mockRepository.Setup(r => r.DeleteSoloTraining(sessionId)).Throws(new Exception("not found"));
+
+        // Act
+        var result = _controller.DeleteSoloTraining(sessionId);
+
+        // Assert
+        var objectResult = result as ObjectResult;
+        Assert.IsNotNull(objectResult);
+        Assert.AreEqual(500, objectResult.StatusCode);
+    }
 }
