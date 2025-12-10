@@ -376,4 +376,110 @@ public class ClassesControllerTests
         Assert.IsNotNull(badRequestResult);
         Assert.AreEqual(400, badRequestResult.StatusCode);
     }
+
+    [TestMethod]
+    public async Task BookClassForUserWithFriendsNoSeats_ReturnsOkResult()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var friends = new List<string> { "friend1", "friend2" };
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            SeatBookingEnabled = false,
+            BookingList = new List<Booking>()
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+        _mockRepository.Setup(r => r.BookClassForUserNoSeatAsync(classId, It.IsAny<string>())).ReturnsAsync(classInfo);
+
+        // Act
+        var result = await _controller.BookClassForUserWithFriendsNoSeats(classId, userId, friends);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithFriendsNoSeats_WhenNotEnoughSpots_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var friends = new List<string> { "friend1", "friend2", "friend3" };
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 3,
+            IsActive = true,
+            SeatBookingEnabled = false,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "existingUser", SeatNumber = 0, CheckedInAt = DateTime.MinValue }
+            }
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+
+        // Act
+        var result = await _controller.BookClassForUserWithFriendsNoSeats(classId, userId, friends);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithFriendsNoSeats_WhenSeatBookingEnabled_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var friends = new List<string> { "friend1" };
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            BookingList = new List<Booking>()
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+
+        // Act
+        var result = await _controller.BookClassForUserWithFriendsNoSeats(classId, userId, friends);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
 }

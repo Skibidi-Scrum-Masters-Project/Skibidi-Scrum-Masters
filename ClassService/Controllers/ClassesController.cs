@@ -70,6 +70,40 @@ public class ClassesController : ControllerBase
         }
 
     }
+    [HttpPut("classes/{classId}/{userId}/friends")]
+    public async Task<ActionResult> BookClassForUserWithFriendsNoSeats(string classId, string userId, List<string> friends)
+    {
+        var classInfo = await _classRepository.GetClassByIdAsync(classId);
+        if (classInfo == null)
+        {
+            return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
+        }
+        if (classInfo.SeatBookingEnabled)
+        {
+            return BadRequest(new { error = "Invalid operation", message = "Class requires seat booking. Use the appropriate endpoint." });
+        }
+        if (classInfo.BookingList.Count + friends.Count + 1 > classInfo.MaxCapacity)
+        {
+            return BadRequest(new { error = "Booking failed", message = "Not enough available spots for the group booking." });
+        }
+
+
+        try
+        {
+            foreach (var id in friends)
+            {
+                var classes = await _classRepository.BookClassForUserNoSeatAsync(classId, id);
+            }
+            var classesMainUser = await _classRepository.BookClassForUserNoSeatAsync(classId, userId);
+            return Ok(classesMainUser);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Booking failed", message = ex.Message });
+        }
+
+    }
+
     [HttpPut("classes/{classId}/{userId}/{seat}")]
     public async Task<ActionResult> BookClassForUserWithSeat(string classId, string userId, int seat)
     {
@@ -77,7 +111,7 @@ public class ClassesController : ControllerBase
         {
             return BadRequest(new { error = "Invalid input", message = "Class ID and User ID cannot be null or empty." });
         }
-        if( seat < 0)
+        if (seat < 0)
         {
             return BadRequest(new { error = "Invalid input", message = "Seat number must be non-negative." });
         }
@@ -108,4 +142,5 @@ public class ClassesController : ControllerBase
             return BadRequest(new { error = "Cancellation failed", message = ex.Message });
         }
     }
+
 }
