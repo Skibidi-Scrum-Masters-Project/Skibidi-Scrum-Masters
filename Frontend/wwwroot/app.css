@@ -114,3 +114,90 @@ html, body {
 .validation-message {
     color: #dc2626;
 }
+
+/* DASHBOARD LAYOUT INDEN I phone-screen */
+
+.dashboard-screen {
+    width: 100%;
+    height: 100%;
+    padding: 1.5rem;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+
+    /* vigtig linje: fordel indholdet på højden */
+    justify-content: space-between;
+    gap: 1.25rem;
+}
+
+.dashboard-welcome {
+    font-size: 0.95rem;
+    color: #4b5563;
+    margin: 0;
+}
+
+/* Grid med menuknapper */
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.menu-card {
+    border: none;
+    background: #e5e7eb;
+    border-radius: 18px;
+    padding: 1.2rem 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Travlhed + lås op */
+
+.traffic-card {
+    margin-top: 0.5rem;
+    background: #111827;
+    color: #e5e7eb;
+    border-radius: 20px;
+    padding: 1.2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 6px 18px rgba(15,23,42,0.6);
+}
+
+.traffic-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+.traffic-label {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.traffic-bar {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: #374151;
+    overflow: hidden;
+}
+
+.traffic-bar-fill {
+    width: 65%; /* fake “travlhed” */
+    height: 100%;
+    background: linear-gradient(to right, #22c55e, #facc15, #ef4444);
+}
+
+.unlock-btn {
+    margin-top: 0.25rem;
+}
