@@ -1,29 +1,81 @@
+using System.Runtime.CompilerServices;
 using ClassService.Model;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 
 public class ClassRepository : IClassRepository
 {
-      private readonly IMongoCollection<FitnessClass> _classesCollection;
+    private readonly IMongoCollection<FitnessClass> _classesCollection;
 
     public ClassRepository(IMongoDatabase database)
     {
         _classesCollection = database.GetCollection<FitnessClass>("Classes");
     }
+
+    public async Task<FitnessClass> AddUserToClassWaitlistAsync(string classId, string userId)
+    {
+         FitnessClass? fitnessClass = await GetClassByIdAsync(classId);
+        if (fitnessClass.WaitlistUserIds.Contains(userId))
+        {
+            throw new Exception("User is already on the waitlist for this class.");
+        }
+        _classesCollection.UpdateOne(
+            c => c.Id == classId,
+            Builders<FitnessClass>.Update.Push(c => c.WaitlistUserIds, userId)
+        );
+        FitnessClass? updatedClass = await GetClassByIdAsync(classId);
+        return updatedClass;
+    }
+
+    public async Task<FitnessClass> BookClassForUserNoSeatAsync(string classId, string userId)
+    {
+        FitnessClass? fitnessClass = _classesCollection.Find(c => c.Id == classId).FirstOrDefault();
+        if (fitnessClass.BookingList.Any(b => b.UserId == userId))
+        {
+           throw new Exception("User already booked in this class.");
+        }
+        if (fitnessClass.MaxCapacity <= fitnessClass.BookingList.Count)
+        {
+            await AddUserToClassWaitlistAsync(classId, userId);
+            FitnessClass? updatedClassWaitlist = await GetClassByIdAsync(classId);
+            return updatedClassWaitlist;
+        }
+        Booking booking = new Booking
+        {
+            UserId = userId,
+            SeatNumber = 0,
+            CheckedInAt = DateTime.MinValue
+        };
+        _classesCollection.UpdateOne(
+            c => c.Id == classId,
+            Builders<FitnessClass>.Update.Push(c => c.BookingList, booking)
+        );
+        FitnessClass? updatedClass = await GetClassByIdAsync(classId);
+        return updatedClass;
+    }
+
     //TBA
     public async Task<FitnessClass> CreateClassAsync(FitnessClass fitnessClass)
     {
         fitnessClass.IsActive = true;
-        await  _classesCollection.InsertOneAsync(fitnessClass);
+        await _classesCollection.InsertOneAsync(fitnessClass);
         return fitnessClass;
     }
 
     public Task<IEnumerable<FitnessClass>> GetAllActiveClassesAsync()
     {
-        List<FitnessClass> classes =  _classesCollection.Find(c => c.IsActive).ToList();
+        List<FitnessClass> classes = _classesCollection.Find(c => c.IsActive).ToList();
         if (classes == null)
         {
             return Task.FromResult(Enumerable.Empty<FitnessClass>());
         }
         return Task.FromResult(classes.AsEnumerable());
+    }
+
+    public Task<FitnessClass> GetClassByIdAsync(string classId)
+    {
+        FitnessClass? fitnessClass = _classesCollection.Find(c => c.Id == classId).FirstOrDefault();
+        return Task.FromResult(fitnessClass);
     }
 }

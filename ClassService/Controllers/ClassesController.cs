@@ -56,4 +56,18 @@ public class ClassesController : ControllerBase
         var classes = await _classRepository.GetAllActiveClassesAsync();
         return Ok(classes);
     }
+    [HttpPut("classes/{classId}/{userId}")]
+    public async Task<ActionResult> BookClassForUser(string classId, string userId)
+    {
+        try
+        {
+            var classes = await _classRepository.BookClassForUserNoSeatAsync(classId, userId);
+            return Ok(classes);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Booking failed", message = ex.Message });
+        }
+
+    }
 }
