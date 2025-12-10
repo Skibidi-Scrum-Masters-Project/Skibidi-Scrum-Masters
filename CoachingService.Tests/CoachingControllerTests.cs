@@ -287,6 +287,69 @@ namespace CoachingService.Tests
             Assert.AreEqual(500, objectResult.StatusCode);
         }
         
+        
+        //CompleteSession
+        
+        [TestMethod]
+        public void CompleteSession_ValidId_ReturnsOkWithCompletedSession()
+        {
+            // Arrange
+            var completedSession = new Session 
+            { 
+                Id = "456", 
+                CurrentStatus = Session.Status.Completed // Use the correct enum value
+            }; 
+            
+            _mockRepository.Setup(r => r.CompleteSession("456"))
+                .Returns(completedSession);
+
+            // Act
+            var result = _controller.CompleteSession("456");
+
+            // Assert
+            var okResult = result.Result as OkObjectResult; 
+            Assert.IsNotNull(okResult);
+            Assert.AreEqual(200, okResult.StatusCode); 
+
+            var actualSession = okResult.Value as Session;
+            Assert.IsNotNull(actualSession);
+            Assert.AreEqual("456", actualSession.Id);
+            Assert.AreEqual(Session.Status.Completed, actualSession.CurrentStatus); 
+        }
+
+        [TestMethod]
+        public void CompleteSession_InvalidId_ReturnsNotFound()
+        {
+            // Arrange
+            _mockRepository.Setup(r => r.CompleteSession("999"))
+                .Throws(new ArgumentNullException("Session not found"));
+
+            // Act
+            var result = _controller.CompleteSession("999");
+
+            // Assert
+            var notFoundResult = result.Result as NotFoundObjectResult;
+            Assert.IsNotNull(notFoundResult);
+            Assert.AreEqual(404, notFoundResult.StatusCode);
+        }
+
+        [TestMethod]
+        public void CompleteSession_RepositoryThrowsException_ReturnsInternalServerError()
+        {
+            // Arrange
+            _mockRepository.Setup(r => r.CompleteSession("123"))
+                .Throws(new Exception("Database error"));
+
+            // Act
+            var result = _controller.CompleteSession("123");
+
+            // Assert
+            var objectResult = result.Result as ObjectResult;
+            Assert.IsNotNull(objectResult);
+            Assert.AreEqual(500, objectResult.StatusCode);
+        }
+        
+        
     }
 }
 

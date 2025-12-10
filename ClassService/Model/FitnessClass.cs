@@ -36,6 +36,7 @@ namespace ClassService.Model
         public List<string> WaitlistUserIds { get; set; } = new List<string>();
         public bool IsActive { get; set; }
         public bool SeatBookingEnabled { get; set; } = false;
+        public bool[]? SeatMap { get; set; }
     }
     public enum Category
     {

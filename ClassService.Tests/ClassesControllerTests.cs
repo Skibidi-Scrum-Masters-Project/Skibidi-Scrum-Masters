@@ -266,4 +266,63 @@ public class ClassesControllerTests
         Assert.IsNotNull(badRequestResult);
         Assert.AreEqual(400, badRequestResult.StatusCode);
     }
+
+    [TestMethod]
+    public async Task BookClassForUserWithSeat_ReturnsOkResult_WithBookedClass()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var seatNumber = 2;
+        var bookedClass = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = new bool[5],
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = userId, SeatNumber = seatNumber, CheckedInAt = DateTime.MinValue }
+            }
+        };
+        bookedClass.SeatMap![seatNumber] = true;
+        _mockRepository.Setup(r => r.BookClassForUserWithSeatAsync(classId, userId, seatNumber)).ReturnsAsync(bookedClass);
+
+        // Act
+        var result = await _controller.BookClassForUserWithSeat(classId, userId, seatNumber);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+        Assert.AreEqual(bookedClass, okResult.Value);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithSeat_WhenRepositoryThrows_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var seatNumber = 2;
+        _mockRepository.Setup(r => r.BookClassForUserWithSeatAsync(classId, userId, seatNumber))
+            .ThrowsAsync(new Exception("Seat already booked."));
+
+        // Act
+        var result = await _controller.BookClassForUserWithSeat(classId, userId, seatNumber);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
 }
