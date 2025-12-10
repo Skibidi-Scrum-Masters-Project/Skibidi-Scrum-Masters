@@ -1,5 +1,39 @@
-<h3>LoginPage</h3>
+@page "/"
+@page "/login"
+@layout EmptyLayout
+
+@using FitLifeFitness.Components.Layout
+@using Microsoft.AspNetCore.Components
+
+<h2 class="page-title">FitLife Fitness</h2>
+
+<div class="login-container">
+    <label for="username">Brugernavn</label>
+    <input id="username" @bind="Username" />
+
+    <label for="password">Password</label>
+    <input id="password" type="password" @bind="Password" />
+
+    <button class="primary-btn" @onclick="OnLoginClicked">
+        Log ind
+    </button>
+
+    <div class="login-links">
+        <a href="#">Glemt password?</a><br />
+        <a href="#">Opret bruger</a>
+    </div>
+</div>
 
 @code {
-    
+[Inject] private NavigationManager Nav { get; set; } = default!;
+
+private string Username { get; set; } = string.Empty;
+private string Password { get; set; } = string.Empty;
+
+private void OnLoginClicked()
+{
+// TODO: Senere: kald backend for at logge ind.
+// Lige nu: bare navigér videre til dashboard som “fake login”
+Nav.NavigateTo("/dashboard");
+}
 }
