@@ -90,6 +90,22 @@ public class ClassesController : ControllerBase
         {
             return BadRequest(new { error = "Booking failed", message = ex.Message });
         }
-
+    }
+    [HttpPut("classes/{classId}/{userId}/cancel")]
+    public async Task<ActionResult> CancelClassBookingForUser(string classId, string userId)
+    {
+        if (string.IsNullOrEmpty(classId) || string.IsNullOrEmpty(userId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "Class ID and User ID cannot be null or empty." });
+        }
+        try
+        {
+            var classes = await _classRepository.CancelClassBookingForUserAsync(classId, userId);
+            return Ok(classes);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Cancellation failed", message = ex.Message });
+        }
     }
 }

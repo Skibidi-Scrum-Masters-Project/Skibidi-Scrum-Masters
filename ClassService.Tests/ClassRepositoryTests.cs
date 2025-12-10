@@ -294,4 +294,224 @@ public class ClassRepositoryTests
             async () => await _repository.BookClassForUserWithSeatAsync(fitnessClass.Id!, "user123", 2)
         );
     }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUserAsync_RemovesBooking()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            SeatBookingEnabled = false,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user123", SeatNumber = 0, CheckedInAt = DateTime.MinValue },
+                new Booking { UserId = "user456", SeatNumber = 0, CheckedInAt = DateTime.MinValue }
+            },
+            WaitlistUserIds = new List<string>()
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act
+        var result = await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "user123");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(1, result.BookingList.Count);
+        Assert.IsFalse(result.BookingList.Any(b => b.UserId == "user123"));
+        Assert.IsTrue(result.BookingList.Any(b => b.UserId == "user456"));
+    }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUserAsync_WithSeat_FreesUpSeat()
+    {
+        // Arrange
+        var seatMap = new bool[5];
+        seatMap[2] = true;
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = seatMap,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user123", SeatNumber = 2, CheckedInAt = DateTime.MinValue }
+            },
+            WaitlistUserIds = new List<string>()
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act
+        var result = await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "user123");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(0, result.BookingList.Count);
+        Assert.IsFalse(result.SeatMap![2]);
+    }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUserAsync_MovesWaitlistUserToBooking_NoSeat()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            SeatBookingEnabled = false,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user123", SeatNumber = 0, CheckedInAt = DateTime.MinValue }
+            },
+            WaitlistUserIds = new List<string> { "waitlistUser1", "waitlistUser2" }
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act
+        var result = await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "user123");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(1, result.BookingList.Count);
+        Assert.AreEqual("waitlistUser1", result.BookingList[0].UserId);
+        Assert.AreEqual(1, result.WaitlistUserIds.Count);
+        Assert.IsFalse(result.WaitlistUserIds.Contains("waitlistUser1"));
+        Assert.IsTrue(result.WaitlistUserIds.Contains("waitlistUser2"));
+    }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUserAsync_MovesWaitlistUserToBooking_WithSeat()
+    {
+        // Arrange
+        var seatMap = new bool[5];
+        seatMap[2] = true;
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = seatMap,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user123", SeatNumber = 2, CheckedInAt = DateTime.MinValue }
+            },
+            WaitlistUserIds = new List<string> { "waitlistUser1" }
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act
+        var result = await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "user123");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(1, result.BookingList.Count);
+        Assert.AreEqual("waitlistUser1", result.BookingList[0].UserId);
+        Assert.AreEqual(2, result.BookingList[0].SeatNumber);
+        Assert.AreEqual(0, result.WaitlistUserIds.Count);
+        Assert.IsFalse(result.SeatMap![2]);
+    }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUserAsync_RemovesFromWaitlistOnly()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 2,
+            IsActive = true,
+            SeatBookingEnabled = false,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user1", SeatNumber = 0, CheckedInAt = DateTime.MinValue },
+                new Booking { UserId = "user2", SeatNumber = 0, CheckedInAt = DateTime.MinValue }
+            },
+            WaitlistUserIds = new List<string> { "waitlistUser1", "waitlistUser2" }
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act
+        var result = await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "waitlistUser1");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(2, result.BookingList.Count);
+        Assert.AreEqual(1, result.WaitlistUserIds.Count);
+        Assert.IsFalse(result.WaitlistUserIds.Contains("waitlistUser1"));
+        Assert.IsTrue(result.WaitlistUserIds.Contains("waitlistUser2"));
+    }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUserAsync_WhenUserNotFound_ThrowsException()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            BookingList = new List<Booking>(),
+            WaitlistUserIds = new List<string>()
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<Exception>(
+            async () => await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "nonExistentUser")
+        );
+    }
 }

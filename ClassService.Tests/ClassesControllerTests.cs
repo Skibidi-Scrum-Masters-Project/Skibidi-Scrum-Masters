@@ -325,4 +325,55 @@ public class ClassesControllerTests
         Assert.IsNotNull(badRequestResult);
         Assert.AreEqual(400, badRequestResult.StatusCode);
     }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUser_ReturnsOkResult_WithUpdatedClass()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var updatedClass = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            BookingList = new List<Booking>()
+        };
+        _mockRepository.Setup(r => r.CancelClassBookingForUserAsync(classId, userId)).ReturnsAsync(updatedClass);
+
+        // Act
+        var result = await _controller.CancelClassBookingForUser(classId, userId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+        Assert.AreEqual(updatedClass, okResult.Value);
+    }
+
+    [TestMethod]
+    public async Task CancelClassBookingForUser_WhenRepositoryThrows_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        _mockRepository.Setup(r => r.CancelClassBookingForUserAsync(classId, userId))
+            .ThrowsAsync(new Exception("User does not have a booking or waitlist entry in this class."));
+
+        // Act
+        var result = await _controller.CancelClassBookingForUser(classId, userId);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
 }
