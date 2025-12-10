@@ -58,6 +58,10 @@ public class ClassRepository : IClassRepository
     //TBA
     public async Task<FitnessClass> CreateClassAsync(FitnessClass fitnessClass)
     {
+        if (fitnessClass.SeatBookingEnabled)
+        {
+            fitnessClass.SeatMap = new bool[fitnessClass.MaxCapacity];
+        }
         fitnessClass.IsActive = true;
         await _classesCollection.InsertOneAsync(fitnessClass);
         return fitnessClass;
