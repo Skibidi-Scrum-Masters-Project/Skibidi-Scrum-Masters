@@ -94,5 +94,23 @@ public class CoachingController : ControllerBase
             return StatusCode(500, new { message = "An error occurred while cancelling the session.", details = ex.Message });
         }
     }
+    
+    [HttpPut("CompleteSession/{id}")]
+    public ActionResult<Session> CompleteSession(string id)
+    {
+        try
+        {
+            var session = _coachingRepository.CompleteSession(id);
+            return Ok(session);
+        }
+        catch (ArgumentNullException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
 
 }
