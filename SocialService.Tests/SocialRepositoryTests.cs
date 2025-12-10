@@ -51,6 +51,7 @@ public class SocialRepositoryTests
     }
     
     [TestMethod]
+    [DoNotParallelize]
     public async Task GetAllFriendRequests_WhenThereIsMultipleStatus_ShouldNotReturnAcceptedOrDeclinedRequests()
     {
         // Arrange
@@ -92,6 +93,7 @@ public class SocialRepositoryTests
     
     //GetAllFriendRequests
     [TestMethod]
+    [DoNotParallelize]
     public async Task GetAllFriendRequests_WhenItsSuccessfull_ShouldReturnAllFriendRequests()
     {
         // Arrange
