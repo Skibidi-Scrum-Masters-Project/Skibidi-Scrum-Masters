@@ -1,35 +1,87 @@
-using FitnessApp.Shared.Models;
+using ClassService.Model;
+using Mongo2Go;
+using MongoDB.Driver;
 
 namespace ClassService.Tests;
 
 [TestClass]
 public class ClassRepositoryTests
 {
+    private MongoDbRunner _runner = null!;
+    private IMongoDatabase _database = null!;
+    private ClassRepository _repository = null!;
+
     [TestInitialize]
     public void Setup()
     {
-        // TBA: Setup repository with test database/context
-        // var repository = new ClassRepository(testContext);
+        _runner = MongoDbRunner.Start();
+        var client = new MongoClient(_runner.ConnectionString);
+        _database = client.GetDatabase("TestDatabase");
+        _repository = new ClassRepository(_database);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _runner.Dispose();
     }
 
     [TestMethod]
-    public void CreateClass_ShouldAddClassToDatabase()
+    public async Task CreateClassAsync_AddsClassToDatabase()
     {
-        // TBA: Implement class creation test
-        Assert.Inconclusive("Test not implemented yet");
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Gentle yoga for beginners.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 20
+        };
+
+        // Act
+        var result = await _repository.CreateClassAsync(fitnessClass);
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.IsNotNull(result.Id);
+        Assert.AreEqual("instructor123", result.InstructorId);
+        Assert.AreEqual("Morning Yoga", result.Name);
+        Assert.IsTrue(result.IsActive);
+
+        // Verify it's in the database
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        var foundClass = await collection.Find(c => c.Id == result.Id).FirstOrDefaultAsync();
+        Assert.IsNotNull(foundClass);
+        Assert.AreEqual("Morning Yoga", foundClass.Name);
     }
 
     [TestMethod]
-    public void EnrollUserInClass_ShouldAddUserToClassList()
+    public async Task CreateClassAsync_SetsIsActiveToTrue()
     {
-        // TBA: Implement class enrollment test
-        Assert.Inconclusive("Test not implemented yet");
-    }
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Evening Pilates",
+            Category = Category.Pilates,
+            Intensity = Intensity.Medium,
+            Description = "Core strength training.",
+            StartTime = DateTime.UtcNow.AddDays(2),
+            Duration = 45,
+            MaxCapacity = 15,
+            IsActive = false // Should be overridden to true
+        };
 
-    [TestMethod]
-    public void GetAvailableClasses_ShouldReturnNonFullClasses()
-    {
-        // TBA: Implement available classes test
-        Assert.Inconclusive("Test not implemented yet");
+        // Act
+        var result = await _repository.CreateClassAsync(fitnessClass);
+
+        // Assert
+        Assert.IsTrue(result.IsActive);
     }
 }

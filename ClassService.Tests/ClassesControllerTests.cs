@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using FitnessApp.Shared.Models;
+using ClassService.Model;
 using ClassService.Controllers;
 using Moq;
 
@@ -37,5 +37,127 @@ public class ClassesControllerTests
     {
         // TBA: Implement test for OK status code
         Assert.Inconclusive("Test not implemented yet");
+    }
+
+    [TestMethod]
+    public async Task CreateClassAsync_ReturnsOkResult_WithCreatedClass()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Gentle yoga for beginners.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 20,
+            IsActive = true
+        };
+        _mockRepository.Setup(r => r.CreateClassAsync(fitnessClass)).ReturnsAsync(fitnessClass);
+
+        // Act
+        var result = await _controller.CreateClassAsync(fitnessClass);
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+        Assert.AreEqual(fitnessClass, okResult.Value);
+    }
+
+    [TestMethod]
+    public async Task CreateClassAsync_WhenClassIsNull_ReturnsBadRequest()
+    {
+        // Arrange
+        FitnessClass? fitnessClass = null;
+
+        // Act
+        var result = await _controller.CreateClassAsync(fitnessClass!);
+
+        // Assert
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task CreateClassAsync_WhenInstructorIdIsEmpty_ReturnsBadRequest()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Gentle yoga for beginners.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 20
+        };
+
+        // Act
+        var result = await _controller.CreateClassAsync(fitnessClass);
+
+        // Assert
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task CreateClassAsync_WhenDurationIsZero_ReturnsBadRequest()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Gentle yoga for beginners.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 0,
+            MaxCapacity = 20
+        };
+
+        // Act
+        var result = await _controller.CreateClassAsync(fitnessClass);
+
+        // Assert
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task CreateClassAsync_WhenMaxCapacityIsZero_ReturnsBadRequest()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Gentle yoga for beginners.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 0
+        };
+
+        // Act
+        var result = await _controller.CreateClassAsync(fitnessClass);
+
+        // Assert
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
     }
 }
