@@ -224,4 +224,74 @@ public class ClassRepositoryTests
         Assert.AreEqual(1, result.WaitlistUserIds.Count);
         Assert.IsTrue(result.WaitlistUserIds.Contains("user3"));
     }
+
+    [TestMethod]
+    public async Task BookClassForUserWithSeatAsync_AddsBookingWithSeat()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = new bool[5],
+            BookingList = new List<Booking>(),
+            WaitlistUserIds = new List<string>()
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act
+        var result = await _repository.BookClassForUserWithSeatAsync(fitnessClass.Id!, "user123", 2);
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.AreEqual(1, result.BookingList.Count);
+        Assert.AreEqual("user123", result.BookingList[0].UserId);
+        Assert.AreEqual(2, result.BookingList[0].SeatNumber);
+        Assert.IsTrue(result.SeatMap![2]);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithSeatAsync_WhenSeatTaken_ThrowsException()
+    {
+        // Arrange
+        var seatMap = new bool[5];
+        seatMap[2] = true; // Seat 2 is already taken
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = seatMap,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user1", SeatNumber = 2, CheckedInAt = DateTime.MinValue }
+            },
+            WaitlistUserIds = new List<string>()
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<Exception>(
+            async () => await _repository.BookClassForUserWithSeatAsync(fitnessClass.Id!, "user123", 2)
+        );
+    }
 }

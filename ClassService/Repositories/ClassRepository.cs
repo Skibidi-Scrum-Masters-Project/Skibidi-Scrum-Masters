@@ -15,7 +15,7 @@ public class ClassRepository : IClassRepository
 
     public async Task<FitnessClass> AddUserToClassWaitlistAsync(string classId, string userId)
     {
-         FitnessClass? fitnessClass = await GetClassByIdAsync(classId);
+        FitnessClass? fitnessClass = await GetClassByIdAsync(classId);
         if (fitnessClass.WaitlistUserIds.Contains(userId))
         {
             throw new Exception("User is already on the waitlist for this class.");
@@ -33,7 +33,7 @@ public class ClassRepository : IClassRepository
         FitnessClass? fitnessClass = _classesCollection.Find(c => c.Id == classId).FirstOrDefault();
         if (fitnessClass.BookingList.Any(b => b.UserId == userId))
         {
-           throw new Exception("User already booked in this class.");
+            throw new Exception("User already booked in this class.");
         }
         if (fitnessClass.MaxCapacity <= fitnessClass.BookingList.Count)
         {
@@ -50,6 +50,47 @@ public class ClassRepository : IClassRepository
         _classesCollection.UpdateOne(
             c => c.Id == classId,
             Builders<FitnessClass>.Update.Push(c => c.BookingList, booking)
+        );
+        FitnessClass? updatedClass = await GetClassByIdAsync(classId);
+        return updatedClass;
+    }
+
+    public async Task<FitnessClass> BookClassForUserWithSeatAsync(string classId, string userId, int seatNumber)
+    {
+        FitnessClass? fitnessClass = _classesCollection.Find(c => c.Id == classId).FirstOrDefault();
+        if(fitnessClass.SeatBookingEnabled == false)
+        {
+            throw new Exception("Seat booking is not enabled for this class.");
+        }
+        
+        if (fitnessClass.BookingList.Any(b => b.UserId == userId))
+        {
+            throw new Exception("User already booked in this class.");
+        }
+        if (fitnessClass.MaxCapacity <= fitnessClass.BookingList.Count)
+        {
+            await AddUserToClassWaitlistAsync(classId, userId);
+            FitnessClass? updatedClassWaitlist = await GetClassByIdAsync(classId);
+            return updatedClassWaitlist;
+        }
+        
+        if(fitnessClass.SeatMap![seatNumber] == true)
+        {
+            throw new Exception("Seat already booked.");
+        }
+        Booking booking = new Booking
+        {
+            UserId = userId,
+            SeatNumber = seatNumber,
+            CheckedInAt = DateTime.MinValue
+        };
+        await _classesCollection.UpdateOneAsync(
+            c => c.Id == classId,
+            Builders<FitnessClass>.Update.Push(c => c.BookingList, booking)
+        );
+        await _classesCollection.UpdateOneAsync(
+            c => c.Id == classId,
+            Builders<FitnessClass>.Update.Set(c => c.SeatMap![seatNumber], true)
         );
         FitnessClass? updatedClass = await GetClassByIdAsync(classId);
         return updatedClass;

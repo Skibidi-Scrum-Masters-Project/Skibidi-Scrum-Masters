@@ -19,31 +19,31 @@ public class ClassesController : ControllerBase
     // [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<FitnessClass>> CreateClassAsync(FitnessClass fitnessClass)
     {
-        if(fitnessClass == null)
+        if (fitnessClass == null)
         {
             return BadRequest(new { error = "Invalid input", message = "Fitness class cannot be null." });
         }
-        if(string.IsNullOrEmpty(fitnessClass.InstructorId))
+        if (string.IsNullOrEmpty(fitnessClass.InstructorId))
         {
             return BadRequest(new { error = "Invalid input", message = "Instructor ID cannot be null or empty." });
         }
-        if(string.IsNullOrEmpty(fitnessClass.CenterId))
+        if (string.IsNullOrEmpty(fitnessClass.CenterId))
         {
             return BadRequest(new { error = "Invalid input", message = "Center ID cannot be null or empty." });
         }
-        if(fitnessClass.MaxCapacity <= 0)
+        if (fitnessClass.MaxCapacity <= 0)
         {
             return BadRequest(new { error = "Invalid input", message = "Capacity must be greater than zero." });
         }
-        if(fitnessClass.Duration <= 0)
+        if (fitnessClass.Duration <= 0)
         {
             return BadRequest(new { error = "Invalid input", message = "Duration must be greater than zero." });
         }
-        if(fitnessClass.Description == null)
+        if (fitnessClass.Description == null)
         {
             return BadRequest(new { error = "Invalid input", message = "Description cannot exceed 500 characters." });
         }
-        if(fitnessClass.Name == null)
+        if (fitnessClass.Name == null)
         {
             return BadRequest(new { error = "Invalid input", message = "Name cannot be null." });
         }
@@ -62,6 +62,28 @@ public class ClassesController : ControllerBase
         try
         {
             var classes = await _classRepository.BookClassForUserNoSeatAsync(classId, userId);
+            return Ok(classes);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Booking failed", message = ex.Message });
+        }
+
+    }
+    [HttpPut("classes/{classId}/{userId}/{seat}")]
+    public async Task<ActionResult> BookClassForUserWithSeat(string classId, string userId, int seat)
+    {
+        if (string.IsNullOrEmpty(classId) || string.IsNullOrEmpty(userId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "Class ID and User ID cannot be null or empty." });
+        }
+        if( seat < 0)
+        {
+            return BadRequest(new { error = "Invalid input", message = "Seat number must be non-negative." });
+        }
+        try
+        {
+            var classes = await _classRepository.BookClassForUserWithSeatAsync(classId, userId, seat);
             return Ok(classes);
         }
         catch (Exception ex)
