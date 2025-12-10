@@ -37,7 +37,7 @@ public class SocialController : ControllerBase
             var createdFriendship = await _socialRepository
                 .SendFriendRequestAsync(friendship.SenderId, friendship.ReceiverId);
 
-            return Ok(createdFriendship.FriendShipStatus);
+            return Ok(createdFriendship);
         }
         catch (ArgumentException ex)
         {
@@ -165,4 +165,16 @@ public class SocialController : ControllerBase
         return Ok(friendRequestCanceled);
     }
 
+    [HttpGet("friendrequests/{senderId}")]
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllFriendRequests(int senderId)
+    {
+        var friendRequests = await _socialRepository.GetAllFriendRequests(senderId);
+        
+        if (friendRequests == null)
+            return BadRequest(friendRequests);
+                
+        return Ok(friendRequests);
+    }
+
 }
+
