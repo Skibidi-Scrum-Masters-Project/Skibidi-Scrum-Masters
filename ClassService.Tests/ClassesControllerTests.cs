@@ -657,4 +657,56 @@ public class ClassesControllerTests
         Assert.IsNotNull(notFoundResult);
         Assert.AreEqual(404, notFoundResult.StatusCode);
     }
+
+    [TestMethod]
+    public async Task FinishClass_ReturnsNoContent()
+    {
+        // Arrange
+        var classId = "class123";
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user1", SeatNumber = 0 },
+                new Booking { UserId = "user2", SeatNumber = 0 }
+            }
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+        _mockRepository.Setup(r => r.FinishClass(classId)).Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _controller.FinishClass(classId);
+
+        // Assert
+        var noContentResult = result as NoContentResult;
+        Assert.IsNotNull(noContentResult);
+        Assert.AreEqual(204, noContentResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task FinishClass_WhenClassNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var classId = "nonexistent123";
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync((FitnessClass)null!);
+
+        // Act
+        var result = await _controller.FinishClass(classId);
+
+        // Assert
+        var notFoundResult = result as NotFoundObjectResult;
+        Assert.IsNotNull(notFoundResult);
+        Assert.AreEqual(404, notFoundResult.StatusCode);
+    }
 }

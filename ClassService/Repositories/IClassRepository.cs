@@ -13,5 +13,6 @@ public interface IClassRepository
    public Task MoveWaitlistToBookingWithSeat(string classId, int seatNumber);
    public Task MoveWaitlistToBookingWithNoSeat(string classId);
    public Task DeleteClassAsync(string classId);
+   public Task FinishClass(string classId);
 
 }

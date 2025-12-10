@@ -7,10 +7,12 @@ using MongoDB.Driver;
 public class ClassRepository : IClassRepository
 {
     private readonly IMongoCollection<FitnessClass> _classesCollection;
+    private readonly IMongoCollection<ClassResult> _classResultsCollection;
 
     public ClassRepository(IMongoDatabase database)
     {
         _classesCollection = database.GetCollection<FitnessClass>("Classes");
+        _classResultsCollection = database.GetCollection<ClassResult>("ClassResults");
     }
 
     public async Task<FitnessClass> AddUserToClassWaitlistAsync(string classId, string userId)
@@ -97,69 +99,69 @@ public class ClassRepository : IClassRepository
         return updatedClass;
     }
 
-   public async Task<FitnessClass> CancelClassBookingForUserAsync(string classId, string userId)
-{
-    //Get the class
-    FitnessClass? fitnessClass = await GetClassByIdAsync(classId);
-    if (fitnessClass == null)
+    public async Task<FitnessClass> CancelClassBookingForUserAsync(string classId, string userId)
     {
-        throw new Exception("Class not found.");
-    }
+        //Get the class
+        FitnessClass? fitnessClass = await GetClassByIdAsync(classId);
+        if (fitnessClass == null)
+        {
+            throw new Exception("Class not found.");
+        }
 
-    Booking? bookingToRemove = fitnessClass.BookingList.FirstOrDefault(b => b.UserId == userId);
-    string? waitlistToRemove = fitnessClass.WaitlistUserIds.FirstOrDefault(id => id == userId);
-    
-    //If user has no booking or waitlist entry, throw error
-    if (bookingToRemove == null && waitlistToRemove == null)
-    {
-        throw new Exception("User does not have a booking or waitlist entry in this class.");
-    }
+        Booking? bookingToRemove = fitnessClass.BookingList.FirstOrDefault(b => b.UserId == userId);
+        string? waitlistToRemove = fitnessClass.WaitlistUserIds.FirstOrDefault(id => id == userId);
 
-    // Handle waitlist cancellation (user is on waitlist, not booked)
-    if (bookingToRemove == null && waitlistToRemove != null)
-    {
-        await _classesCollection.UpdateOneAsync(
-            c => c.Id == classId,
-            Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, userId)
-        );
-        return await GetClassByIdAsync(classId);
-    }
+        //If user has no booking or waitlist entry, throw error
+        if (bookingToRemove == null && waitlistToRemove == null)
+        {
+            throw new Exception("User does not have a booking or waitlist entry in this class.");
+        }
 
-    // Handle booking cancellation
-    if (bookingToRemove != null)
-    {
-        //remove the seat from seatmap if applicable
-        if (fitnessClass.SeatBookingEnabled)
+        // Handle waitlist cancellation (user is on waitlist, not booked)
+        if (bookingToRemove == null && waitlistToRemove != null)
         {
             await _classesCollection.UpdateOneAsync(
                 c => c.Id == classId,
-                Builders<FitnessClass>.Update.Set(c => c.SeatMap![bookingToRemove.SeatNumber], false)
+                Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, userId)
             );
+            return await GetClassByIdAsync(classId);
         }
-        
-        //Remove booking
-        await _classesCollection.UpdateOneAsync(
-            c => c.Id == classId,
-            Builders<FitnessClass>.Update.PullFilter(c => c.BookingList, b => b.UserId == userId)
-        );
 
-        // Move waitlist to booking if there's a waitlist
-        if (fitnessClass.WaitlistUserIds.Count > 0)
+        // Handle booking cancellation
+        if (bookingToRemove != null)
         {
+            //remove the seat from seatmap if applicable
             if (fitnessClass.SeatBookingEnabled)
             {
-                await MoveWaitlistToBookingWithSeat(classId, bookingToRemove.SeatNumber);
+                await _classesCollection.UpdateOneAsync(
+                    c => c.Id == classId,
+                    Builders<FitnessClass>.Update.Set(c => c.SeatMap![bookingToRemove.SeatNumber], false)
+                );
             }
-            else
+
+            //Remove booking
+            await _classesCollection.UpdateOneAsync(
+                c => c.Id == classId,
+                Builders<FitnessClass>.Update.PullFilter(c => c.BookingList, b => b.UserId == userId)
+            );
+
+            // Move waitlist to booking if there's a waitlist
+            if (fitnessClass.WaitlistUserIds.Count > 0)
             {
-                await MoveWaitlistToBookingWithNoSeat(classId);
+                if (fitnessClass.SeatBookingEnabled)
+                {
+                    await MoveWaitlistToBookingWithSeat(classId, bookingToRemove.SeatNumber);
+                }
+                else
+                {
+                    await MoveWaitlistToBookingWithNoSeat(classId);
+                }
             }
         }
-    }
 
-    FitnessClass? updatedClass = await GetClassByIdAsync(classId);
-    return updatedClass;
-}
+        FitnessClass? updatedClass = await GetClassByIdAsync(classId);
+        return updatedClass;
+    }
 
     public async Task<FitnessClass> CreateClassAsync(FitnessClass fitnessClass)
     {
@@ -187,6 +189,158 @@ public class ClassRepository : IClassRepository
             throw new Exception("Class not found.");
         }
         return _classesCollection.DeleteOneAsync(c => c.Id == classId);
+    }
+
+    public Task FinishClass(string classId)
+    {
+        var finishedClass = GetClassByIdAsync(classId).Result;
+        var caloriesBurnedTotal = CalculateCaloriesBurned(finishedClass.Intensity, finishedClass.Category, finishedClass.Duration);
+        var wattTotal = CalculateWatt(finishedClass.Intensity, finishedClass.Category, finishedClass.Duration).Result;
+
+        foreach (var Attendant in finishedClass.BookingList)
+        {
+            //Calculate their metrics
+            var Metric = new ClassResult();
+            Metric.ClassId = classId;
+            Metric.UserId = Attendant.UserId;
+            Metric.CaloriesBurned = caloriesBurnedTotal;
+            Metric.Watt = wattTotal;
+            Metric.DurationMin = finishedClass.Duration;
+            Metric.Date = DateTime.Now;
+            //Here we would normally save the Metric to a database or send it to another service
+            _classResultsCollection.InsertOne(Metric);
+        }
+        finishedClass.IsActive = false;
+        _classesCollection.ReplaceOne(c => c.Id == classId, finishedClass);
+        return Task.CompletedTask;
+    }
+    public async Task<Double> CalculateWatt(Intensity intensity,
+     Category category, int DurationMinutes)
+    {
+        if (Category.Yoga == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 30;
+                case Intensity.Medium:
+                    return DurationMinutes * 50;
+                case Intensity.Hard:
+                    return DurationMinutes * 70;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else if (Category.Pilates == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 40;
+                case Intensity.Medium:
+                    return DurationMinutes * 60;
+                case Intensity.Hard:
+                    return DurationMinutes * 80;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else if (Category.Crossfit == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 70;
+                case Intensity.Medium:
+                    return DurationMinutes * 90;
+                case Intensity.Hard:
+                    return DurationMinutes * 110;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else if (Category.Spinning == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 50;
+                case Intensity.Medium:
+                    return DurationMinutes * 80;
+                case Intensity.Hard:
+                    return DurationMinutes * 100;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException();
+        }
+    }
+    public double CalculateCaloriesBurned(Intensity intensity,
+     Category category, int DurationMinutes)
+    {
+        if (Category.Yoga == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 4;
+                case Intensity.Medium:
+                    return DurationMinutes * 6;
+                case Intensity.Hard:
+                    return DurationMinutes * 8;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else if (Category.Pilates == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 5;
+                case Intensity.Medium:
+                    return DurationMinutes * 7;
+                case Intensity.Hard:
+                    return DurationMinutes * 9;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else if (Category.Crossfit == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 8;
+                case Intensity.Medium:
+                    return DurationMinutes * 10;
+                case Intensity.Hard:
+                    return DurationMinutes * 12;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else if (Category.Spinning == category)
+        {
+            switch (intensity)
+            {
+                case Intensity.Easy:
+                    return DurationMinutes * 6;
+                case Intensity.Medium:
+                    return DurationMinutes * 9;
+                case Intensity.Hard:
+                    return DurationMinutes * 11;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException();
+        }
     }
 
     public Task<IEnumerable<FitnessClass>> GetAllActiveClassesAsync()
@@ -236,14 +390,14 @@ public class ClassRepository : IClassRepository
         booking.SeatNumber = seatNumber;
         booking.CheckedInAt = DateTime.MinValue;
         //Add booking
-        await  _classesCollection.UpdateOneAsync(
+        await _classesCollection.UpdateOneAsync(
             c => c.Id == classId,
             Builders<FitnessClass>.Update.Push(c => c.BookingList, booking)
         );
         //Remove from waitlist
-         await _classesCollection.UpdateOneAsync(
-            c => c.Id == classId,
-            Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, nextUserId)
-        );  
+        await _classesCollection.UpdateOneAsync(
+           c => c.Id == classId,
+           Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, nextUserId)
+       );
     }
 }
