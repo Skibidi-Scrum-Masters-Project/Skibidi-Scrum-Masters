@@ -407,7 +407,7 @@ public class ClassesControllerTests
         var result = await _controller.BookClassForUserWithFriendsNoSeats(classId, userId, friends);
 
         // Assert
-        var okResult = result as OkResult;
+        var okResult = result as OkObjectResult;
         Assert.IsNotNull(okResult);
         Assert.AreEqual(200, okResult.StatusCode);
     }
