@@ -1,3 +1,4 @@
+using FitnessApp.Shared.Models;
 using SocialService.Models;
 
 namespace SocialService.Repositories;
@@ -19,5 +20,8 @@ public interface ISocialRepository
     
     //Metode til at Cancel en pending request.
     Task<Friendship> CancelFriendRequest (int senderId, int receiverId);
+    
+    //Metode til at hente alle ens friend requests.
+    Task<IEnumerable<Friendship>?> GetAllFriendRequests (int senderId);
 
 }

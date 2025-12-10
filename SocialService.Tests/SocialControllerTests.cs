@@ -22,7 +22,7 @@ public class SocialControllerTests
         _controller = new SocialController(_mockRepository.Object);
     }
     
-    
+    //Testing SendFriendRequest()
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldMakeStatusPending_WhenFriendRequestSent()
     {
@@ -55,11 +55,15 @@ public class SocialControllerTests
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
 
-        var status = (FriendshipStatus)okResult.Value!;
-        Assert.AreEqual(FriendshipStatus.Pending, status);
+      
+        var friendship = okResult.Value as Friendship;
+        Assert.IsNotNull(friendship, "Expected Value to be Friendship");
+        
+        // Tjek at status er Pending
+        Assert.AreEqual(FriendshipStatus.Pending, friendship.FriendShipStatus);
     }
-
-
+    
+    //Testing DeclineFriendRequest()
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturnPositiveIfStatusIsDeclined_WhenFriendRequestDeclined()
     {
@@ -90,6 +94,8 @@ public class SocialControllerTests
         Assert.AreEqual(FriendshipStatus.Declined, status);
     }
     
+    
+    //Testing GetAllFriends()
     [TestMethod]
     public async Task GetAllFriends_ShouldReturnListOfAllFriends_WhenSearchedForFriends()
     {
@@ -134,6 +140,8 @@ public class SocialControllerTests
         _mockRepository.Verify(f => f.GetAllFriends(senderId), Times.Once);
     }
 
+    
+    //Testing GetFriendById()
     [TestMethod]
     public async Task GetFriendById_ShouldReturnFriend_WhenFriendIsFound()
     {
@@ -205,7 +213,7 @@ public class SocialControllerTests
     }
 
     
-    
+    //Testing CancelFriendRequest
     [TestMethod]
     public async Task CancelFriendRequest_ShouldSetStatusToNone_WhenFriendRequestIsCancelled()
     {
@@ -247,9 +255,59 @@ public class SocialControllerTests
             "FriendshipStatus should be None after cancelling the request"
         );
     }
+    
+    
+    //Testing GetAllFriendRequests
+    [TestMethod]
+         public async Task GetAllFriendRequests_WhenItsSuccefull_ShouldReturnStatusCode200()
+         {
+             //Arrange
+             var senderId = 1;
+     
+             
+             var friendshipFromRepo = new Friendship
+             {
+                 SenderId = senderId,
+                 FriendShipStatus = FriendshipStatus.Pending
+             };
+             
+             
+             _mockRepository.Setup(r => r.GetAllFriendRequests(senderId))
+                 .ReturnsAsync(new List<Friendship> { friendshipFromRepo });
+             
+             //Act
+             var result = await _controller.GetAllFriendRequests(senderId);
+             
+             
+             // Assert
+             var okResult = result.Result as OkObjectResult;
+             Assert.IsNotNull(okResult, "Expected OkObjectResult");
+             Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+     
+             
+             // Verificer at repositoryet blev kaldt korrekt
+             _mockRepository.Verify(r => r.GetAllFriendRequests(senderId), Times.Once);
+         }
+         
+    [TestMethod]
+    public async Task GetAllFriendRequests_WhenItsUnSuccesfull_ShouldReturnStatusCode400()
+    {
+        // Arrange
+        var senderId = 1;
 
+        // Simulerer at repo ikke kan hente venneanmodninger (fx fejl eller ugyldig request)
+        _mockRepository.Setup(r => r.GetAllFriendRequests(senderId))
+            .ReturnsAsync((List<Friendship>?)null);
 
+        // Act
+        var result = await _controller.GetAllFriendRequests(senderId);
 
+        // Assert
+        var badRequestResult = result.Result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult, "Expected BadRequestObjectResult");
+        Assert.AreEqual(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
 
-
+        // Verificer at repositoryet blev kaldt korrekt
+        _mockRepository.Verify(r => r.GetAllFriendRequests(senderId), Times.Once);
+    }
 }
