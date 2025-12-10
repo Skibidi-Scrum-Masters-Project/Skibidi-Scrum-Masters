@@ -514,4 +514,45 @@ public class ClassRepositoryTests
             async () => await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "nonExistentUser")
         );
     }
+
+    [TestMethod]
+    public async Task DeleteClassAsync_RemovesClassFromDatabase()
+    {
+        // Arrange
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class to be deleted.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 20,
+            IsActive = true,
+            BookingList = new List<Booking>()
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        // Act
+        await _repository.DeleteClassAsync(fitnessClass.Id!);
+
+        // Assert
+        var deletedClass = await _repository.GetClassByIdAsync(fitnessClass.Id!);
+        Assert.IsNull(deletedClass);
+    }
+
+    [TestMethod]
+    public async Task DeleteClassAsync_WhenClassNotFound_ThrowsException()
+    {
+        // Arrange
+        var nonExistentClassId = "nonExistentClass123";
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<Exception>(
+            async () => await _repository.DeleteClassAsync(nonExistentClassId)
+        );
+    }
 }

@@ -12,5 +12,6 @@ public interface IClassRepository
    public Task<FitnessClass> CancelClassBookingForUserAsync(string classId, string userId);
    public Task MoveWaitlistToBookingWithSeat(string classId, int seatNumber);
    public Task MoveWaitlistToBookingWithNoSeat(string classId);
+   public Task DeleteClassAsync(string classId);
 
 }
