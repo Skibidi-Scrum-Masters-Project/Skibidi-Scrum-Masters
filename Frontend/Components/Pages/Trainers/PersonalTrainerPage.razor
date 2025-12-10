@@ -1,5 +1,38 @@
-<h3>PersonalTrainerPage</h3>
+@page "/trainer"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+<div class="trainer-screen">
+    <h2 class="trainer-title">Personlig træner</h2>
+
+    <div class="trainer-intro-card">
+        <p class="trainer-intro-text">
+            Få et skræddersyet træningsprogram og hjælp til at nå dine mål hurtigere.
+        </p>
+
+        <ul class="trainer-benefits">
+            <li>Tilpassede programmer</li>
+            <li>Teknikvejledning</li>
+            <li>Løbende opfølgning</li>
+        </ul>
+    </div>
+
+    <div class="trainer-current-card">
+        <h3>Din nuværende træner</h3>
+        <p><strong>Ingen træner tilknyttet endnu</strong></p>
+        <p class="trainer-current-note">Book en træner for at komme i gang.</p>
+    </div>
+
+    <button class="primary-btn trainer-cta" @onclick="GoToBookingList">
+        Book personlig træner
+    </button>
+</div>
 
 @code {
-    
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private void GoToBookingList()
+    {
+        Nav.NavigateTo("/trainer/book");
+    }
 }

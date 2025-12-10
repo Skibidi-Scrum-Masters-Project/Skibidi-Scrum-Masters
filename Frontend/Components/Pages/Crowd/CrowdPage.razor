@@ -1,5 +1,103 @@
-<h3>CrowdPage</h3>
+@page "/crowd"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+<div class="crowd-screen">
+
+    <h2 class="crowd-title">Travlhed i centeret</h2>
+    <p class="crowd-subtitle">Se hvor fyldt centeret er lige nu og senere i dag.</p>
+
+    <div class="crowd-card">
+        <p class="crowd-now-label">Lige nu</p>
+
+        <div class="crowd-now-row">
+            <span class="crowd-now-text">@CurrentLabel</span>
+            <span class="crowd-now-percentage">@CurrentPercent %</span>
+        </div>
+
+        <div class="crowd-bar">
+            <div class="crowd-bar-fill @CurrentLevelClass" style="width:@($"{CurrentPercent}%")"></div>
+        </div>
+
+        <p class="crowd-hint">Grøn = god tid · Gul = moderat · Rød = meget travlt</p>
+    </div>
+
+    <div class="crowd-card">
+        <p class="crowd-section-title">Senere i dag</p>
+
+        <div class="crowd-forecast-list">
+            @foreach (var point in Forecast)
+            {
+                <div class="crowd-forecast-row">
+                    <span class="crowd-time">@point.Time</span>
+
+                    <div class="crowd-bar small">
+                        <div class="crowd-bar-fill @GetLevelClass(point.Percent)"
+                             style="width:@($"{point.Percent}%")"></div>
+                    </div>
+
+                    <span class="crowd-percent">@point.Percent %</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <button class="primary-btn crowd-refresh" @onclick="RefreshData">
+        Opdater
+    </button>
+</div>
 
 @code {
-    
+    private int CurrentPercent { get; set; } = 68;
+    private string CurrentLabel => CurrentPercent switch
+    {
+        <= 30 => "Roligt",
+        <= 60 => "Mellem",
+        <= 85 => "Travlt",
+        _     => "Meget travlt"
+    };
+
+    private string CurrentLevelClass => GetLevelClass(CurrentPercent);
+
+    private List<CrowdPoint> Forecast { get; set; } = new()
+    {
+        new CrowdPoint("16:00", 45),
+        new CrowdPoint("17:00", 70),
+        new CrowdPoint("18:00", 85),
+        new CrowdPoint("19:00", 60),
+        new CrowdPoint("20:00", 35),
+    };
+
+    private void RefreshData()
+    {
+        // TODO: Senere: hent rigtige data fra backend
+        // Lige nu faker vi bare lidt “nyt”
+        var rand = new Random();
+        CurrentPercent = rand.Next(20, 95);
+
+        foreach (var p in Forecast)
+        {
+            p.Percent = rand.Next(20, 95);
+        }
+    }
+
+    private string GetLevelClass(int percent) => percent switch
+    {
+        <= 30 => "low",
+        <= 60 => "medium",
+        <= 85 => "high",
+        _     => "very-high"
+    };
+
+    public class CrowdPoint
+    {
+        public string Time { get; set; }
+        public int Percent { get; set; }
+
+        public CrowdPoint(string time, int percent)
+        {
+            Time = time;
+            Percent = percent;
+        }
+    }
 }
