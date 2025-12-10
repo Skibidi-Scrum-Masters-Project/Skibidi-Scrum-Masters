@@ -16,6 +16,20 @@ public class AccessControlController : ControllerBase
         _accessControlRepository = accessControlRepository;
     }
 
+    [HttpPost("door/{userid}")]
+    public async Task<IActionResult> Door(string userid)
+    {
+        var door = await _accessControlRepository.OpenDoor(userid);
+
+        if (door == null)
+        {
+            return NotFound($"User {userid} not found");
+        }
+        
+        return Ok(door);
+    }
+    
+
     
     // GET ALL AVAILABLE LOCKERS IN A LOCKER ROOM
     [HttpGet("{lockerRoomId}/available")]

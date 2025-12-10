@@ -18,6 +18,60 @@ public class AccessControlControllerTests
         _mockRepository = new Mock<IAccessControlRepository>();
         _controller = new AccessControlController(_mockRepository.Object);
     }
+    
+    [TestMethod]
+    public async Task Door_ValidUser_ShouldReturnOkWithDoor()
+    {
+        // Arrange
+        string userId = "user123";
+
+        var door = new EntryPoint
+        {
+            EnteredAt = DateTime.Now,
+            ExitedAt = DateTime.Now.AddHours(1),
+            UserId = userId
+        };
+
+        _mockRepository
+            .Setup(r => r.OpenDoor(userId))
+            .ReturnsAsync(door);
+
+        // Act
+        var result = await _controller.Door(userId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+
+        var returnedDoor = okResult.Value as EntryPoint;
+        Assert.IsNotNull(returnedDoor, "Expected Door object in response");
+        Assert.AreEqual(door.UserId, returnedDoor.UserId);
+
+        _mockRepository.Verify(r => r.OpenDoor(userId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task Door_UserNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        string userId = "ghost-user";
+
+        _mockRepository
+            .Setup(r => r.OpenDoor(userId))
+            .ReturnsAsync((EntryPoint?)null);
+
+        // Act
+        var result = await _controller.Door(userId);
+
+        // Assert
+        var notFoundResult = result as NotFoundObjectResult;
+        Assert.IsNotNull(notFoundResult, "Expected NotFoundObjectResult");
+
+        var message = notFoundResult.Value?.ToString();
+        StringAssert.Contains(message, userId);
+
+        _mockRepository.Verify(r => r.OpenDoor(userId), Times.Once);
+    }
 
     [TestMethod]
     public async Task LockLocker_ValidIds_ShouldLockLockerAndReturnOk()
@@ -68,7 +122,6 @@ public class AccessControlControllerTests
             r => r.SaveAsync(It.Is<LockerRoom>(lr => lr == lockerRoom)),
             Times.Once);
     }
-
 
     [TestMethod]
     public async Task GetAvailableLockers_ShouldReturnOnlyUnlockedLockers()
