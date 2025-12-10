@@ -7,13 +7,13 @@ namespace SocialService.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class FriendshipController : ControllerBase
+public class SocialController : ControllerBase
 {
-    private readonly IFriendshipRepository _friendshipRepository;
+    private readonly ISocialRepository _socialRepository;
 
-    public FriendshipController(IFriendshipRepository friendshipRepository)
+    public SocialController(ISocialRepository socialRepository)
     {
-        _friendshipRepository = friendshipRepository;
+        _socialRepository = socialRepository;
     }
 
     [HttpGet("user/{userId}")]
@@ -23,7 +23,7 @@ public class FriendshipController : ControllerBase
         return Ok(new { message = $"Get friends for user {userId} - TBA" });
     }
 
-    [HttpPost]
+    [HttpPost("friendrequest")]
     public async Task<ActionResult<FriendshipStatus>> SendFriendRequestAsync([FromBody] Friendship friendship)
     {
         if (friendship.SenderId == friendship.ReceiverId)
@@ -34,7 +34,7 @@ public class FriendshipController : ControllerBase
 
         try
         {
-            var createdFriendship = await _friendshipRepository
+            var createdFriendship = await _socialRepository
                 .SendFriendRequestAsync(friendship.SenderId, friendship.ReceiverId);
 
             return Ok(createdFriendship.FriendShipStatus);
@@ -70,7 +70,7 @@ public class FriendshipController : ControllerBase
 
         try
         {
-            var declineFriendship = await _friendshipRepository
+            var declineFriendship = await _socialRepository
                 .DeclineFriendRequestAsync(senderId, receiverId);
 
             return Ok(declineFriendship.FriendShipStatus);
@@ -100,7 +100,7 @@ public class FriendshipController : ControllerBase
 
         try
         {
-            var listOfFriends = await _friendshipRepository.GetAllFriends(senderId);
+            var listOfFriends = await _socialRepository.GetAllFriends(senderId);
             return Ok(listOfFriends);
         }
         catch (KeyNotFoundException ex)
@@ -128,7 +128,7 @@ public class FriendshipController : ControllerBase
     {
         try
         {
-            var friendFound = await _friendshipRepository.GetFriendById(senderId, receiverId);
+            var friendFound = await _socialRepository.GetFriendById(senderId, receiverId);
 
             if (friendFound == null)
                 return NotFound();
@@ -156,4 +156,13 @@ public class FriendshipController : ControllerBase
             return StatusCode(500, "An unexpected error occurred.");
         }
     }
+
+    [HttpPut("{senderId}/friends/{receiverId}")]
+    public async Task<ActionResult<Friendship>> CancelFriendRequest(int senderId, int receiverId)
+    {
+        var friendRequestCanceled = await _socialRepository.CancelFriendRequest(senderId, receiverId);
+        
+        return Ok(friendRequestCanceled);
+    }
+
 }

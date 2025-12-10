@@ -12,11 +12,11 @@ using SocialService.Repositories;
 namespace SocialService.Tests;
 
 [TestClass]
-public class FriendshipRepositoryTests
+public class SocialRepositoryTests
 {
     private Mock<IMongoCollection<Friendship>> _mockCollection = null!;
     private Mock<IMongoDatabase> _mockDatabase = null!;
-    private FriendshipRepository _repository = null!;
+    private SocialRepository _repository = null!;
 
     [TestInitialize]
     public void Setup()
@@ -30,7 +30,7 @@ public class FriendshipRepositoryTests
                 It.IsAny<MongoCollectionSettings>()))
             .Returns(_mockCollection.Object);
 
-        _repository = new FriendshipRepository(_mockDatabase.Object);
+        _repository = new SocialRepository(_mockDatabase.Object);
     }
     
     
