@@ -55,8 +55,12 @@ public class SocialControllerTests
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
 
-        var status = (FriendshipStatus)okResult.Value!;
-        Assert.AreEqual(FriendshipStatus.Pending, status);
+      
+        var friendship = okResult.Value as Friendship;
+        Assert.IsNotNull(friendship, "Expected Value to be Friendship");
+        
+        // Tjek at status er Pending
+        Assert.AreEqual(FriendshipStatus.Pending, friendship.FriendShipStatus);
     }
     
     //Testing DeclineFriendRequest()
