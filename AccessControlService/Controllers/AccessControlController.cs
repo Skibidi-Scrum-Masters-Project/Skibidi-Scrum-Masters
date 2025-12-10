@@ -7,11 +7,11 @@ namespace AccessControlService.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class LockersController : ControllerBase
+public class AccessControlController : ControllerBase
 {
     private readonly ILockerRepository _lockerRepository;
 
-    public LockersController(ILockerRepository lockerRepository)
+    public AccessControlController(ILockerRepository lockerRepository)
     {
         _lockerRepository = lockerRepository;
     }
