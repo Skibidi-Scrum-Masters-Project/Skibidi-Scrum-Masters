@@ -103,7 +103,48 @@ public class ClassesController : ControllerBase
         }
 
     }
-
+    [HttpPut("classes/{classId}/{userId}/friends/seats")]
+    public async Task<ActionResult> BookClassForUserWithFriendsWithSeats(string classId, string userId, List<string> friends, List<int> seats)
+    {
+        var classInfo = await _classRepository.GetClassByIdAsync(classId);
+        if (classInfo == null)
+        {
+            return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
+        }
+        if (seats.Count != friends.Count + 1)
+        {
+            return BadRequest(new { error = "Invalid input", message = "Number of seats must match number of users (including main user)." });
+        }
+        if (!classInfo.SeatBookingEnabled)
+        {
+            return BadRequest(new { error = "Invalid operation", message = "Class doesnt have seat booking. Use the appropriate endpoint." });
+        }
+        if (classInfo.BookingList.Count + friends.Count + 1 > classInfo.MaxCapacity)
+        {
+            return BadRequest(new { error = "Booking failed", message = "Not enough available spots for the group booking." });
+        }
+        foreach (var seat in seats)
+        {
+            if (seat < 0 || seat >= classInfo.SeatMap!.Length || classInfo.SeatMap[seat])
+            {
+                return BadRequest(new { error = "Invalid input", message = $"Seat number {seat} is invalid or already booked." });
+            }
+        }
+        foreach (var id in friends)
+        {
+            var index = friends.IndexOf(id) + 1; // +1 to account for main user at index 0
+            var seatNumber = seats[index];
+            try
+            {
+                var classes = await _classRepository.BookClassForUserWithSeatAsync(classId, id, seatNumber);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = "Booking failed", message = $"Failed to book seat {seatNumber} for user {id}: {ex.Message}" });
+            }
+        }
+        return Ok(await _classRepository.GetClassByIdAsync(classId));
+    }
     [HttpPut("classes/{classId}/{userId}/{seat}")]
     public async Task<ActionResult> BookClassForUserWithSeat(string classId, string userId, int seat)
     {
