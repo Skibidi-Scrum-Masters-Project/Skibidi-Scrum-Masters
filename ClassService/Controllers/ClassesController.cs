@@ -183,5 +183,26 @@ public class ClassesController : ControllerBase
             return BadRequest(new { error = "Cancellation failed", message = ex.Message });
         }
     }
-
+    [HttpDelete("classes/{classId}")]
+    public async Task<ActionResult> DeleteClass(string classId)
+    {
+        if (string.IsNullOrEmpty(classId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "Class ID cannot be null or empty." });
+        }
+         var FitnessClass = await _classRepository.GetClassByIdAsync(classId);
+        if (FitnessClass == null)
+        {
+            return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
+        }
+        try
+        {
+            await _classRepository.DeleteClassAsync(classId);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Deletion failed", message = ex.Message });
+        }
+    }
 }

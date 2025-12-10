@@ -172,6 +172,23 @@ public class ClassRepository : IClassRepository
         return fitnessClass;
     }
 
+    public Task DeleteClassAsync(string classId)
+    {
+        try
+        {
+            FitnessClass? fitnessClass = GetClassByIdAsync(classId).Result;
+            if (fitnessClass == null)
+            {
+                throw new Exception("Class not found.");
+            }
+        }
+        catch (Exception)
+        {
+            throw new Exception("Class not found.");
+        }
+        return _classesCollection.DeleteOneAsync(c => c.Id == classId);
+    }
+
     public Task<IEnumerable<FitnessClass>> GetAllActiveClassesAsync()
     {
         List<FitnessClass> classes = _classesCollection.Find(c => c.IsActive).ToList();
