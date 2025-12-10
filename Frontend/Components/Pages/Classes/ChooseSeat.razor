@@ -1,5 +1,124 @@
-<h3>ChooseSeat</h3>
+@page "/classes/seat/{Id:int}"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+<div class="seat-screen">
+    <h2 class="seat-title">Vælg plads</h2>
+    <p class="seat-subtitle">Vælg din plads på holdet.</p>
+
+    <p class="seat-class-name">@ClassName</p>
+
+    <div class="seat-legend">
+        <span class="legend-box available"></span> Ledig
+        <span class="legend-box selected"></span> Valgt
+        <span class="legend-box taken"></span> Optaget
+    </div>
+
+    <div class="seat-grid">
+        @foreach (var row in SeatRows)
+        {
+            <div class="seat-row">
+                <span class="seat-row-label">@row.RowLabel</span>
+                @foreach (var seat in row.Seats)
+                {
+                    var classes = seat.Code == SelectedSeat
+                        ? "seat selected"
+                        : (seat.IsTaken ? "seat taken" : "seat");
+                    <button class="@classes" @onclick="() => SelectSeat(seat)" disabled="@seat.IsTaken">
+                        @seat.Number
+                    </button>
+                }
+            </div>
+        }
+    </div>
+
+    <button class="primary-btn seat-confirm" @onclick="ConfirmSeat" disabled="@string.IsNullOrEmpty(SelectedSeat)">
+        Bekræft plads
+    </button>
+
+    @if (!string.IsNullOrWhiteSpace(Message))
+    {
+        <p class="seat-message">@Message</p>
+    }
+</div>
 
 @code {
-    
+    [Parameter] public int Id { get; set; }
+
+    private string ClassName { get; set; } = "Bodypump (eksempel)";
+    private string? SelectedSeat { get; set; }
+    private string Message { get; set; } = string.Empty;
+
+    private List<SeatRow> SeatRows { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        // TODO: slå rigtigt hold-navn op ud fra Id
+        if (Id == 2) ClassName = "Spinning (eksempel)";
+        if (Id == 3) ClassName = "Yoga (eksempel)";
+
+        GenerateSeats();
+    }
+
+    private void GenerateSeats()
+    {
+        // Dummy data: 5 rækker (A–E), 6 pladser
+        var rows = new List<SeatRow>();
+        var rowLabels = new[] { "A", "B", "C", "D", "E" };
+
+        var random = new Random();
+
+        foreach (var label in rowLabels)
+        {
+            var row = new SeatRow { RowLabel = label };
+
+            for (int i = 1; i <= 6; i++)
+            {
+                var code = $"{label}{i}";
+                row.Seats.Add(new Seat
+                {
+                    Code = code,
+                    Number = i,
+                    IsTaken = random.NextDouble() < 0.2 // 20% optaget som fake
+                });
+            }
+
+            rows.Add(row);
+        }
+
+        SeatRows = rows;
+    }
+
+    private void SelectSeat(Seat seat)
+    {
+        if (seat.IsTaken) return;
+
+        SelectedSeat = seat.Code;
+        Message = string.Empty;
+    }
+
+    private void ConfirmSeat()
+    {
+        if (string.IsNullOrEmpty(SelectedSeat))
+        {
+            Message = "Vælg en plads først.";
+            return;
+        }
+
+        // TODO: Gem valg / send til backend
+        Message = $"Du har valgt plads {SelectedSeat}.";
+    }
+
+    public class SeatRow
+    {
+        public string RowLabel { get; set; } = "";
+        public List<Seat> Seats { get; set; } = new();
+    }
+
+    public class Seat
+    {
+        public string Code { get; set; } = "";
+        public int Number { get; set; }
+        public bool IsTaken { get; set; }
+    }
 }

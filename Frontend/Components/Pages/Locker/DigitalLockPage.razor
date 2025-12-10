@@ -1,5 +1,76 @@
-<h3>DigitalLockPage</h3>
+@page "/locker"
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+@using Microsoft.AspNetCore.Components
+
+<div class="locker-screen">
+
+    <h2 class="locker-title">Digital hængelås</h2>
+    <p class="locker-subtitle">Vælg skab og lås op med din app.</p>
+
+    <div class="locker-card">
+        <div class="locker-icon-area">
+            <div class="locker-circle @(IsLocked ? "locked" : "unlocked")">
+                <span class="locker-emoji">@(!IsLocked ? "🔓" : "🔒")</span>
+            </div>
+            <p class="locker-status-text">
+                Status: <strong>@(IsLocked ? "Låst" : "Åben")</strong>
+            </p>
+        </div>
+
+        <div class="locker-form">
+            <label for="lockerNumber">Skabsnummer</label>
+            <input id="lockerNumber"
+                   class="locker-input"
+                   @bind="LockerNumber"
+                   placeholder="Fx 57" />
+        </div>
+
+        <div class="locker-buttons">
+            <button class="primary-btn locker-btn" @onclick="OpenLocker">
+                Åbn skab
+            </button>
+
+            <button class="secondary-btn locker-btn" @onclick="LockLocker">
+                Lås skab
+            </button>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Message))
+        {
+            <p class="locker-message">@Message</p>
+        }
+    </div>
+</div>
 
 @code {
-    
+    private string LockerNumber { get; set; } = string.Empty;
+    private bool IsLocked { get; set; } = true;
+    private string Message { get; set; } = string.Empty;
+
+    private void OpenLocker()
+    {
+        if (string.IsNullOrWhiteSpace(LockerNumber))
+        {
+            Message = "Indtast et skabsnummer for at åbne.";
+            return;
+        }
+
+        // TODO: kald jeres locker-backend her (openlocker)
+        IsLocked = false;
+        Message = $"Skab {LockerNumber} er åbnet.";
+    }
+
+    private void LockLocker()
+    {
+        if (string.IsNullOrWhiteSpace(LockerNumber))
+        {
+            Message = "Indtast et skabsnummer for at låse.";
+            return;
+        }
+
+        // TODO: kald jeres locker-backend her (locklocker)
+        IsLocked = true;
+        Message = $"Skab {LockerNumber} er låst.";
+    }
 }

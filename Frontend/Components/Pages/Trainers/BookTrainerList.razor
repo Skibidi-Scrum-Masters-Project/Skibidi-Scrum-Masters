@@ -1,5 +1,62 @@
-<h3>BookTrainerList</h3>
+@page "/trainer/book"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+
+<div class="trainer-list-screen">
+    <h2 class="trainer-title">Vælg træner</h2>
+    <p class="trainer-subtitle">Vælg en træner der passer til dine mål.</p>
+
+    <div class="trainer-list">
+        @foreach (var trainer in Trainers)
+        {
+            <button class="trainer-card" @onclick="() => GoToBookingForm(trainer.Id)">
+                <div class="trainer-card-header">
+                    <div class="trainer-avatar">
+                        @trainer.Initials
+                    </div>
+                    <div class="trainer-name-area">
+                        <p class="trainer-name">@trainer.Name</p>
+                        <p class="trainer-speciality">@trainer.Speciality</p>
+                    </div>
+                </div>
+
+                <p class="trainer-experience">@trainer.Experience</p>
+
+                <p class="trainer-tags">
+                    @trainer.FocusAreas
+                </p>
+            </button>
+        }
+    </div>
+</div>
 
 @code {
-    
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private List<TrainerModel> Trainers = new()
+    {
+        new() { Id = 1, Name = "Mikkel Andersen", Speciality = "Styrketræning", Experience = "5 års erfaring", FocusAreas = "Muskelopbygning, teknik" },
+        new() { Id = 2, Name = "Emma Larsen", Speciality = "Vægttab & kondition", Experience = "3 års erfaring", FocusAreas = "Fedttab, cardio" },
+        new() { Id = 3, Name = "Jonas Pedersen", Speciality = "Crossfit & HIIT", Experience = "4 års erfaring", FocusAreas = "Explosivitet, funktionel træning" },
+    };
+
+    private void GoToBookingForm(int id)
+    {
+        Nav.NavigateTo($"/trainer/book/{id}");
+    }
+
+    public class TrainerModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Speciality { get; set; } = "";
+        public string Experience { get; set; } = "";
+        public string FocusAreas { get; set; } = "";
+
+        public string Initials =>
+            string.Join("", Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(x => x[0]))
+            .ToUpperInvariant();
+    }
 }

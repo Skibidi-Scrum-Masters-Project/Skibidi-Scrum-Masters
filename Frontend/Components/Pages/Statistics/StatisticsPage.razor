@@ -1,5 +1,90 @@
-<h3>StatisticsPage</h3>
+@page "/statistics"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+
+<div class="stats-screen">
+
+    <h2 class="stats-title">Statistik</h2>
+    <p class="stats-subtitle">Se din udvikling og træningshistorik</p>
+
+    <!-- Weekly summary cards -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <p class="stat-value">@WorkoutsThisWeek</p>
+            <p class="stat-label">Træninger denne uge</p>
+        </div>
+
+        <div class="stat-card">
+            <p class="stat-value">@TotalMinutes</p>
+            <p class="stat-label">Minutter trænet</p>
+        </div>
+
+        <div class="stat-card">
+            <p class="stat-value">@CaloriesBurnt</p>
+            <p class="stat-label">Kalorier forbrændt</p>
+        </div>
+    </div>
+
+    <!-- Weekly bar chart -->
+    <div class="stats-chart-card">
+        <p class="chart-title">Ugentlig aktivitet</p>
+
+        <div class="chart-bars">
+            @foreach (var day in WeeklyData)
+            {
+                <div class="chart-bar-col">
+                    <div class="chart-bar"
+                         style="height:@($"{day.HeightPercent}%")"
+                         title="@($"{day.DayName}: {day.Value} min")"></div>
+                    <span class="chart-label">@day.DayShort</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Progress box -->
+    <div class="progress-card">
+        <p class="progress-title">Målsætning fremskridt</p>
+
+        <p class="progress-text">@(ProgressPercent)% af ugens mål nået</p>
+
+        <div class="progress-bar">
+            <div class="progress-bar-fill" style="width:@($"{ProgressPercent}%")"></div>
+        </div>
+    </div>
+</div>
 
 @code {
-    
+    private int WorkoutsThisWeek = 4;
+    private int TotalMinutes = 185;
+    private int CaloriesBurnt = 1420;
+
+    private int ProgressPercent = 73;
+
+    private List<DayStat> WeeklyData = new()
+    {
+        new DayStat("Mon", "Man", 40),
+        new DayStat("Tue", "Tir", 65),
+        new DayStat("Wed", "Ons", 55),
+        new DayStat("Thu", "Tor", 30),
+        new DayStat("Fri", "Fre", 75),
+        new DayStat("Sat", "Lør", 20),
+        new DayStat("Sun", "Søn", 0),
+    };
+
+    public class DayStat
+    {
+        public string DayShort { get; }
+        public string DayName { get; }
+        public int Value { get; }
+        public int HeightPercent => Math.Clamp(Value, 0, 100);
+
+        public DayStat(string shortName, string name, int value)
+        {
+            DayShort = shortName;
+            DayName = name;
+            Value = value;
+        }
+    }
 }

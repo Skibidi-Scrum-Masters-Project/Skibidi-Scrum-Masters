@@ -1,5 +1,75 @@
-<h3>WorkoutDetail</h3>
+@page "/workouts/{Id}"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+
+<div class="detail-screen">
+
+    @if (Workout is null)
+    {
+        <p>Loader...</p>
+    }
+    else
+    {
+        <h2 class="detail-title">@Workout.Name</h2>
+        <p class="detail-desc">@Workout.Description</p>
+
+        <h3 class="exercise-title">Øvelser</h3>
+
+        <ul class="exercise-list">
+            @foreach (var exercise in Workout.Exercises)
+            {
+                <li class="exercise-item">@exercise</li>
+            }
+        </ul>
+    }
+</div>
 
 @code {
-    
+    [Parameter] public string Id { get; set; } = "";
+
+    private WorkoutDetailModel? Workout { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        Workout = Id switch
+        {
+            "push" => new WorkoutDetailModel {
+                Name = "Push",
+                Description = "Fokus på bryst, skuldre og triceps.",
+                Exercises = new() {
+                    "Bænkpres – 4 x 8",
+                    "Skulderpres – 3 x 10",
+                    "Dips – 3 x 8",
+                    "Chest Flyes – 3 x 12",
+                    "Push-ups – 2 x max"
+                }
+            },
+
+            "pull" => new WorkoutDetailModel {
+                Name = "Pull",
+                Description = "Fokus på ryg og biceps.",
+                Exercises = new() {
+                    "Pullups – 4 x max",
+                    "Rows – 3 x 10",
+                    "Lat Pulldown – 3 x 12",
+                    "Face Pulls – 3 x 15",
+                    "Biceps Curls – 3 x 12"
+                }
+            },
+
+            _ => new WorkoutDetailModel {
+                Name = "Ukendt workout",
+                Description = "Kunne ikke finde denne workout.",
+                Exercises = new()
+            }
+        };
+    }
+
+    public class WorkoutDetailModel
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public List<string> Exercises { get; set; } = new();
+    }
 }
