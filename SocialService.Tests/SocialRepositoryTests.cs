@@ -50,6 +50,45 @@ public class SocialRepositoryTests
         _runner.Dispose();
     }
     
+    [TestMethod]
+    public async Task GetAllFriendRequests_WhenThereIsMultipleStatus_ShouldNotReturnAcceptedOrDeclinedRequests()
+    {
+        // Arrange
+        var senderId = 1;
+        var collection = _database.GetCollection<Friendship>("Friendships");
+
+        var pending = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 2,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        var accepted = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 3,
+            FriendShipStatus = FriendshipStatus.Accepted
+        };
+
+        var rejected = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 4,
+            FriendShipStatus = FriendshipStatus.Declined
+        };
+
+        await collection.InsertManyAsync(new[] { pending, accepted, rejected });
+
+        // Act
+        var result = await _repository.GetAllFriendRequests(senderId);
+        var list = result.ToList();
+
+        // Assert
+        Assert.AreEqual(1, list.Count, "Kun pending requests skal returneres");
+        Assert.AreEqual(FriendshipStatus.Pending, list.Single().FriendShipStatus);
+    }
+    
     
     //GetAllFriendRequests
     [TestMethod]
@@ -106,62 +145,6 @@ public class SocialRepositoryTests
         Assert.IsTrue(list.All(f => f.FriendShipStatus == FriendshipStatus.Pending),
             "Alle resultater skal have status Pending");
     }
-    
-    
-    
-    
-    [TestMethod]
-    public async Task GetAllFriendRequests_WhenThereIsMultipleStatus_ShouldNotReturnAcceptedOrDeclinedRequests()
-    {
-        // Arrange
-        var senderId = 1;
-        var collection = _database.GetCollection<Friendship>("Friendships");
-
-        var pending = new Friendship
-        {
-            SenderId = senderId,
-            ReceiverId = 2,
-            FriendShipStatus = FriendshipStatus.Pending
-        };
-
-        var accepted = new Friendship
-        {
-            SenderId = senderId,
-            ReceiverId = 3,
-            FriendShipStatus = FriendshipStatus.Accepted
-        };
-
-        var rejected = new Friendship
-        {
-            SenderId = senderId,
-            ReceiverId = 4,
-            FriendShipStatus = FriendshipStatus.Declined
-        };
-
-        await collection.InsertManyAsync(new[] { pending, accepted, rejected });
-
-        // Act
-        var result = await _repository.GetAllFriendRequests(senderId);
-        var list = result.ToList();
-
-        // Assert
-        Assert.AreEqual(1, list.Count, "Kun pending requests skal returneres");
-        Assert.AreEqual(FriendshipStatus.Pending, list.Single().FriendShipStatus);
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     [TestMethod]
     public async Task GetAllFriendRequests_WhenNoRequestsExist_ShouldReturnEmptyList()
