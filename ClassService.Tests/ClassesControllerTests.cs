@@ -212,4 +212,58 @@ public class ClassesControllerTests
         Assert.IsNotNull(returnedClasses);
         Assert.AreEqual(0, returnedClasses.Count());
     }
+
+    [TestMethod]
+    public async Task BookClassForUser_ReturnsOkResult_WithBookedClass()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var bookedClass = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 5,
+            IsActive = true,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = userId, SeatNumber = 0, CheckedInAt = DateTime.MinValue }
+            }
+        };
+        _mockRepository.Setup(r => r.BookClassForUserNoSeatAsync(classId, userId)).ReturnsAsync(bookedClass);
+
+        // Act
+        var result = await _controller.BookClassForUser(classId, userId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+        Assert.AreEqual(bookedClass, okResult.Value);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUser_WhenRepositoryThrows_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        _mockRepository.Setup(r => r.BookClassForUserNoSeatAsync(classId, userId))
+            .ThrowsAsync(new Exception("User already booked in this class."));
+
+        // Act
+        var result = await _controller.BookClassForUser(classId, userId);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
 }
