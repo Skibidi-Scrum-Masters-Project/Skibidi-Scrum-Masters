@@ -7,44 +7,178 @@ using System;
 using FitnessApp.Shared.Models;
 using SocialService.Controllers;
 using SocialService.Repositories;
-
+using Mongo2Go;
 
 namespace SocialService.Tests;
 
 [TestClass]
 public class SocialRepositoryTests
 {
+    
+    private static MongoDbRunner _runner = null!;
+    private IMongoDatabase _database = null!;
+    private SocialRepository _repository = null!;
+    
     private Mock<IMongoCollection<Friendship>> _mockCollection = null!;
     private Mock<IMongoDatabase> _mockDatabase = null!;
-    private SocialRepository _repository = null!;
 
+    
+    [ClassInitialize]
+    public static void ClassInit(TestContext _)
+    {
+        // Starter en embedded MongoDB
+        _runner = MongoDbRunner.Start();
+    }
+    
     [TestInitialize]
-    public void Setup()
+    public void TestInit()
     {
-        _mockCollection = new Mock<IMongoCollection<Friendship>>();
-        _mockDatabase = new Mock<IMongoDatabase>();
+        var client = new MongoClient(_runner.ConnectionString);
 
-        _mockDatabase
-            .Setup(db => db.GetCollection<Friendship>(
-                "Friendships", 
-                It.IsAny<MongoCollectionSettings>()))
-            .Returns(_mockCollection.Object);
+        // Brug et fast navn til testdatabase
+        _database = client.GetDatabase("SocialServiceTests");
 
-        _repository = new SocialRepository(_mockDatabase.Object);
+        // Ryd collection før hver test, så vi starter clean
+        _database.DropCollection("Friendships");
+
+        _repository = new SocialRepository(_database);
+    }
+    
+    [ClassCleanup]
+    public static void ClassCleanup()
+    {
+        _runner.Dispose();
     }
     
     
+    //GetAllFriendRequests
     [TestMethod]
-    public void AcceptFriendRequest_ShouldCreateFriendship()
+    public async Task GetAllFriendRequests_WhenItsSuccessfull_ShouldReturnAllFriendRequests()
     {
-        // TBA: Implement accept friend request test
-        Assert.Inconclusive("Test not implemented yet");
+        // Arrange
+        var senderId = 1;
+        var collection = _database.GetCollection<Friendship>("Friendships");
+
+        var shouldBeReturned1 = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 2,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        var shouldBeReturned2 = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 3,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        var otherSender = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 4,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        var otherStatus = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 5,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        await collection.InsertManyAsync(new[]
+        {
+            shouldBeReturned1,
+            shouldBeReturned2,
+            otherSender,
+            otherStatus
+        });
+
+        // Act
+        var result = await _repository.GetAllFriendRequests(senderId);
+        var list = result.ToList();
+
+        // Assert
+        Assert.IsTrue(list.All(f => f.SenderId == senderId),
+            "Alle resultater skal have samme SenderId som i testen");
+
+        Assert.IsTrue(list.All(f => f.FriendShipStatus == FriendshipStatus.Pending),
+            "Alle resultater skal have status Pending");
+    }
+    
+    
+    
+    
+    [TestMethod]
+    public async Task GetAllFriendRequests_WhenThereIsMultipleStatus_ShouldNotReturnAcceptedOrDeclinedRequests()
+    {
+        // Arrange
+        var senderId = 1;
+        var collection = _database.GetCollection<Friendship>("Friendships");
+
+        var pending = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 2,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        var accepted = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 3,
+            FriendShipStatus = FriendshipStatus.Accepted
+        };
+
+        var rejected = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = 4,
+            FriendShipStatus = FriendshipStatus.Declined
+        };
+
+        await collection.InsertManyAsync(new[] { pending, accepted, rejected });
+
+        // Act
+        var result = await _repository.GetAllFriendRequests(senderId);
+        var list = result.ToList();
+
+        // Assert
+        Assert.AreEqual(1, list.Count, "Kun pending requests skal returneres");
+        Assert.AreEqual(FriendshipStatus.Pending, list.Single().FriendShipStatus);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     [TestMethod]
-    public void GetMutualFriends_ShouldReturnSharedFriends()
+    public async Task GetAllFriendRequests_WhenNoRequestsExist_ShouldReturnEmptyList()
     {
-        // TBA: Implement mutual friends test
-        Assert.Inconclusive("Test not implemented yet");
+        // Arrange
+        var senderId = 1;
+        var collection = _database.GetCollection<Friendship>("Friendships");
+        
+
+        // Act
+        var result = await _repository.GetAllFriendRequests(senderId);
+        var list = result.ToList();
+
+        // Assert
+        Assert.AreEqual(0, list.Count, "Der skal ikke returneres nogen requests når der ingen findes");
     }
+    
+    
+
 }
