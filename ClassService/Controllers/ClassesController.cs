@@ -15,12 +15,6 @@ public class ClassesController : ControllerBase
         _classRepository = classRepository;
     }
 
-    [HttpGet]
-    public ActionResult<IEnumerable<FitnessClass>> GetClasses()
-    {
-        // TBA: Implement get all classes
-        return Ok(new { message = "Get classes - TBA" });
-    }
     [HttpPost("Classes")]
     // [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<FitnessClass>> CreateClassAsync(FitnessClass fitnessClass)
@@ -55,5 +49,11 @@ public class ClassesController : ControllerBase
         }
         FitnessClass createdClass = await _classRepository.CreateClassAsync(fitnessClass);
         return Ok(createdClass);
+    }
+    [HttpGet("classes")]
+    public async Task<ActionResult<IEnumerable<FitnessClass>>> GetAllActiveClassesAsync()
+    {
+        var classes = await _classRepository.GetAllActiveClassesAsync();
+        return Ok(classes);
     }
 }

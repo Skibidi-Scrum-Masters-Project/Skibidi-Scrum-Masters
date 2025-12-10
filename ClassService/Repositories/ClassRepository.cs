@@ -16,4 +16,14 @@ public class ClassRepository : IClassRepository
         await  _classesCollection.InsertOneAsync(fitnessClass);
         return fitnessClass;
     }
+
+    public Task<IEnumerable<FitnessClass>> GetAllActiveClassesAsync()
+    {
+        List<FitnessClass> classes =  _classesCollection.Find(c => c.IsActive).ToList();
+        if (classes == null)
+        {
+            return Task.FromResult(Enumerable.Empty<FitnessClass>());
+        }
+        return Task.FromResult(classes.AsEnumerable());
+    }
 }

@@ -84,4 +84,76 @@ public class ClassRepositoryTests
         // Assert
         Assert.IsTrue(result.IsActive);
     }
+
+    [TestMethod]
+    public async Task GetAllActiveClassesAsync_ReturnsOnlyActiveClasses()
+    {
+        // Arrange
+        var activeClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Active Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Active class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 20,
+            IsActive = true
+        };
+        var inactiveClass = new FitnessClass
+        {
+            InstructorId = "instructor456",
+            CenterId = "center789",
+            Name = "Inactive Pilates",
+            Category = Category.Pilates,
+            Intensity = Intensity.Medium,
+            Description = "Inactive class.",
+            StartTime = DateTime.UtcNow.AddDays(2),
+            Duration = 45,
+            MaxCapacity = 15,
+            IsActive = false
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(activeClass);
+        await collection.InsertOneAsync(inactiveClass);
+
+        // Act
+        var result = await _repository.GetAllActiveClassesAsync();
+
+        // Assert
+        var resultList = result.ToList();
+        Assert.AreEqual(1, resultList.Count);
+        Assert.IsTrue(resultList.All(c => c.IsActive));
+        Assert.AreEqual("Active Yoga", resultList[0].Name);
+    }
+
+    [TestMethod]
+    public async Task GetAllActiveClassesAsync_WhenNoActiveClasses_ReturnsEmptyList()
+    {
+        // Arrange
+        var inactiveClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Inactive Class",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Inactive.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 20,
+            IsActive = false
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(inactiveClass);
+
+        // Act
+        var result = await _repository.GetAllActiveClassesAsync();
+
+        // Assert
+        var resultList = result.ToList();
+        Assert.AreEqual(0, resultList.Count);
+    }
 }

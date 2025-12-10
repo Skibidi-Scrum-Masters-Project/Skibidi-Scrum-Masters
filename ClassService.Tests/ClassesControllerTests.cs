@@ -160,4 +160,56 @@ public class ClassesControllerTests
         Assert.IsNotNull(badRequestResult);
         Assert.AreEqual(400, badRequestResult.StatusCode);
     }
+
+    [TestMethod]
+    public async Task GetAllActiveClassesAsync_ReturnsOkResult_WithClasses()
+    {
+        // Arrange
+        var classes = new List<FitnessClass>
+        {
+            new FitnessClass
+            {
+                InstructorId = "instructor123",
+                CenterId = "center456",
+                Name = "Morning Yoga",
+                Category = Category.Yoga,
+                Intensity = Intensity.Easy,
+                Description = "Gentle yoga.",
+                StartTime = DateTime.UtcNow.AddDays(1),
+                Duration = 60,
+                MaxCapacity = 20,
+                IsActive = true
+            }
+        };
+        _mockRepository.Setup(r => r.GetAllActiveClassesAsync()).ReturnsAsync(classes);
+
+        // Act
+        var result = await _controller.GetAllActiveClassesAsync();
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+        var returnedClasses = okResult.Value as IEnumerable<FitnessClass>;
+        Assert.IsNotNull(returnedClasses);
+        Assert.AreEqual(1, returnedClasses.Count());
+    }
+
+    [TestMethod]
+    public async Task GetAllActiveClassesAsync_ReturnsOkResult_WithEmptyList()
+    {
+        // Arrange
+        _mockRepository.Setup(r => r.GetAllActiveClassesAsync()).ReturnsAsync(Enumerable.Empty<FitnessClass>());
+
+        // Act
+        var result = await _controller.GetAllActiveClassesAsync();
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+        var returnedClasses = okResult.Value as IEnumerable<FitnessClass>;
+        Assert.IsNotNull(returnedClasses);
+        Assert.AreEqual(0, returnedClasses.Count());
+    }
 }
