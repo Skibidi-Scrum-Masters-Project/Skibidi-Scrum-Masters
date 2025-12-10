@@ -7,16 +7,16 @@ using AccessControlService.Repositories;
 namespace AccessControlService.Tests;
 
 [TestClass]
-public class LockersControllerTests
+public class AccessControlControllerTests
 {
-    private LockersController _controller = null!;
-    private Mock<ILockerRepository> _mockRepository = null!;
+    private AccessControlController _controller = null!;
+    private Mock<IAccessControlRepository> _mockRepository = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _mockRepository = new Mock<ILockerRepository>();
-        _controller = new LockersController(_mockRepository.Object);
+        _mockRepository = new Mock<IAccessControlRepository>();
+        _controller = new AccessControlController(_mockRepository.Object);
     }
 
     [TestMethod]

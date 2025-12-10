@@ -1,15 +1,15 @@
-// AccessControlService/Repositories/LockerRepository.cs
+// AccessControlService/Repositories/AccessControlRepository.cs
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using AccessControlService.Models;
 namespace AccessControlService.Repositories;
 
-public class LockerRepository : ILockerRepository
+public class AccessControlRepository : IAccessControlRepository
 {
     private readonly IMongoCollection<LockerRoom> _lockerRooms;
 
-    public LockerRepository(IMongoDatabase database)
+    public AccessControlRepository(IMongoDatabase database)
     {
         
         _lockerRooms = database.GetCollection<LockerRoom>("LockerRooms");

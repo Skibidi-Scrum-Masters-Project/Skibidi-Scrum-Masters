@@ -3,7 +3,7 @@ using AccessControlService.Models;
 namespace AccessControlService.Tests;
 
 [TestClass]
-public class LockerRepositoryTests
+public class AccessControlRepositoryTests
 {
 
     [TestMethod]

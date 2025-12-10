@@ -9,11 +9,11 @@ namespace AccessControlService.Controllers;
 [Route("api/[controller]")]
 public class AccessControlController : ControllerBase
 {
-    private readonly ILockerRepository _lockerRepository;
+    private readonly IAccessControlRepository _accessControlRepository;
 
-    public AccessControlController(ILockerRepository lockerRepository)
+    public AccessControlController(IAccessControlRepository accessControlRepository)
     {
-        _lockerRepository = lockerRepository;
+        _accessControlRepository = accessControlRepository;
     }
 
     
@@ -22,7 +22,7 @@ public class AccessControlController : ControllerBase
     public async Task<IActionResult> GetAvailableLockers(int lockerRoomId)
     {
         // Retrieve locker room from database
-        var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
+        var lockerRoom = await _accessControlRepository.GetByIdAsync(lockerRoomId);
         if (lockerRoom == null)
             return NotFound("Locker room not found");
         
@@ -42,7 +42,7 @@ public class AccessControlController : ControllerBase
         int lockerRoomId, int lockerId, int userId)
     {
         // Retrieve locker room from database
-        var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
+        var lockerRoom = await _accessControlRepository.GetByIdAsync(lockerRoomId);
         if (lockerRoom == null)
             return NotFound("Locker room not found");
 
@@ -58,7 +58,7 @@ public class AccessControlController : ControllerBase
         locker.IsLocked = true;
 
         // Save changes to database
-        await _lockerRepository.SaveAsync(lockerRoom);
+        await _accessControlRepository.SaveAsync(lockerRoom);
 
         // Return result
         return Ok(new 
@@ -76,7 +76,7 @@ public class AccessControlController : ControllerBase
     public async Task<IActionResult> OpenLocker(int lockerRoomId, int lockerId)
     {
         // Retrieve locker room from database
-        var lockerRoom = await _lockerRepository.GetByIdAsync(lockerRoomId);
+        var lockerRoom = await _accessControlRepository.GetByIdAsync(lockerRoomId);
         
         if (lockerRoom == null)
             return NotFound("Locker room not found");
@@ -93,7 +93,7 @@ public class AccessControlController : ControllerBase
         locker.IsLocked = false;
         
         // Save changes to database
-        await _lockerRepository.SaveAsync(lockerRoom);
+        await _accessControlRepository.SaveAsync(lockerRoom);
 
         // Return result
         return Ok(new

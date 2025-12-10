@@ -2,7 +2,7 @@ namespace AccessControlService.Repositories;
 
 using AccessControlService.Models;
 
-public interface ILockerRepository
+public interface IAccessControlRepository
 {
     Task<LockerRoom?> GetByIdAsync(int lockerRoomId);
     Task SaveAsync(LockerRoom lockerRoom);
