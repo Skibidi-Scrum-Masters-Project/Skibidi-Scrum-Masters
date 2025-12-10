@@ -59,4 +59,18 @@ public class CoachingRepository : ICoachingRepository
 
         return session;
     }
+
+    public Session CompleteSession(string id)
+    {
+        var session = GetSessionById(id);
+        if (session == null)
+            throw new ArgumentNullException(nameof(session), "Session not found");
+
+        session.CurrentStatus = Session.Status.Completed;
+
+        var filter = Builders<Session>.Filter.Eq(s => s.Id, id);
+        _sessionsCollection.ReplaceOne(filter, session);
+
+        return session;
+    }
 }
