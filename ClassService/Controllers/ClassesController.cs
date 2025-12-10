@@ -190,7 +190,7 @@ public class ClassesController : ControllerBase
         {
             return BadRequest(new { error = "Invalid input", message = "Class ID cannot be null or empty." });
         }
-         var FitnessClass = await _classRepository.GetClassByIdAsync(classId);
+        var FitnessClass = await _classRepository.GetClassByIdAsync(classId);
         if (FitnessClass == null)
         {
             return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
@@ -203,6 +203,28 @@ public class ClassesController : ControllerBase
         catch (Exception ex)
         {
             return BadRequest(new { error = "Deletion failed", message = ex.Message });
+        }
+    }
+    [HttpPost("classes/{classId}/finish")]
+    public async Task<ActionResult> FinishClass(string classId)
+    {
+        if (string.IsNullOrEmpty(classId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "Class ID cannot be null or empty." });
+        }
+        var FitnessClass = await _classRepository.GetClassByIdAsync(classId);
+        if (FitnessClass == null)
+        {
+            return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
+        }
+        try
+        {
+            await _classRepository.FinishClass(classId);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Finishing class failed", message = ex.Message });
         }
     }
 }
