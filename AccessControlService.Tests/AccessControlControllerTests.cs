@@ -19,361 +19,302 @@ public class AccessControlControllerTests
         _controller = new AccessControlController(_mockRepository.Object);
     }
 
+    #region CreateLockerRoom Tests
+
     [TestMethod]
-    public async Task CloseDoor_ValidUser_ShouldReturnOkWithDoor()
+    public async Task CreateLockerRoom_ValidLockerRoom_ReturnsOkWithCreatedLockerRoom()
     {
         // Arrange
-        string userId = "user123";
-
-        var door = new EntryPoint
+        var lockerRoom = new LockerRoom
         {
-            EnteredAt = DateTime.UtcNow.AddMinutes(-15),
-            ExitedAt = DateTime.MinValue,
-            UserId = userId
+            Id = "507f1f77bcf86cd799439011",
+            Capacity = 50,
+            Lockers = new List<Locker>
+            {
+                new Locker { LockerId = "L1", IsLocked = false, UserId = null }
+            }
         };
 
-        _mockRepository
-            .Setup(r => r.CloseDoor(userId))
-            .ReturnsAsync(door);
+        _mockRepository.Setup(repo => repo.CreateLockerRoom(It.IsAny<LockerRoom>()))
+            .ReturnsAsync(lockerRoom);
+
+        // Act
+        var result = await _controller.CreateLockerRoom(lockerRoom);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedLockerRoom = okResult.Value as LockerRoom;
+        Assert.IsNotNull(returnedLockerRoom);
+        Assert.AreEqual(lockerRoom.Id, returnedLockerRoom.Id);
+        _mockRepository.Verify(repo => repo.CreateLockerRoom(It.IsAny<LockerRoom>()), Times.Once);
+    }
+
+    #endregion
+
+    #region OpenDoor Tests
+
+    [TestMethod]
+    public async Task OpenDoor_ValidUserId_ReturnsOkWithEntryPoint()
+    {
+        // Arrange
+        var userId = "user123";
+        var entryPoint = new EntryPoint
+        {
+            Id = "507f1f77bcf86cd799439013",
+            UserId = userId,
+            EnteredAt = DateTime.UtcNow,
+            ExitedAt = DateTime.MinValue
+        };
+
+        _mockRepository.Setup(repo => repo.OpenDoor(userId))
+            .ReturnsAsync(entryPoint);
+
+        // Act
+        var result = await _controller.OpenDoor(userId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedEntryPoint = okResult.Value as EntryPoint;
+        Assert.IsNotNull(returnedEntryPoint);
+        Assert.AreEqual(userId, returnedEntryPoint.UserId);
+        _mockRepository.Verify(repo => repo.OpenDoor(userId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task OpenDoor_UserNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        var userId = "nonexistent123";
+        _mockRepository.Setup(repo => repo.OpenDoor(userId))
+            .ReturnsAsync((EntryPoint?)null);
+
+        // Act
+        var result = await _controller.OpenDoor(userId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
+        var notFoundResult = result as NotFoundObjectResult;
+        Assert.IsNotNull(notFoundResult);
+        Assert.AreEqual($"User {userId} not found", notFoundResult.Value);
+    }
+
+    #endregion
+
+    #region CloseDoor Tests
+
+    [TestMethod]
+    public async Task CloseDoor_ValidUserId_ReturnsOkWithEntryPoint()
+    {
+        // Arrange
+        var userId = "user123";
+        var entryPoint = new EntryPoint
+        {
+            Id = "507f1f77bcf86cd799439014",
+            UserId = userId,
+            EnteredAt = DateTime.UtcNow.AddHours(-2),
+            ExitedAt = DateTime.UtcNow
+        };
+
+        _mockRepository.Setup(repo => repo.CloseDoor(userId))
+            .ReturnsAsync(entryPoint);
 
         // Act
         var result = await _controller.CloseDoor(userId);
 
         // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
         var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult, "Expected OkObjectResult");
-
-        var returnedDoor = okResult.Value as EntryPoint;
-        Assert.IsNotNull(returnedDoor, "Expected EntryPoint in response");
-        Assert.AreEqual(userId, returnedDoor.UserId);
-
-        _mockRepository.Verify(r => r.CloseDoor(userId), Times.Once);
+        Assert.IsNotNull(okResult);
+        var returnedEntryPoint = okResult.Value as EntryPoint;
+        Assert.IsNotNull(returnedEntryPoint);
+        Assert.AreEqual(userId, returnedEntryPoint.UserId);
+        Assert.IsTrue(returnedEntryPoint.ExitedAt > returnedEntryPoint.EnteredAt);
     }
 
     [TestMethod]
-    public async Task CloseDoor_UserNotFound_ShouldReturnNotFound()
+    public async Task CloseDoor_UserNotFound_ReturnsNotFound()
     {
         // Arrange
-        string userId = "ghost-user";
-
-        _mockRepository
-            .Setup(r => r.CloseDoor(userId))
+        var userId = "nonexistent456";
+        _mockRepository.Setup(repo => repo.CloseDoor(userId))
             .ReturnsAsync((EntryPoint?)null);
 
         // Act
         var result = await _controller.CloseDoor(userId);
 
         // Assert
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
         var notFoundResult = result as NotFoundObjectResult;
-        Assert.IsNotNull(notFoundResult, "Expected NotFoundObjectResult");
-
-        var message = notFoundResult.Value?.ToString();
-        StringAssert.Contains(message, userId);
-
-        _mockRepository.Verify(r => r.CloseDoor(userId), Times.Once);
+        Assert.IsNotNull(notFoundResult);
+        Assert.AreEqual($"User {userId} not found", notFoundResult.Value);
     }
-    
+
+    #endregion
+
+    #region GetAvailableLockersById Tests
+
     [TestMethod]
-    public async Task Door_ValidUser_ShouldReturnOkWithDoor()
+    public async Task GetAvailableLockersById_ValidLockerRoomId_ReturnsOkWithLockers()
     {
         // Arrange
-        string userId = "user123";
-
-        var door = new EntryPoint
+        var lockerRoomId = "507f1f77bcf86cd799439015";
+        var availableLockers = new List<Locker>
         {
-            EnteredAt = DateTime.Now,
-            ExitedAt = DateTime.Now.AddHours(1),
-            UserId = userId
+            new Locker { LockerId = "L1", IsLocked = false, UserId = null },
+            new Locker { LockerId = "L2", IsLocked = false, UserId = null }
         };
 
-        _mockRepository
-            .Setup(r => r.OpenDoor(userId))
-            .ReturnsAsync(door);
+        _mockRepository.Setup(repo => repo.GetAllAvailableLockers(lockerRoomId))
+            .ReturnsAsync(availableLockers);
 
         // Act
-        var result = await _controller.Door(userId);
+        var result = await _controller.GetAvailableLockersById(lockerRoomId);
 
         // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
         var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult, "Expected OkObjectResult");
-
-        var returnedDoor = okResult.Value as EntryPoint;
-        Assert.IsNotNull(returnedDoor, "Expected Door object in response");
-        Assert.AreEqual(door.UserId, returnedDoor.UserId);
-
-        _mockRepository.Verify(r => r.OpenDoor(userId), Times.Once);
+        Assert.IsNotNull(okResult);
+        var returnedLockers = okResult.Value as List<Locker>;
+        Assert.IsNotNull(returnedLockers);
+        Assert.AreEqual(2, returnedLockers.Count);
     }
 
     [TestMethod]
-    public async Task Door_UserNotFound_ShouldReturnNotFound()
+    public async Task GetAvailableLockersById_NoAvailableLockers_ReturnsOkWithEmptyList()
     {
         // Arrange
-        string userId = "ghost-user";
+        var lockerRoomId = "507f1f77bcf86cd799439016";
+        var availableLockers = new List<Locker>();
 
-        _mockRepository
-            .Setup(r => r.OpenDoor(userId))
-            .ReturnsAsync((EntryPoint?)null);
+        _mockRepository.Setup(repo => repo.GetAllAvailableLockers(lockerRoomId))
+            .ReturnsAsync(availableLockers);
 
         // Act
-        var result = await _controller.Door(userId);
+        var result = await _controller.GetAvailableLockersById(lockerRoomId);
 
         // Assert
-        var notFoundResult = result as NotFoundObjectResult;
-        Assert.IsNotNull(notFoundResult, "Expected NotFoundObjectResult");
-
-        var message = notFoundResult.Value?.ToString();
-        StringAssert.Contains(message, userId);
-
-        _mockRepository.Verify(r => r.OpenDoor(userId), Times.Once);
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        var returnedLockers = okResult!.Value as List<Locker>;
+        Assert.IsNotNull(returnedLockers);
+        Assert.AreEqual(0, returnedLockers.Count);
     }
 
+    #endregion
+
+    #region LockLocker Tests
+
     [TestMethod]
-    public async Task LockLocker_ValidIds_ShouldLockLockerAndReturnOk()
+    public async Task LockLocker_ValidParameters_ReturnsOkWithLocker()
     {
         // Arrange
-        int lockerRoomId = 1;
-        int lockerId = 5;
-        int userId = 42;
-
+        var lockerRoomId = "507f1f77bcf86cd799439017";
+        var lockerId = "L1";
+        var userId = "user123";
         var locker = new Locker
         {
             LockerId = lockerId,
-            UserId = 0,
-            IsLocked = false
-        };
-
-        var lockerRoom = new LockerRoom
-        {
-            LockerRoomId = lockerRoomId,
-            CenterId = 1,
-            Capacity = 10,
-            Lockers = new List<Locker> { locker }
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync(lockerRoom);
-
-        _mockRepository
-            .Setup(r => r.SaveAsync(It.IsAny<LockerRoom>()))
-            .Returns(Task.CompletedTask);
-
-        // Act
-        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
-
-        // Assert
-
-        // 1) Controller should return an OkObjectResult
-        var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult, "Expected OkObjectResult");
-
-        // 2) Locker should now be assigned to the correct user and locked
-        Assert.AreEqual(userId, locker.UserId);
-        Assert.IsTrue(locker.IsLocked);
-
-        // 3) SaveAsync should only be called once with the same lockerRoom instance
-        _mockRepository.Verify(
-            r => r.SaveAsync(It.Is<LockerRoom>(lr => lr == lockerRoom)),
-            Times.Once);
-    }
-
-    [TestMethod]
-    public async Task LockLocker_LockerRoomNotFound_ShouldReturnNotFound()
-    {
-        // Arrange
-        string lockerRoomId = "1";
-        string lockerId = "5";
-        string userId = "42";
-
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync((LockerRoom?)null);
-
-        // Act
-        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
-
-        // Assert
-        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
-        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
-    }
-
-    [TestMethod]
-    public async Task LockLocker_LockerNotFound_ShouldReturnNotFound()
-    {
-        // Arrange
-        int lockerRoomId = 1;
-        int lockerId = 99;
-        int userId = 42;
-
-        var lockerRoom = new LockerRoom
-        {
-            LockerRoomId = lockerRoomId,
-            CenterId = 1,
-            Capacity = 10,
-            Lockers = new List<Locker>()
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync(lockerRoom);
-
-        // Act
-        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
-
-        // Assert
-        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
-        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
-    }
-
-    [TestMethod]
-    public async Task GetAvailableLockers_ShouldReturnOnlyUnlockedLockers()
-    {
-        // Arrange
-        int lockerRoomId = 1;
-
-        var lockers = new List<Locker>
-        {
-            new Locker { LockerId = 1, UserId = 0,  IsLocked = false }, // available
-            new Locker { LockerId = 2, UserId = 0,  IsLocked = true  }, // locked
-            new Locker { LockerId = 3, UserId = 99, IsLocked = false }  // taken by another user
-        };
-
-        var lockerRoom = new LockerRoom
-        {
-            LockerRoomId = lockerRoomId,
-            CenterId = 1,
-            Capacity = 10,
-            Lockers = lockers
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync(lockerRoom);
-
-        // Act
-        var result = await _controller.GetAvailableLockers(lockerRoomId);
-
-        // Assert
-        var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult, "Expected OkObjectResult");
-
-        var returned = okResult.Value as IEnumerable<Locker>;
-        Assert.IsNotNull(returned, "Expected list of lockers");
-
-        var list = returned.ToList();
-
-        // Only lockerId = 1 should be available (!IsLocked && UserId == 0)
-        Assert.AreEqual(1, list.Count);
-        Assert.AreEqual(1, list[0].LockerId);
-    }
-
-    [TestMethod]
-    public async Task GetAvailableLockers_LockerRoomNotFound_ShouldReturnNotFound()
-    {
-        // Arrange
-        int lockerRoomId = 1;
-
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync((LockerRoom?)null);
-
-        // Act
-        var result = await _controller.GetAvailableLockers(lockerRoomId);
-
-        // Assert
-        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
-    }
-    
-    
-    [TestMethod]
-    public async Task OpenLocker_ValidIds_ShouldUnlockLockerAndReturnOk()
-    {
-        // Arrange
-        int lockerRoomId = 1;
-        int lockerId = 5;
-
-        var locker = new Locker
-        {
-            LockerId = lockerId,
-            UserId = 42,
+            UserId = userId,
             IsLocked = true
         };
 
-        var lockerRoom = new LockerRoom
-        {
-            LockerRoomId = lockerRoomId,
-            CenterId = 1,
-            Capacity = 10,
-            Lockers = new List<Locker> { locker }
-        };
-
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync(lockerRoom);
-
-        _mockRepository
-            .Setup(r => r.SaveAsync(It.IsAny<LockerRoom>()))
-            .Returns(Task.CompletedTask);
+        _mockRepository.Setup(repo => repo.LockLocker(lockerRoomId, lockerId, userId))
+            .ReturnsAsync(locker);
 
         // Act
-        var result = await _controller.OpenLocker(lockerRoomId, lockerId);
+        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
 
         // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
         var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult, "Expected OkObjectResult");
-
-        // Locker should now be available again
-        Assert.AreEqual(0, locker.UserId);
-        Assert.IsFalse(locker.IsLocked);
-
-        _mockRepository.Verify(
-            r => r.SaveAsync(It.Is<LockerRoom>(lr => lr == lockerRoom)),
-            Times.Once);
+        Assert.IsNotNull(okResult);
+        var returnedLocker = okResult.Value as Locker;
+        Assert.IsNotNull(returnedLocker);
+        Assert.AreEqual(lockerId, returnedLocker.LockerId);
+        Assert.AreEqual(userId, returnedLocker.UserId);
+        Assert.IsTrue(returnedLocker.IsLocked);
     }
 
     [TestMethod]
-    public async Task OpenLocker_LockerRoomNotFound_ShouldReturnNotFound()
+    public async Task LockLocker_NullUserId_ReturnsOk()
     {
         // Arrange
-        int lockerRoomId = 1;
-        int lockerId = 5;
+        var lockerRoomId = "507f1f77bcf86cd799439018";
+        var lockerId = "L1";
+        string userId = null!;
+        var locker = new Locker { LockerId = lockerId, UserId = userId, IsLocked = true };
 
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync((LockerRoom?)null);
+        _mockRepository.Setup(repo => repo.LockLocker(lockerRoomId, lockerId, userId))
+            .ReturnsAsync(locker);
 
         // Act
-        var result = await _controller.OpenLocker(lockerRoomId, lockerId);
+        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
 
         // Assert
-        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
-        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
     }
 
+    #endregion
+
+    #region OpenLocker Tests
+
     [TestMethod]
-    public async Task OpenLocker_LockerNotFound_ShouldReturnNotFound()
+    public async Task OpenLocker_ValidParameters_ReturnsOkWithUnlockedLocker()
     {
         // Arrange
-        int lockerRoomId = 1;
-        int lockerId = 99;
-
-        var lockerRoom = new LockerRoom
+        var lockerRoomId = "507f1f77bcf86cd799439021";
+        var lockerId = "L1";
+        var userId = "user123";
+        var locker = new Locker
         {
-            LockerRoomId = lockerRoomId,
-            CenterId = 1,
-            Capacity = 10,
-            Lockers = new List<Locker>()
+            LockerId = lockerId,
+            UserId = null,
+            IsLocked = false
         };
 
-        _mockRepository
-            .Setup(r => r.GetByIdAsync(lockerRoomId))
-            .ReturnsAsync(lockerRoom);
+        _mockRepository.Setup(repo => repo.UnlockLocker(lockerRoomId, lockerId, userId))
+            .ReturnsAsync(locker);
 
         // Act
-        var result = await _controller.OpenLocker(lockerRoomId, lockerId);
+        var result = await _controller.OpenLocker(lockerRoomId, lockerId, userId);
 
         // Assert
-        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
-        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedLocker = okResult.Value as Locker;
+        Assert.IsNotNull(returnedLocker);
+        Assert.AreEqual(lockerId, returnedLocker.LockerId);
+        Assert.IsFalse(returnedLocker.IsLocked);
     }
+
+    [TestMethod]
+    public async Task OpenLocker_WrongUser_ReturnsOk()
+    {
+        // Arrange
+        var lockerRoomId = "507f1f77bcf86cd799439025";
+        var lockerId = "L1";
+        var userId = "user999";
+        var locker = new Locker
+        {
+            LockerId = lockerId,
+            UserId = "user123",
+            IsLocked = true
+        };
+
+        _mockRepository.Setup(repo => repo.UnlockLocker(lockerRoomId, lockerId, userId))
+            .ReturnsAsync(locker);
+
+        // Act
+        var result = await _controller.OpenLocker(lockerRoomId, lockerId, userId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+    }
+
+    #endregion
 }

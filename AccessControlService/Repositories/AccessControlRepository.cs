@@ -71,6 +71,10 @@ public class AccessControlRepository : IAccessControlRepository
 
     public Task<List<Models.Locker>> GetAllAvailableLockers(string lockerRoomId)
     {
+        if (lockerRoomId == null)
+        {
+            return Task.FromResult(new List<Locker>());
+        }
         var lockerRoom = _lockerRooms.Find(lr => lr.Id == lockerRoomId).FirstOrDefault();
 
         if (lockerRoom == null)
