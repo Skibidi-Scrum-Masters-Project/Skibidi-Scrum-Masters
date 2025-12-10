@@ -6,8 +6,14 @@ using AccessControlService.Models;
 
 public interface IAccessControlRepository
 {
-    Task<LockerRoom?> GetByIdAsync(int lockerRoomId);
+    Task<List<Locker>> GetAllAvailableLockers(string lockerRoomId);
+    Task<LockerRoom?> GetByIdAsync(string lockerRoomId);
     Task SaveAsync(LockerRoom lockerRoom);
+    Task<LockerRoom> CreateLockerRoom(LockerRoom lockerRoom);
 
-    Task<EntryPoint> OpenDoor(string userid);
+    Task<EntryPoint> OpenDoor(string userId);
+    Task<EntryPoint> CloseDoor(string userId);
+    Task<Locker> LockLocker(string lockerRoomId, string lockerId, string userId);
+
+    Task<Locker> UnlockLocker(string lockerRoomId, string lockerId, string userId);
 }

@@ -1,30 +1,125 @@
 using AccessControlService.Models;
+using AccessControlService.Repositories;
+using Mongo2Go;
+using MongoDB.Driver;
 
 namespace AccessControlService.Tests;
 
 [TestClass]
 public class AccessControlRepositoryTests
 {
+    private MongoDbRunner _runner = null!;
+    private IMongoDatabase _database = null!;
+    private AccessControlRepository _repository = null!;
+
+    [TestInitialize]
+    public void Initialize()
+    {
+        _runner = MongoDbRunner.Start(singleNodeReplSet: true);
+        var client = new MongoClient(_runner.ConnectionString);
+        _database = client.GetDatabase("AccessControlTests");
+        _repository = new AccessControlRepository(_database);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _runner.Dispose();
+    }
 
     [TestMethod]
-    public void Locker_CanBeLockedForUser()
+    public async Task OpenDoor_ShouldInsertEntryWithDefaultExit()
     {
-        // Arrange
-        var locker = new Locker
-        {
-            LockerId = 5,
-            UserId = 0,
-            IsLocked = false
-        };
-
-        var userId = 42;
-
         // Act
-        locker.UserId = userId;
-        locker.IsLocked = true;
+        var entry = await _repository.OpenDoor("user-123");
 
         // Assert
-        Assert.AreEqual(userId, locker.UserId);
-        Assert.IsTrue(locker.IsLocked);
+        Assert.IsNotNull(entry);
+        Assert.AreEqual("user-123", entry.UserId);
+        Assert.AreEqual(DateTime.MinValue, entry.ExitedAt);
+        Assert.IsTrue((DateTime.UtcNow - entry.EnteredAt.ToUniversalTime()).TotalSeconds < 5,
+            "EnteredAt should be recent");
+
+        var stored = await _database.GetCollection<EntryPoint>("EntryPoints")
+            .Find(e => e.UserId == "user-123")
+            .FirstOrDefaultAsync();
+
+        Assert.IsNotNull(stored, "Entry should be persisted");
+        Assert.AreEqual(DateTime.MinValue, stored.ExitedAt);
+    }
+
+    [TestMethod]
+    public async Task CloseDoor_WhenEntryOpen_ShouldSetExitTime()
+    {
+        // Arrange
+        var collection = _database.GetCollection<EntryPoint>("EntryPoints");
+        var openEntry = new EntryPoint
+        {
+            UserId = "user-123",
+            EnteredAt = DateTime.UtcNow.AddMinutes(-30),
+            ExitedAt = DateTime.MinValue
+        };
+
+        await collection.InsertOneAsync(openEntry);
+
+        // Act
+        var updated = await _repository.CloseDoor("user-123");
+
+        // Assert
+        Assert.IsNotNull(updated, "Expected entry to be updated");
+        Assert.AreEqual("user-123", updated.UserId);
+        Assert.AreNotEqual(DateTime.MinValue, updated.ExitedAt);
+
+        var stored = await collection.Find(e => e.UserId == "user-123").FirstOrDefaultAsync();
+        Assert.IsNotNull(stored);
+        Assert.AreNotEqual(DateTime.MinValue, stored.ExitedAt, "Exit time should be set in database");
+    }
+
+    [TestMethod]
+    public async Task CloseDoor_WhenNoOpenEntry_ShouldReturnNull()
+    {
+        // Act
+        var updated = await _repository.CloseDoor("missing-user");
+
+        // Assert
+        Assert.IsNull(updated, "Expected null when no open entry exists");
+    }
+
+    [TestMethod]
+    public async Task SaveAsync_ShouldUpsertLockerRoom()
+    {
+        // Arrange
+        var lockerRoom = new LockerRoom
+        {
+            Id = "7",
+            CenterId = "1",
+            Capacity = 10,
+            Lockers = new List<Locker>
+            {
+                new Locker { LockerId = 1, UserId = 0, IsLocked = false }
+            }
+        };
+
+        // Act
+        await _repository.SaveAsync(lockerRoom);
+
+        // Assert
+        var stored = await _database.GetCollection<LockerRoom>("LockerRooms")
+            .Find(lr => lr.Id == "7")
+            .FirstOrDefaultAsync();
+
+        Assert.IsNotNull(stored, "LockerRoom should be inserted");
+        Assert.AreEqual("7", stored.Id);
+        Assert.AreEqual(1, stored.Lockers.Count);
+
+        // Update flow
+        stored.Lockers[0].IsLocked = true;
+        await _repository.SaveAsync(stored);
+
+        var updated = await _database.GetCollection<LockerRoom>("LockerRooms")
+            .Find(lr => lr.Id == "7")
+            .FirstOrDefaultAsync();
+
+        Assert.IsTrue(updated?.Lockers[0].IsLocked);
     }
 }

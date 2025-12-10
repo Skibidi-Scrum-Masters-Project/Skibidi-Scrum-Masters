@@ -18,6 +18,60 @@ public class AccessControlControllerTests
         _mockRepository = new Mock<IAccessControlRepository>();
         _controller = new AccessControlController(_mockRepository.Object);
     }
+
+    [TestMethod]
+    public async Task CloseDoor_ValidUser_ShouldReturnOkWithDoor()
+    {
+        // Arrange
+        string userId = "user123";
+
+        var door = new EntryPoint
+        {
+            EnteredAt = DateTime.UtcNow.AddMinutes(-15),
+            ExitedAt = DateTime.MinValue,
+            UserId = userId
+        };
+
+        _mockRepository
+            .Setup(r => r.CloseDoor(userId))
+            .ReturnsAsync(door);
+
+        // Act
+        var result = await _controller.CloseDoor(userId);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+
+        var returnedDoor = okResult.Value as EntryPoint;
+        Assert.IsNotNull(returnedDoor, "Expected EntryPoint in response");
+        Assert.AreEqual(userId, returnedDoor.UserId);
+
+        _mockRepository.Verify(r => r.CloseDoor(userId), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task CloseDoor_UserNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        string userId = "ghost-user";
+
+        _mockRepository
+            .Setup(r => r.CloseDoor(userId))
+            .ReturnsAsync((EntryPoint?)null);
+
+        // Act
+        var result = await _controller.CloseDoor(userId);
+
+        // Assert
+        var notFoundResult = result as NotFoundObjectResult;
+        Assert.IsNotNull(notFoundResult, "Expected NotFoundObjectResult");
+
+        var message = notFoundResult.Value?.ToString();
+        StringAssert.Contains(message, userId);
+
+        _mockRepository.Verify(r => r.CloseDoor(userId), Times.Once);
+    }
     
     [TestMethod]
     public async Task Door_ValidUser_ShouldReturnOkWithDoor()
@@ -124,6 +178,54 @@ public class AccessControlControllerTests
     }
 
     [TestMethod]
+    public async Task LockLocker_LockerRoomNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        string lockerRoomId = "1";
+        string lockerId = "5";
+        string userId = "42";
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync((LockerRoom?)null);
+
+        // Act
+        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
+        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task LockLocker_LockerNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        int lockerRoomId = 1;
+        int lockerId = 99;
+        int userId = 42;
+
+        var lockerRoom = new LockerRoom
+        {
+            LockerRoomId = lockerRoomId,
+            CenterId = 1,
+            Capacity = 10,
+            Lockers = new List<Locker>()
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync(lockerRoom);
+
+        // Act
+        var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
+        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
+    }
+
+    [TestMethod]
     public async Task GetAvailableLockers_ShouldReturnOnlyUnlockedLockers()
     {
         // Arrange
@@ -163,6 +265,23 @@ public class AccessControlControllerTests
         // Only lockerId = 1 should be available (!IsLocked && UserId == 0)
         Assert.AreEqual(1, list.Count);
         Assert.AreEqual(1, list[0].LockerId);
+    }
+
+    [TestMethod]
+    public async Task GetAvailableLockers_LockerRoomNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        int lockerRoomId = 1;
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync((LockerRoom?)null);
+
+        // Act
+        var result = await _controller.GetAvailableLockers(lockerRoomId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
     }
     
     
@@ -210,5 +329,51 @@ public class AccessControlControllerTests
         _mockRepository.Verify(
             r => r.SaveAsync(It.Is<LockerRoom>(lr => lr == lockerRoom)),
             Times.Once);
+    }
+
+    [TestMethod]
+    public async Task OpenLocker_LockerRoomNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        int lockerRoomId = 1;
+        int lockerId = 5;
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync((LockerRoom?)null);
+
+        // Act
+        var result = await _controller.OpenLocker(lockerRoomId, lockerId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
+        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
+    }
+
+    [TestMethod]
+    public async Task OpenLocker_LockerNotFound_ShouldReturnNotFound()
+    {
+        // Arrange
+        int lockerRoomId = 1;
+        int lockerId = 99;
+
+        var lockerRoom = new LockerRoom
+        {
+            LockerRoomId = lockerRoomId,
+            CenterId = 1,
+            Capacity = 10,
+            Lockers = new List<Locker>()
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(lockerRoomId))
+            .ReturnsAsync(lockerRoom);
+
+        // Act
+        var result = await _controller.OpenLocker(lockerRoomId, lockerId);
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(NotFoundObjectResult));
+        _mockRepository.Verify(r => r.SaveAsync(It.IsAny<LockerRoom>()), Times.Never);
     }
 }
