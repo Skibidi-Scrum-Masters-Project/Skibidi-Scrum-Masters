@@ -18,26 +18,6 @@ public class ClassesControllerTests
         _controller = new ClassesController(_mockRepository.Object);
     }
 
-    [TestMethod]
-    public void GetClasses_ShouldReturnAllClasses()
-    {
-        // TBA: Implement test for getting all fitness classes
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void GetClasses_WhenNoClasses_ShouldReturnEmptyList()
-    {
-        // TBA: Implement test for empty class list
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void GetClasses_ShouldReturnOkResult()
-    {
-        // TBA: Implement test for OK status code
-        Assert.Inconclusive("Test not implemented yet");
-    }
 
     [TestMethod]
     public async Task CreateClassAsync_ReturnsOkResult_WithCreatedClass()
@@ -476,6 +456,153 @@ public class ClassesControllerTests
 
         // Act
         var result = await _controller.BookClassForUserWithFriendsNoSeats(classId, userId, friends);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithFriendsWithSeats_ReturnsOkResult()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var friends = new List<string> { "friend1", "friend2" };
+        var seats = new List<int> { 1, 2, 3 };
+        var seatMap = new bool[10];
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = seatMap,
+            BookingList = new List<Booking>()
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+        _mockRepository.Setup(r => r.BookClassForUserWithSeatAsync(classId, It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(classInfo);
+
+        // Act
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(200, okResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithFriendsWithSeats_WhenSeatCountMismatch_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var friends = new List<string> { "friend1", "friend2" };
+        var seats = new List<int> { 1, 2 }; // Only 2 seats for 3 users
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = new bool[10],
+            BookingList = new List<Booking>()
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+
+        // Act
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithFriendsWithSeats_WhenSeatBookingNotEnabled_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var friends = new List<string> { "friend1" };
+        var seats = new List<int> { 1, 2 };
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            SeatBookingEnabled = false,
+            BookingList = new List<Booking>()
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+
+        // Act
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
+
+        // Assert
+        var badRequestResult = result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequestResult);
+        Assert.AreEqual(400, badRequestResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task BookClassForUserWithFriendsWithSeats_WhenSeatAlreadyBooked_ReturnsBadRequest()
+    {
+        // Arrange
+        var classId = "class123";
+        var userId = "user456";
+        var friends = new List<string> { "friend1" };
+        var seats = new List<int> { 1, 2 };
+        var seatMap = new bool[10];
+        seatMap[2] = true; // Seat 2 is already booked
+        var classInfo = new FitnessClass
+        {
+            Id = classId,
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Seated Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga with seat selection.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            SeatBookingEnabled = true,
+            SeatMap = seatMap,
+            BookingList = new List<Booking>()
+        };
+        _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
+
+        // Act
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
 
         // Assert
         var badRequestResult = result as BadRequestObjectResult;
