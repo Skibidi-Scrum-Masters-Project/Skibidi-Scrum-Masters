@@ -73,16 +73,12 @@ public class ClassesController : ControllerBase
     [HttpPut("classes/{classId}/{userId}/friends")]
     public async Task<ActionResult> BookClassForUserWithFriendsNoSeats(string classId, string userId, List<string> friends)
     {
-        if (string.IsNullOrEmpty(classId) || string.IsNullOrEmpty(userId))
-        {
-            return BadRequest(new { error = "Invalid input", message = "Class ID and User ID cannot be null or empty." });
-        }
         var classInfo = await _classRepository.GetClassByIdAsync(classId);
-         if (classInfo == null)
+        if (classInfo == null)
         {
             return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
         }
-        if(classInfo.SeatBookingEnabled)
+        if (classInfo.SeatBookingEnabled)
         {
             return BadRequest(new { error = "Invalid operation", message = "Class requires seat booking. Use the appropriate endpoint." });
         }
@@ -90,12 +86,15 @@ public class ClassesController : ControllerBase
         {
             return BadRequest(new { error = "Booking failed", message = "Not enough available spots for the group booking." });
         }
-       
+
 
         try
-            var allUserIds = new List<string>(friends) { userId };
-            var classes = await _classRepository.BookClassForUsersNoSeatAsync(classId, allUserIds);
-            return Ok(classes);
+        {
+            foreach (var id in friends)
+            {
+                var classes = await _classRepository.BookClassForUserNoSeatAsync(classId, id);
+            }
+            var classesMainUser = await _classRepository.BookClassForUserNoSeatAsync(classId, userId);
             return Ok(classesMainUser);
         }
         catch (Exception ex)
@@ -112,7 +111,7 @@ public class ClassesController : ControllerBase
         {
             return BadRequest(new { error = "Invalid input", message = "Class ID and User ID cannot be null or empty." });
         }
-        if( seat < 0)
+        if (seat < 0)
         {
             return BadRequest(new { error = "Invalid input", message = "Seat number must be non-negative." });
         }
