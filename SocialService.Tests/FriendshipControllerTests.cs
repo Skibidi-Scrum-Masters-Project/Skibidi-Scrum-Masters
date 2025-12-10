@@ -97,7 +97,7 @@ public class FriendshipControllerTests
         var senderId = 1;
         var receiverId = senderId;
 
-        var FriendshipFromRepo = new Friendship
+        var friendshipFromRepo = new Friendship
         {
             SenderId = senderId,
             ReceiverId = receiverId,
@@ -106,7 +106,7 @@ public class FriendshipControllerTests
         
         _mockRepository
             .Setup(f => f.GetAllFriends(senderId))
-            .ReturnsAsync(new List<Friendship> { FriendshipFromRepo });
+            .ReturnsAsync(new List<Friendship> { friendshipFromRepo });
         
         //Act
         var result = await _controller.GetAllFriends(senderId);
@@ -128,11 +128,85 @@ public class FriendshipControllerTests
         var friend = friendsList[0];
         Assert.AreEqual(senderId, friend.SenderId, "SenderId should match");
         Assert.AreEqual(FriendshipStatus.Accepted, friend.FriendShipStatus, "FriendshipStatus should be Accepted");
+        
 
         // Assert at repository metoden blev kaldt korrekt
         _mockRepository.Verify(f => f.GetAllFriends(senderId), Times.Once);
     }
 
+    [TestMethod]
+    public async Task GetFriendById_ShouldReturnFriend_WhenFriendIsFound()
+    {
+        //Arrange
+        var senderId = 1;
+        var receiverId = 2;
+        
+        var friendshipFromRepo = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = receiverId,
+            FriendShipStatus = FriendshipStatus.Accepted
+        };
+        
+        _mockRepository
+            .Setup(f => f.GetFriendById(senderId, receiverId))
+            .ReturnsAsync(friendshipFromRepo);
+        
+        
+        //Act
+        var result =  await _controller.GetFriendById(senderId, receiverId);
+        
+        //Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+        
+        
+        var friend = okResult.Value as Friendship;
+        Assert.IsNotNull(friend, "Expected a Friendship");
+        Assert.AreEqual(senderId, friend.SenderId, "SenderId should match");
+        Assert.AreEqual(receiverId, friend.ReceiverId, "ReceiverId should match");
+        Assert.AreEqual(FriendshipStatus.Accepted, friend.FriendShipStatus, "FriendshipStatus should be Accepted");
+        
+        Assert.IsNotNull(result, "Result should not be null");
+        
+        // Verificer at repoet blev kaldt korrekt
+        _mockRepository.Verify(
+            f => f.GetFriendById(senderId, receiverId), Times.Once, "GetFriendById should be called exactly once");
+    }
+    
+    [TestMethod]
+    public async Task GetFriendById_ShouldReturnNotFound_WhenFriendDoesNotExist()
+    {
+        // Arrange
+        var senderId = 1;
+        var receiverId = 2;
+
+        // Repo returnerer null for denne kombination
+        _mockRepository
+            .Setup(f => f.GetFriendById(senderId, receiverId))
+            .ReturnsAsync((Friendship?)null);
+
+        // Act
+        var result = await _controller.GetFriendById(senderId, receiverId);
+
+        // Assert
+        Assert.IsNotNull(result, "Result should not be null");
+
+        var notFoundResult = result.Result as NotFoundResult;
+        Assert.IsNotNull(notFoundResult, "Expected NotFoundResult");
+        
+        
+        Assert.AreEqual(StatusCodes.Status404NotFound, notFoundResult.StatusCode);
+
+        // Verificer at repoet blev kaldt korrekt
+        _mockRepository.Verify(
+            f => f.GetFriendById(senderId, receiverId), Times.Once, "GetFriendById should be called exactly once");
+    }
+
+    
+    
+    
     [TestMethod]
     public void GetUserFriends_WhenNoFriends_ShouldReturnEmptyList()
     {
@@ -140,10 +214,5 @@ public class FriendshipControllerTests
         Assert.Inconclusive("Test not implemented yet");
     }
 
-    [TestMethod]
-    public void GetUserFriends_WithValidUserId_ShouldReturnOkResult()
-    {
-        // TBA: Implement test for OK status code
-        Assert.Inconclusive("Test not implemented yet");
-    }
+
 }
