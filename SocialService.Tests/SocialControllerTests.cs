@@ -10,16 +10,16 @@ using SocialService.Models;
 namespace SocialService.Tests;
 
 [TestClass]
-public class FriendshipControllerTests
+public class SocialControllerTests
 {
-    private FriendshipController _controller = null!;
-    private Mock<IFriendshipRepository> _mockRepository = null!;
+    private SocialController _controller = null!;
+    private Mock<ISocialRepository> _mockRepository = null!;
     
     [TestInitialize]
     public void Setup()
     {
-        _mockRepository = new Mock<IFriendshipRepository>();
-        _controller = new FriendshipController(_mockRepository.Object);
+        _mockRepository = new Mock<ISocialRepository>();
+        _controller = new SocialController(_mockRepository.Object);
     }
     
     
@@ -206,13 +206,50 @@ public class FriendshipControllerTests
 
     
     
-    
     [TestMethod]
-    public void GetUserFriends_WhenNoFriends_ShouldReturnEmptyList()
+    public async Task CancelFriendRequest_ShouldSetStatusToNone_WhenFriendRequestIsCancelled()
     {
-        // TBA: Implement test for empty friends list
-        Assert.Inconclusive("Test not implemented yet");
+        // Arrange
+        var senderId = 1;
+        var receiverId = 2;
+
+        var friendshipFromRepo = new Friendship
+        {
+            SenderId = senderId,
+            ReceiverId = receiverId,
+            FriendShipStatus = FriendshipStatus.Accepted
+        };
+
+        _mockRepository
+            .Setup(r => r.CancelFriendRequest(senderId, receiverId))
+            .ReturnsAsync(() =>
+            {
+                friendshipFromRepo.FriendShipStatus = FriendshipStatus.None;
+                return friendshipFromRepo;
+            });
+
+        // Act
+        var result = await _controller.CancelFriendRequest(senderId, receiverId);
+
+        
+        // Assert
+        Assert.IsNotNull(result, "Result should not be null");
+
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Result should be OkObjectResult");
+
+        var friend = okResult.Value as Friendship;
+        Assert.IsNotNull(friend, "Returned value should be a Friendship");
+
+        Assert.AreEqual(
+            FriendshipStatus.None,
+            friend.FriendShipStatus,
+            "FriendshipStatus should be None after cancelling the request"
+        );
     }
+
+
+
 
 
 }

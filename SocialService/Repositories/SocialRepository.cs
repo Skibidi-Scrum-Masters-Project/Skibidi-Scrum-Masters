@@ -7,11 +7,11 @@ using System;
 
 namespace SocialService.Repositories;
 
-public class FriendshipRepository : IFriendshipRepository
+public class SocialRepository : ISocialRepository
 {
     private readonly IMongoCollection<Friendship> _friendshipCollection;
     
-    public FriendshipRepository(IMongoDatabase database)
+    public SocialRepository(IMongoDatabase database)
     {
        
         _friendshipCollection = database.GetCollection<Friendship>("Friendships"); 
@@ -116,4 +116,33 @@ public class FriendshipRepository : IFriendshipRepository
         return await findFriendForUser.SingleOrDefaultAsync();
     }
 
+    public async Task<Friendship> CancelFriendRequest(int senderId, int receiverId)
+    {
+        var existingFriendshipRequest = await _friendshipCollection
+            .Find(f => f.SenderId == senderId 
+                       && f.ReceiverId == receiverId 
+                       && f.FriendShipStatus == FriendshipStatus.Pending)
+            .FirstOrDefaultAsync();
+        
+        if (existingFriendshipRequest == null)
+        {
+            throw new InvalidOperationException("There is no pending friendship request between these users.");
+        }
+        
+
+        var newStatus = FriendshipStatus.None;
+
+        var updateStatus = Builders<Friendship>.Update
+            .Set(f => f.FriendShipStatus, newStatus);
+
+        await _friendshipCollection.UpdateOneAsync(
+            friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
+            updateStatus
+        );
+
+       
+        existingFriendshipRequest.FriendShipStatus = newStatus;
+
+        return existingFriendshipRequest;
+    }
 }
