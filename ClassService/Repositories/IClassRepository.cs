@@ -1,6 +1,6 @@
-using FitnessApp.Shared.Models;
+using ClassService.Model;
 
 public interface IClassRepository
 {
-    //TBA
+   public Task<FitnessClass> CreateClassAsync(FitnessClass fitnessClass);
 }
