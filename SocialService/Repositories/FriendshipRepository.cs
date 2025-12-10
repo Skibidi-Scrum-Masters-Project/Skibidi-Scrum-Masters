@@ -99,12 +99,21 @@ public class FriendshipRepository : IFriendshipRepository
     }
 
 
-    public async Task<IEnumerable<Friendship>> GetAllFriends(int senderId)
+    public async Task<IEnumerable<Friendship?>> GetAllFriends(int senderId)
     {
         var findFriendsForUser = await _friendshipCollection
             .FindAsync(f => f.ReceiverId == senderId && f.FriendShipStatus == FriendshipStatus.Accepted);
         
         return await findFriendsForUser.ToListAsync();
+    }
+
+    public async Task<Friendship?> GetFriendById(int senderId, int receiverId)
+    {
+        
+        var findFriendForUser = await _friendshipCollection
+            .FindAsync(f => f.ReceiverId == receiverId && f.SenderId == senderId  && f.FriendShipStatus == FriendshipStatus.Accepted);
+        
+        return await findFriendForUser.SingleOrDefaultAsync();
     }
 
 }

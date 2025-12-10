@@ -12,6 +12,8 @@ public interface IFriendshipRepository
     Task<Friendship> DeclineFriendRequestAsync (int senderId, int receiverId);
     
     //Metode til at hente AllFriends på en bruger.
-    Task<IEnumerable<Friendship>> GetAllFriends(int senderId);
+    Task<IEnumerable<Friendship?>> GetAllFriends(int senderId);
+    
+    Task<Friendship?> GetFriendById(int senderId, int receiverId);
 
 }

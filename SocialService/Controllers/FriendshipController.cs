@@ -122,7 +122,38 @@ public class FriendshipController : ControllerBase
         }
 
     }
+    
+    [HttpGet("{senderId}/friends/{receiverId}")]
+    public async Task<ActionResult<Friendship>> GetFriendById(int senderId, int receiverId)
+    {
+        try
+        {
+            var friendFound = await _friendshipRepository.GetFriendById(senderId, receiverId);
 
-    
-    
+            if (friendFound == null)
+                return NotFound();
+
+            return Ok(friendFound);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            // Hvis repo kaster KeyNotFoundException selv
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // hvis der er dubletter da der bruges SingleOrDefaultAsync
+            return Conflict(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            // Hvis der er noget galt med input
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            // log her
+            return StatusCode(500, "An unexpected error occurred.");
+        }
+    }
 }
