@@ -471,6 +471,7 @@ public class ClassesControllerTests
         var userId = "user456";
         var friends = new List<string> { "friend1", "friend2" };
         var seats = new List<int> { 1, 2, 3 };
+        var request = new BookClassWithFriendsRequestDTO { Friends = friends, Seats = seats };
         var seatMap = new bool[10];
         var classInfo = new FitnessClass
         {
@@ -493,7 +494,7 @@ public class ClassesControllerTests
         _mockRepository.Setup(r => r.BookClassForUserWithSeatAsync(classId, It.IsAny<string>(), It.IsAny<int>())).ReturnsAsync(classInfo);
 
         // Act
-        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, request);
 
         // Assert
         var okResult = result as OkObjectResult;
@@ -509,6 +510,7 @@ public class ClassesControllerTests
         var userId = "user456";
         var friends = new List<string> { "friend1", "friend2" };
         var seats = new List<int> { 1, 2 }; // Only 2 seats for 3 users
+        var request = new BookClassWithFriendsRequestDTO { Friends = friends, Seats = seats };
         var classInfo = new FitnessClass
         {
             Id = classId,
@@ -529,7 +531,7 @@ public class ClassesControllerTests
         _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
 
         // Act
-        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, request);
 
         // Assert
         var badRequestResult = result as BadRequestObjectResult;
@@ -545,6 +547,7 @@ public class ClassesControllerTests
         var userId = "user456";
         var friends = new List<string> { "friend1" };
         var seats = new List<int> { 1, 2 };
+        var request = new BookClassWithFriendsRequestDTO { Friends = friends, Seats = seats };
         var classInfo = new FitnessClass
         {
             Id = classId,
@@ -564,7 +567,7 @@ public class ClassesControllerTests
         _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
 
         // Act
-        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, request);
 
         // Assert
         var badRequestResult = result as BadRequestObjectResult;
@@ -580,6 +583,7 @@ public class ClassesControllerTests
         var userId = "user456";
         var friends = new List<string> { "friend1" };
         var seats = new List<int> { 1, 2 };
+        var request = new BookClassWithFriendsRequestDTO { Friends = friends, Seats = seats };
         var seatMap = new bool[10];
         seatMap[2] = true; // Seat 2 is already booked
         var classInfo = new FitnessClass
@@ -602,7 +606,7 @@ public class ClassesControllerTests
         _mockRepository.Setup(r => r.GetClassByIdAsync(classId)).ReturnsAsync(classInfo);
 
         // Act
-        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, friends, seats);
+        var result = await _controller.BookClassForUserWithFriendsWithSeats(classId, userId, request);
 
         // Assert
         var badRequestResult = result as BadRequestObjectResult;
