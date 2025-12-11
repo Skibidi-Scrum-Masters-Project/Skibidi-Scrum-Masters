@@ -16,7 +16,7 @@ public class AccessControlRepository : IAccessControlRepository
 
     public AccessControlRepository(IMongoDatabase database)
     {
-        
+
         _lockerRooms = database.GetCollection<LockerRoom>("LockerRooms");
         _entryPoints = database.GetCollection<EntryPoint>("EntryPoints");
     }
@@ -28,14 +28,14 @@ public class AccessControlRepository : IAccessControlRepository
             .Find(lr => lr.Id == lockerRoomId)
             .FirstOrDefaultAsync();
     }
-    
+
     public async Task SaveAsync(LockerRoom lockerRoom)
     {
         // REPLACE THE WHOLE DOCUMENT
         await _lockerRooms.ReplaceOneAsync(
             lr => lr.Id == lockerRoom.Id,
             lockerRoom,
-            new ReplaceOptions { IsUpsert = true }  
+            new ReplaceOptions { IsUpsert = true }
         );
     }
 
@@ -46,10 +46,10 @@ public class AccessControlRepository : IAccessControlRepository
         entryPoint.EnteredAt = DateTime.Now;
         entryPoint.ExitedAt = DateTime.MinValue;
         _entryPoints.InsertOne(entryPoint);
-        
+
         return Task.FromResult(entryPoint);
 
-        
+
         throw new NotImplementedException();
     }
 
@@ -66,7 +66,7 @@ public class AccessControlRepository : IAccessControlRepository
 
         return Task.FromResult(updatedEntryPoint);
 
-      
+
     }
 
     public Task<List<Models.Locker>> GetAllAvailableLockers(string lockerRoomId)
@@ -111,7 +111,7 @@ public class AccessControlRepository : IAccessControlRepository
         {
             return Task.FromResult<Locker>(null);
         }
-        if(userId == null)
+        if (userId == null)
         {
             return Task.FromResult<Locker>(null);
         }
@@ -139,7 +139,7 @@ public class AccessControlRepository : IAccessControlRepository
         {
             return Task.FromResult<Locker>(null);
         }
-        if(userId == null)
+        if (userId == null)
         {
             return Task.FromResult<Locker>(null);
         }
@@ -154,5 +154,11 @@ public class AccessControlRepository : IAccessControlRepository
         _lockerRooms.ReplaceOne(lr => lr.Id == lockerRoomId, lockerRoom);
 
         return Task.FromResult(locker);
+    }
+
+    public Task<int> GetCrowd()
+    {
+        var count = _entryPoints.CountDocuments(ep => ep.ExitedAt == DateTime.MinValue);
+        return Task.FromResult((int)count);
     }
 }

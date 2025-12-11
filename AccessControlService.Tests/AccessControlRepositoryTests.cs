@@ -403,4 +403,86 @@ public class AccessControlRepositoryTests
     }
 
     #endregion
+
+    #region GetCrowd Tests
+
+    [TestMethod]
+    public async Task GetCrowd_WithActiveUsers_ReturnsCrowdCount()
+    {
+        // Arrange
+        var userId1 = "user1";
+        var userId2 = "user2";
+        var userId3 = "user3";
+
+        // Create entry points for users currently in the facility (ExitedAt = DateTime.MinValue)
+        await _repository.OpenDoor(userId1);
+        await _repository.OpenDoor(userId2);
+        await _repository.OpenDoor(userId3);
+
+        // Act
+        var result = await _repository.GetCrowd();
+
+        // Assert
+        Assert.AreEqual(3, result);
+    }
+
+    [TestMethod]
+    public async Task GetCrowd_WithMixedEntryExit_CountsOnlyActiveUsers()
+    {
+        // Arrange
+        var userId1 = "user1";
+        var userId2 = "user2";
+        var userId3 = "user3";
+
+        // User 1 and 2 enter
+        await _repository.OpenDoor(userId1);
+        await _repository.OpenDoor(userId2);
+
+        // User 1 exits
+        await _repository.CloseDoor(userId1);
+
+        // User 3 enters
+        await _repository.OpenDoor(userId3);
+
+        // Act
+        var result = await _repository.GetCrowd();
+
+        // Assert
+        Assert.AreEqual(2, result, "Should count only users still in facility (user2 and user3)");
+    }
+
+    [TestMethod]
+    public async Task GetCrowd_WithNoActiveUsers_ReturnsZero()
+    {
+        // Arrange - No entry points created
+
+        // Act
+        var result = await _repository.GetCrowd();
+
+        // Assert
+        Assert.AreEqual(0, result);
+    }
+
+    [TestMethod]
+    public async Task GetCrowd_AllUsersExited_ReturnsZero()
+    {
+        // Arrange
+        var userId1 = "user1";
+        var userId2 = "user2";
+
+        // Users enter and then exit
+        await _repository.OpenDoor(userId1);
+        await _repository.OpenDoor(userId2);
+        await _repository.CloseDoor(userId1);
+        await _repository.CloseDoor(userId2);
+
+        // Act
+        var result = await _repository.GetCrowd();
+
+        // Assert
+        Assert.AreEqual(0, result);
+    }
+
+    #endregion
 }
+
