@@ -156,17 +156,28 @@ public class SocialRepository : ISocialRepository
 
     public async Task<Friendship?> AcceptFriendRequest(int senderId, int receiverId)
     {
+        // 1. Find venskabet uanset status
         var existingFriendshipRequest = await _friendshipCollection
             .Find(f => f.SenderId == senderId 
-                       && f.ReceiverId == receiverId 
-                       && f.FriendShipStatus == FriendshipStatus.Pending)
+                       && f.ReceiverId == receiverId)
             .FirstOrDefaultAsync();
-        
+    
         if (existingFriendshipRequest == null)
         {
             throw new KeyNotFoundException("Friend request not found");
         }
-        
+
+        // 2. Det må ikke være muligt at acceptere en Declined request
+        if (existingFriendshipRequest.FriendShipStatus == FriendshipStatus.Declined)
+        {
+            throw new InvalidOperationException("Cannot accept a declined friend request.");
+        }
+
+        // 3. Kun Pending må kunne accepteres
+        if (existingFriendshipRequest.FriendShipStatus != FriendshipStatus.Pending)
+        {
+            throw new InvalidOperationException("Only pending friend requests can be accepted.");
+        }
 
         var newStatus = FriendshipStatus.Accepted;
 
@@ -177,10 +188,10 @@ public class SocialRepository : ISocialRepository
             friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
             updateStatus
         );
-        
-       
+
         existingFriendshipRequest.FriendShipStatus = newStatus;
 
         return existingFriendshipRequest;
     }
+
 }
