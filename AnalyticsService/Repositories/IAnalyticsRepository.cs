@@ -2,5 +2,6 @@ using FitnessApp.Shared.Models;
 
 public interface IAnalyticsRepository
 {
-    //TBA
+   public Task<int> GetCrowd();
+
 }

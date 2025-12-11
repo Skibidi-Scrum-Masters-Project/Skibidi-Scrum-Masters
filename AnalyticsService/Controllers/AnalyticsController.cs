@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
+ 
 
 namespace AnalyticsService.Controllers;
 
@@ -19,5 +20,12 @@ public class AnalyticsController : ControllerBase
     {
         // TBA: Implement get analytics data
         return Ok(new { message = "Get users - TBA" });
+    }
+    [HttpGet("Center")]
+    public async Task<IActionResult> GetCrowd()
+    {
+        
+        var analytics = await _analyticsRepository.GetCrowd();
+        return Ok(analytics);
     }
 }
