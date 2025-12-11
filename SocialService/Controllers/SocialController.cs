@@ -223,5 +223,14 @@ public class SocialController : ControllerBase
         }
     }
 
+
+    [HttpPost]
+    public Task<Post> PostAPost([FromBody]Post post)
+    {
+        var createdPost = _socialRepository.PostAPost(post);
+        
+        return createdPost;
+    }
+
 }
 
