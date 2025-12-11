@@ -32,7 +32,7 @@ public class SocialRepository : ISocialRepository
             //Tjekker om der allerede er en pending FriendRequest
             if (existingFriendship.FriendShipStatus == FriendshipStatus.Pending)
             {
-                throw new Exception("Friendship request already exists");
+                throw new InvalidOperationException("Friendship request already exists");
             }
             
             if (existingFriendship.FriendShipStatus == FriendshipStatus.Declined)

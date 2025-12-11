@@ -30,11 +30,6 @@ public class SocialControllerTests
         var userId = 1;
         var receiverId = 2;
         
-        var friendshipInput = new Friendship
-        {
-            SenderId = userId,
-            ReceiverId = receiverId
-        };
         
         var friendshipFromRepo = new Friendship
         {
@@ -48,7 +43,7 @@ public class SocialControllerTests
             .ReturnsAsync(friendshipFromRepo);
         
         //Act
-        var actionResult = await _controller.SendFriendRequestAsync(friendshipInput);
+        var actionResult = await _controller.SendFriendRequestAsync(userId, receiverId);
         
         // Assert
         var okResult = actionResult.Result as OkObjectResult;

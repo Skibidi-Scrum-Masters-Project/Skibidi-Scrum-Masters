@@ -23,19 +23,19 @@ public class SocialController : ControllerBase
         return Ok(new { message = $"Get friends for user {userId} - TBA" });
     }
 
-    [HttpPost("friendrequest")]
-    public async Task<ActionResult<FriendshipStatus>> SendFriendRequestAsync([FromBody] Friendship friendship)
+    [HttpPost("{userId}/sendFriendrequest/{receiverId}")]
+    public async Task<ActionResult<Friendship>> SendFriendRequestAsync(int userId, int receiverId)
     {
-        if (friendship.SenderId == friendship.ReceiverId)
+        if (userId == receiverId)
             return BadRequest("You cannot send a friend request to yourself.");
     
-        if (friendship.SenderId <= 0 || friendship.ReceiverId <= 0)
+        if (userId <= 0 || receiverId <= 0)
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
         {
             var createdFriendship = await _socialRepository
-                .SendFriendRequestAsync(friendship.SenderId, friendship.ReceiverId);
+                .SendFriendRequestAsync(userId, receiverId);
 
             return Ok(createdFriendship);
         }
@@ -59,7 +59,7 @@ public class SocialController : ControllerBase
     }
 
 
-    [HttpPut("decline/{userId}/{receiverId}")]
+    [HttpPut("declineRequest/{userId}/{receiverId}")]
     public async Task<IActionResult> DeclineFriendRequestAsync(int userId, int receiverId)
     {
         if (userId == receiverId)
@@ -157,7 +157,7 @@ public class SocialController : ControllerBase
         }
     }
 
-    [HttpPut("{userId}/friends/{receiverId}")]
+    [HttpPut("{userId}/cancel/{receiverId}")]
     public async Task<ActionResult<Friendship>> CancelFriendRequest(int userId, int receiverId)
     {
         var friendRequestCanceled = await _socialRepository.CancelFriendRequest(userId, receiverId);
