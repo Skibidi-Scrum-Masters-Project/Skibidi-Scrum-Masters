@@ -1118,5 +1118,47 @@ public class SocialControllerTests
         Assert.IsNotNull(notFound, "Expected NotFoundResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
+    
+    //Comment Test
+    
+    [TestMethod]
+    public async Task AddACommentToPost_calls_repository_and_returns_updated_post()
+    {
+        // Arrange
+        var postId = "some-mongo-id";
+
+        var inputComment = new Comment
+        {
+            AuthorId = 1,
+            CommentDate = DateTime.UtcNow,
+            CommentText = "Nice workout!"
+        };
+
+        var updatedPostFromRepo = new Post
+        {
+            Id = postId,
+            UserId = 1,
+            FitnessClassId = 10,
+            WorkoutId = 100,
+            PostTitle = "Title",
+            PostContent = "Content",
+            Comments = new List<Comment> { inputComment }
+        };
+
+        _mockRepository
+            .Setup(r => r.AddCommentToPost(postId, inputComment))
+            .ReturnsAsync(updatedPostFromRepo);
+
+        // Act
+        var result = await _controller.AddACommentToPost(postId, inputComment);
+
+        // Assert
+        Assert.IsNotNull(result, "Expected a Post to be returned");
+        Assert.AreSame(updatedPostFromRepo, result, "Controller should return the Post from the repository");
+
+        _mockRepository.Verify(
+            r => r.AddCommentToPost(postId, inputComment),
+            Times.Once);
+    }
 
 }
