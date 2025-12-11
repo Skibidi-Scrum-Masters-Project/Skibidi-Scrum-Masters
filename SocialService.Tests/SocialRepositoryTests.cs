@@ -1308,4 +1308,96 @@ public async Task SeeAllCommentForPostId_WhenPostExistsWithComments_ReturnsAllCo
     Assert.IsTrue(list.Any(c => c.Id == comment2.Id && c.CommentText == comment2.CommentText));
 }
 
+
+[TestMethod]
+[DoNotParallelize]
+public async Task SeeAllPostsForUser_WhenUserHasMultiplePosts_ReturnsOnlyThosePosts()
+{
+    // Arrange
+    var userId = 1;
+    var otherUserId = 2;
+
+    var post1 = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = userId,
+        FitnessClassId = 10,
+        WorkoutId = 100,
+        PostTitle = "User1 post 1",
+        PostContent = "Content 1",
+        PostDate = new DateTime(2020, 1, 1),
+        Comments = new List<Comment>()
+    };
+
+    var post2 = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = userId,
+        FitnessClassId = 11,
+        WorkoutId = 101,
+        PostTitle = "User1 post 2",
+        PostContent = "Content 2",
+        PostDate = new DateTime(2020, 1, 2),
+        Comments = new List<Comment>()
+    };
+
+    var otherUsersPost = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = otherUserId,
+        FitnessClassId = 20,
+        WorkoutId = 200,
+        PostTitle = "Other user post",
+        PostContent = "Other content",
+        PostDate = new DateTime(2020, 1, 3),
+        Comments = new List<Comment>()
+    };
+
+    await _posts.InsertManyAsync(new[] { post1, post2, otherUsersPost });
+
+    // Act
+    var result = await _repository.SeeAllPostsForUser(userId);
+    var list = result.ToList();
+
+    // Assert
+    Assert.IsNotNull(result, "Method should not return null");
+    Assert.AreEqual(2, list.Count, "Expected exactly the two posts for this user");
+    Assert.IsTrue(list.All(p => p.UserId == userId), "All returned posts must belong to the requested user");
+    Assert.IsTrue(list.Any(p => p.Id == post1.Id));
+    Assert.IsTrue(list.Any(p => p.Id == post2.Id));
+    Assert.IsFalse(list.Any(p => p.Id == otherUsersPost.Id), "Posts from other users must not be returned");
+}
+
+[TestMethod]
+[DoNotParallelize]
+public async Task SeeAllPostsForUser_WhenUserHasNoPosts_ReturnsEmptyList()
+{
+    // Arrange
+    var userId = 999;
+
+    // Læg evt. nogle posts ind for andre users
+    var otherPost = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = 1,
+        FitnessClassId = 10,
+        WorkoutId = 100,
+        PostTitle = "Other users post",
+        PostContent = "Content",
+        PostDate = new DateTime(2020, 1, 1),
+        Comments = new List<Comment>()
+    };
+
+    await _posts.InsertOneAsync(otherPost);
+
+    // Act
+    var result = await _repository.SeeAllPostsForUser(userId);
+    var list = result.ToList();
+
+    // Assert
+    Assert.IsNotNull(result, "Method should not return null");
+    Assert.AreEqual(0, list.Count, "Expected no posts for this user");
+}
+
+
 }

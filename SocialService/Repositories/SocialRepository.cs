@@ -377,14 +377,23 @@ public class SocialRepository : ISocialRepository
         return updated;
     }
 
-    public async Task<List<Comment>> SeeAllCommentForPostId(string postId)
+    public async Task<IEnumerable<Comment>> SeeAllCommentForPostId(string postId)
     {
         var post = await _postCollection
             .Find(p => p.Id == postId)
             .FirstOrDefaultAsync();
 
-        // Hvis post er null, eller der ikke er nogen comments, returner en tom liste
-        return post?.Comments?.ToList() ?? new List<Comment>();
+        return post?.Comments ?? Enumerable.Empty<Comment>();
+    }
+
+    public async Task<IEnumerable<Post>> SeeAllPostsForUser(int userId)
+    {
+        var posts = await _postCollection
+            .Find(p => p.UserId == userId)
+            .ToListAsync();
+
+        return posts;
+
     }
 
 }
