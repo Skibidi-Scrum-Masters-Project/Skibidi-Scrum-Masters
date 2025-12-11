@@ -50,4 +50,6 @@ public interface ISocialRepository
     
     Task<Post> AddCommentToPost(string postId, Comment comment);
     
+    Task<Post> RemoveCommentFromPost(string postId, string commentId);
+    
 }
