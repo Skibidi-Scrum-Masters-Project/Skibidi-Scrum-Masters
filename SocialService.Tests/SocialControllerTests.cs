@@ -1356,5 +1356,75 @@ public async Task SeeAllCommentForPost_calls_repository_and_returns_comment_list
 }
 
 
+[TestMethod]
+public async Task SeeAllPostsForUser_calls_repository_and_returns_post_list()
+{
+    // Arrange
+    var userId = 1;
+
+    var postsFromRepo = new List<Post>
+    {
+        new Post
+        {
+            Id = "post-1",
+            UserId = userId,
+            FitnessClassId = 10,
+            WorkoutId = 100,
+            PostTitle = "Title 1",
+            PostContent = "Content 1"
+        },
+        new Post
+        {
+            Id = "post-2",
+            UserId = userId,
+            FitnessClassId = 11,
+            WorkoutId = 101,
+            PostTitle = "Title 2",
+            PostContent = "Content 2"
+        }
+    };
+
+    _mockRepository
+        .Setup(r => r.SeeAllPostsForUser(userId))
+        .ReturnsAsync(postsFromRepo);
+
+    // Act
+    var result = await _controller.SeeAllPostsForUser(userId);
+
+    // Assert
+    Assert.IsNotNull(result, "Expected a list of posts to be returned");
+    Assert.AreSame(postsFromRepo, result, "Controller should return the list from the repository");
+
+    _mockRepository.Verify(
+        r => r.SeeAllPostsForUser(userId),
+        Times.Once);
+}
+
+[TestMethod]
+public async Task SeeAllPostsForUser_when_repo_returns_empty_list_returns_empty_list()
+{
+    // Arrange
+    var userId = 1;
+
+    var emptyList = new List<Post>();
+
+    _mockRepository
+        .Setup(r => r.SeeAllPostsForUser(userId))
+        .ReturnsAsync(emptyList);
+
+    // Act
+    var result = await _controller.SeeAllPostsForUser(userId);
+
+    // Assert
+    Assert.IsNotNull(result, "Expected an empty list, not null");
+    Assert.AreEqual(0, result.Count(), "Expected empty list");
+
+    _mockRepository.Verify(
+        r => r.SeeAllPostsForUser(userId),
+        Times.Once);
+}
+
+
+
 
 }

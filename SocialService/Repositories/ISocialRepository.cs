@@ -58,6 +58,9 @@ public interface ISocialRepository
     Task<Post> EditComment(string postId, Comment comment);
     
     //Metode til at se alle comment for et Post
-    Task<List<Comment>> SeeAllCommentForPostId(string postId);
+    Task<IEnumerable<Comment>> SeeAllCommentForPostId(string postId);
+    
+    //Metode til at se alle post for user
+    Task<IEnumerable<Post>> SeeAllPostsForUser(int userId);
 
 }
