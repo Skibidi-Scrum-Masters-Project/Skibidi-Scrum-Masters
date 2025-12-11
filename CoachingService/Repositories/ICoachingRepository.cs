@@ -15,4 +15,6 @@ public interface ICoachingRepository
         
         Session CreateSession(Session session);
         
+        Session DeleteSession(string id);
+        
 }

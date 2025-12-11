@@ -97,4 +97,14 @@ public class CoachingRepository : ICoachingRepository
         
         return  session;
     }
+
+
+
+    public Session  DeleteSession(string id)
+    {
+        var deletedSession = _sessionsCollection
+            .FindOneAndDelete(s => s.Id == id);
+
+        return deletedSession;
+    }
 }

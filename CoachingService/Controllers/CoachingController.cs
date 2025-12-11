@@ -113,11 +113,21 @@ public class CoachingController : ControllerBase
         }
     }
 
+    
+    //Kun for Coach
     [HttpPost("CreateSession")]
     public ActionResult<Session> CreateSession([FromBody] Session session)
     {
         var created = _coachingRepository.CreateSession(session);
         
         return Ok(created);
+    }
+
+    [HttpDelete("DeleteSession/{id}")]
+    public ActionResult<Session> DeleteSession(string id)
+    {
+        var deleted = _coachingRepository.DeleteSession(id);
+        
+        return Ok(deleted);
     }
 }
