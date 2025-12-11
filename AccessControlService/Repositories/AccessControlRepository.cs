@@ -13,10 +13,10 @@ public class AccessControlRepository : IAccessControlRepository
 {
     private readonly IMongoCollection<LockerRoom> _lockerRooms;
     private readonly IMongoCollection<EntryPoint> _entryPoints;
-    private readonly HttpClient _httpClient = new HttpClient(); 
+    private readonly HttpClient _httpClient;
+    
     public AccessControlRepository(IMongoDatabase database, HttpClient httpClient)
     {
-
         _lockerRooms = database.GetCollection<LockerRoom>("LockerRooms");
         _entryPoints = database.GetCollection<EntryPoint>("EntryPoints");
         _httpClient = httpClient;
@@ -32,9 +32,17 @@ public class AccessControlRepository : IAccessControlRepository
         entryPoint.ExitedAt = DateTime.MinValue;
         _entryPoints.InsertOne(entryPoint);
 
-        await _httpClient.PostAsync(
-            $"http://analyticsservice:8080/api/Analytics/entered/{userid}/{entryPoint.EnteredAt}",
-            null);
+        try
+        {
+            var url = $"http://analyticsservice:8080/api/Analytics/entered/{userid}/{Uri.EscapeDataString(entryPoint.EnteredAt.ToString("o"))}";
+            Console.WriteLine($"Calling analytics: {url}");
+            var response = await _httpClient.PostAsync(url, null);
+            Console.WriteLine($"Analytics response: {response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calling analytics service: {ex.Message}");
+        }
         
         return entryPoint;
     }
@@ -52,9 +60,17 @@ public class AccessControlRepository : IAccessControlRepository
 
         if (updatedEntryPoint != null)
         {
-            await _httpClient.PutAsync(
-                $"http://analyticsservice:8080/api/Analytics/Exited/{userid}/{updatedEntryPoint.ExitedAt}",
-                null);
+            try
+            {
+                var url = $"http://analyticsservice:8080/api/Analytics/Exited/{userid}/{Uri.EscapeDataString(updatedEntryPoint.ExitedAt.ToString("o"))}";
+                Console.WriteLine($"Calling analytics (exit): {url}");
+                var response = await _httpClient.PutAsync(url, null);
+                Console.WriteLine($"Analytics exit response: {response.StatusCode}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error calling analytics service (exit): {ex.Message}");
+            }
         }
 
         return updatedEntryPoint;

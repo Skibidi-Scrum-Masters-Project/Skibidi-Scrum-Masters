@@ -46,5 +46,11 @@ public class AnalyticsController : ControllerBase
         var UpdatedExitTime = await _analyticsRepository.UpdateUserExitTime(userId, exitTime);
         return Ok(UpdatedExitTime);
     }
+    [HttpGet("crowd")]
+    public async Task<IActionResult> GetCrowdCount()
+    {
+        var crowdCount = await _analyticsRepository.GetCrowdCount();
+        return Ok(crowdCount);
+    }
     
 }

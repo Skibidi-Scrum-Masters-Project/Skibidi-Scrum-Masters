@@ -8,20 +8,12 @@ public class AnalyticsRepository : IAnalyticsRepository
     private readonly IMongoCollection<ClassResultDTO>? _classesResultsCollection;
     private readonly IMongoCollection<CrowdResultDTO>? _crowdResultsCollection;
     
-
-    public AnalyticsRepository(IMongoDatabase database)
+    public AnalyticsRepository(IMongoDatabase database, HttpClient httpClient)
     {
         _classesResultsCollection = database.GetCollection<ClassResultDTO>("ClassResults");
         _crowdResultsCollection = database.GetCollection<CrowdResultDTO>("CrowdResults");
-    }
-
-    public AnalyticsRepository(HttpClient httpClient)
-    {
         _httpClient = httpClient;
     }
-
-   
-
     public Task<ClassResultDTO> GetClassesAnalytics(string classId, string userId, double totalcaloriesBurned, string category, int durationMin, DateTime date)
     {
         ClassResultDTO classResult = new ClassResultDTO
@@ -33,10 +25,25 @@ public class AnalyticsRepository : IAnalyticsRepository
             DurationMin = durationMin,
             Date = date
         };
-
-        _classesResultsCollection.InsertOne(classResult);
+        _classesResultsCollection!.InsertOne(classResult);
 
         return Task.FromResult(classResult);
+    }
+
+    public Task<int> GetCrowdCount()
+    {
+        try
+        {
+            var filter = Builders<CrowdResultDTO>.Filter.Eq("Status", CrowdResultDTO.timestatus.Entered);
+            var count = _crowdResultsCollection.CountDocuments(filter);
+
+            return Task.FromResult((int)count);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error retrieving crowd count", ex);
+        }
+
     }
 
     public Task<string> PostEnteredUser(string userId, DateTime entryTime, DateTime exitTime)
@@ -45,11 +52,8 @@ public class AnalyticsRepository : IAnalyticsRepository
         {
             throw new ArgumentNullException(nameof(userId));
         }
-        if (exitTime < entryTime && exitTime != DateTime.MinValue)
-        {
-            throw new ArgumentException("Exit time cannot be earlier than entry time.");
-        }
-        
+
+
         CrowdResultDTO crowdResult = new CrowdResultDTO
         {
             UserId = userId,
@@ -58,7 +62,7 @@ public class AnalyticsRepository : IAnalyticsRepository
             Status = CrowdResultDTO.timestatus.Entered
         };
         // Assuming you have a MongoDB collection for CrowdResults similar to ClassResults
-        _crowdResultsCollection.InsertOne(crowdResult);
+        _crowdResultsCollection!.InsertOne(crowdResult);
 
         return Task.FromResult("User entered crowd data posted successfully");
     }
