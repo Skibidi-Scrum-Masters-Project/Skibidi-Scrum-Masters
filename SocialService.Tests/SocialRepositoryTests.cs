@@ -1255,11 +1255,57 @@ public async Task EditComment_WhenPostAndCommentExist_ShouldUpdateCommentTextAnd
     Assert.AreEqual("New edited text", editedInDb.CommentText);
 
     var otherInDb = stored.Comments.Single(c => c.Id == otherComment.Id);
-    Assert.AreEqual(otherComment.CommentText, otherInDb.CommentText);
+    Assert.AreEqual(otherComment.CommentText, otherInDb.CommentText); 
 }
 
 
+[TestMethod]
+[DoNotParallelize]
+public async Task SeeAllCommentForPostId_WhenPostExistsWithComments_ReturnsAllComments()
+{
+    // Arrange
+    var postId = ObjectId.GenerateNewId().ToString();
 
+    var comment1 = new Comment
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        AuthorId = 1,
+        CommentDate = new DateTime(2020, 1, 1),
+        CommentText = "First comment"
+    };
 
+    var comment2 = new Comment
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        AuthorId = 2,
+        CommentDate = new DateTime(2020, 1, 2),
+        CommentText = "Second comment"
+    };
+
+    var post = new Post
+    {
+        Id = postId,
+        UserId = 10,
+        FitnessClassId = 20,
+        WorkoutId = 30,
+        PostTitle = "Some title",
+        PostContent = "Some content",
+        PostDate = new DateTime(2020, 1, 1),
+        Comments = new List<Comment> { comment1, comment2 }
+    };
+
+    await _posts.InsertOneAsync(post);
+
+    // Act
+    var result = await _repository.SeeAllCommentForPostId(postId);
+    var list = result.ToList();
+
+    // Assert
+    Assert.IsNotNull(result, "Method should return a list, not null");
+    Assert.AreEqual(2, list.Count, "Expected exactly 2 comments");
+
+    Assert.IsTrue(list.Any(c => c.Id == comment1.Id && c.CommentText == comment1.CommentText));
+    Assert.IsTrue(list.Any(c => c.Id == comment2.Id && c.CommentText == comment2.CommentText));
+}
 
 }

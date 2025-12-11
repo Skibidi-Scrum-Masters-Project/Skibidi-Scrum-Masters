@@ -54,6 +54,10 @@ public interface ISocialRepository
     //Metode til at fjerne Comment fra et post
     Task<Post> RemoveCommentFromPost(string postId, string commentId);
     
+    //Metode til at redigere en comment
     Task<Post> EditComment(string postId, Comment comment);
     
+    //Metode til at se alle comment for et Post
+    Task<List<Comment>> SeeAllCommentForPostId(string postId);
+
 }

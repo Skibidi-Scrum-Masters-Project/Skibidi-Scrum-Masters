@@ -329,5 +329,14 @@ public class SocialController : ControllerBase
         }
     }
 
+
+    [HttpGet("SeeAllCommentForPost/{postId}")]
+    public async Task<List<Comment>> SeeAllCommentForPost(string postId)
+    {
+        var listOfCommentsForPost = await _socialRepository.SeeAllCommentForPostId(postId);
+
+        return listOfCommentsForPost;
+    }
+
 }
 
