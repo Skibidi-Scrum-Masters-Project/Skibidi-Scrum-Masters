@@ -10,7 +10,7 @@ public class AnalyticsRepository : IAnalyticsRepository
 
     public async Task<int> GetCrowd()
     {
-        var response = await _httpClient.GetAsync("http://accesscontrolservice/api/AccessControl/crowd");
+        var response = await _httpClient.GetAsync("http://accesscontrolservice:8080/api/AccessControl/crowd");
         response.EnsureSuccessStatusCode();
         var crowd = await response.Content.ReadAsStringAsync();
         return int.Parse(crowd);
