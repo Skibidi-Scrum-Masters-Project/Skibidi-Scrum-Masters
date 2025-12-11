@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Mongo2Go;
 using MongoDB.Driver;
+using MongoDB.Bson;
 using SocialService.Models;
 using SocialService.Repositories;
 using System;
@@ -797,5 +798,70 @@ public class SocialRepositoryTests
         Assert.AreEqual(result.PostTitle, stored.PostTitle);
         Assert.AreEqual(result.PostContent, stored.PostContent);
     }
+    
+        // RemoveAPost
+
+        [TestMethod]
+        [DoNotParallelize]
+        public async Task RemoveAPost_WhenPostExists_ShouldDeleteAndReturnExistingPost()
+        {
+            // Arrange
+            var postId = ObjectId.GenerateNewId().ToString();
+
+            var existingPost = new Post
+            {
+                Id = postId,
+                UserId = 1,
+                FitnessClassId = 2,
+                WorkoutId = 3,
+                PostTitle = "Title to be deleted",
+                PostContent = "Content to be deleted",
+                PostDate = new DateTime(2020, 1, 1)
+            };
+
+            await _posts.InsertOneAsync(existingPost);
+
+            var before = await _posts
+                .Find(p => p.Id == postId)
+                .SingleOrDefaultAsync();
+            Assert.IsNotNull(before, "Posten skal eksistere før RemoveAPost kaldes");
+
+            // Act
+            var result = await _repository.RemoveAPost(postId);
+
+            // Assert
+            Assert.IsNotNull(result, "Metoden skal returnere den fundne post");
+            Assert.AreEqual(postId, result.Id);
+            Assert.AreEqual(existingPost.UserId, result.UserId);
+            Assert.AreEqual(existingPost.FitnessClassId, result.FitnessClassId);
+            Assert.AreEqual(existingPost.WorkoutId, result.WorkoutId);
+            Assert.AreEqual(existingPost.PostTitle, result.PostTitle);
+            Assert.AreEqual(existingPost.PostContent, result.PostContent);
+
+            var stored = await _posts
+                .Find(p => p.Id == postId)
+                .SingleOrDefaultAsync();
+
+            Assert.IsNull(stored, "Posten skal være slettet fra databasen");
+        }
+
+        [TestMethod]
+        [DoNotParallelize]
+        public async Task RemoveAPost_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
+        {
+            // Arrange
+            var nonExistingPostId = ObjectId.GenerateNewId().ToString();
+
+            // For en sikkerheds skyld, tjek at der ikke ligger en post med det id
+            var existing = await _posts
+                .Find(p => p.Id == nonExistingPostId)
+                .SingleOrDefaultAsync();
+            Assert.IsNull(existing, "Der må ikke eksistere en post med dette id i testen");
+
+            // Act + Assert
+            await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+                async () => await _repository.RemoveAPost(nonExistingPostId));
+        }
+
 
 }

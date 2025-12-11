@@ -922,4 +922,39 @@ public class SocialControllerTests
         Assert.AreSame(createdPost, result);
         repoMock.Verify(r => r.PostAPost(inputPost), Times.Once);
     }
+    
+    
+    
+    // RemoveAPost
+
+    [TestMethod]
+    public async Task RemoveAPost_calls_repository_and_returns_removed_post()
+    {
+        // Arrange
+        var postId = "some-mongo-id";
+
+        var removedPost = new Post
+        {
+            Id = postId,
+            UserId = 1,
+            FitnessClassId = 10,
+            WorkoutId = 100,
+            PostTitle = "Removed title",
+            PostContent = "Removed content"
+        };
+
+        _mockRepository
+            .Setup(r => r.RemoveAPost(postId))
+            .ReturnsAsync(removedPost);
+
+        // Act
+        var result = await _controller.RemoveAPost(postId);
+
+        // Assert
+        Assert.IsNotNull(result, "Expected a Post to be returned");
+        Assert.AreSame(removedPost, result, "Controller should return the Post from the repository");
+
+        _mockRepository.Verify(r => r.RemoveAPost(postId), Times.Once);
+    }
+
 }

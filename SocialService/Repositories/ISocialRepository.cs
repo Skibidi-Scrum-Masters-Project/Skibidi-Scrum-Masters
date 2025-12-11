@@ -42,4 +42,6 @@ public interface ISocialRepository
     //Metode til at oprette et post
     
     Task<Post> PostAPost(Post post);
+    
+    Task<Post> RemoveAPost(string postId);
 }
