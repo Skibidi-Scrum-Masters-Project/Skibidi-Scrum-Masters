@@ -115,7 +115,7 @@ public class CoachingController : ControllerBase
 
     
     //Kun for Coach
-    [HttpPost("CreateSession")]
+    [HttpPost("MakeSessionAsCoach")]
     public ActionResult<Session> CreateSession([FromBody] Session session)
     {
         var created = _coachingRepository.CreateSession(session);
@@ -123,7 +123,7 @@ public class CoachingController : ControllerBase
         return Ok(created);
     }
 
-    [HttpDelete("DeleteSession/{id}")]
+    [HttpDelete("RemoveSessionAsCoach/{id}")]
     public ActionResult<Session> DeleteSession(string id)
     {
         var deleted = _coachingRepository.DeleteSession(id);
@@ -131,7 +131,7 @@ public class CoachingController : ControllerBase
         return Ok(deleted);
     }
     
-    [HttpGet("GetAllSessionsWithAvalibility")]
+    [HttpGet("AvailableSessions")]
     public ActionResult<IEnumerable<Session>> GetAvailableSessions()
     {
         var sessions = _coachingRepository.GetAllAvaliableCoachSessions();
@@ -139,11 +139,19 @@ public class CoachingController : ControllerBase
         return Ok(sessions);
     }
     
-    [HttpGet("Sessions/Available/{coachId}")]
-    public ActionResult<IEnumerable<Session>> GetAvailableSessions(string coachId)
+    [HttpGet("AvailableSessions/{coachId}")]
+    public ActionResult<IEnumerable<Session>> GetAvailableSessionsForCoachId(string coachId)
     {
-        var sessions = _coachingRepository.GetAllAvailableCoachSessions(coachId);
+        var sessions = _coachingRepository.GetAllAvailableCoachSessionsForCoachId(coachId);
 
+        return Ok(sessions);
+    }
+
+    [HttpGet("AllSessions/{coachId}")]
+    public ActionResult<IEnumerable<Session>> GetSessions()
+    {
+        var sessions = _coachingRepository.GetAllSessions();
+        
         return Ok(sessions);
     }
     

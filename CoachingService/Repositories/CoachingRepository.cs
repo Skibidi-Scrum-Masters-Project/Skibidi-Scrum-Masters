@@ -117,10 +117,19 @@ public class CoachingRepository : ICoachingRepository
         return allSessionsWithAvalibility.ToList();
     }
     
-    public List<Session> GetAllAvailableCoachSessions(string coachId)
+    public List<Session> GetAllAvailableCoachSessionsForCoachId(string coachId)
     {
         return _sessionsCollection
             .Find(s => s.CurrentStatus == Session.Status.Available && s.CoachId == coachId)
             .ToList();
+    }
+
+
+    public List<Session> GetAllSessionsByCoachId(string coachId)
+    {
+        return _sessionsCollection
+            .Find(s => s.CoachId == coachId)
+            .ToList();
+        
     }
 }

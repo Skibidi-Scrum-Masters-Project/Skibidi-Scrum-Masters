@@ -19,6 +19,8 @@ public interface ICoachingRepository
 
         List<Session>GetAllAvaliableCoachSessions();
         
-        List<Session> GetAllAvailableCoachSessions(string userId);
+        List<Session> GetAllAvailableCoachSessionsForCoachId(string userId);
+        
+        List<Session> GetAllSessionsByCoachId(string coachId);
 
 }
