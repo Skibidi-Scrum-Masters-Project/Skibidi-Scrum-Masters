@@ -1205,5 +1205,114 @@ public class SocialControllerTests
             r => r.RemoveCommentFromPost(postId, commentId),
             Times.Once);
     }
+    
+    
+    // EditComment tests
+
+[TestMethod]
+public async Task EditComment_ShouldReturnOkWithUpdatedPost_WhenSuccessful()
+{
+    // Arrange
+    var postId = "post-123";
+
+    var inputComment = new Comment
+    {
+        Id = "comment-1",
+        AuthorId = 1,
+        CommentDate = DateTime.UtcNow,
+        CommentText = "Edited text"
+    };
+
+    var updatedPostFromRepo = new Post
+    {
+        Id = postId,
+        UserId = 1,
+        PostTitle = "Title",
+        PostContent = "Content",
+        Comments = new List<Comment>
+        {
+            new Comment
+            {
+                Id = inputComment.Id,
+                AuthorId = inputComment.AuthorId,
+                CommentDate = inputComment.CommentDate,
+                CommentText = inputComment.CommentText
+            }
+        }
+    };
+
+    _mockRepository
+        .Setup(r => r.EditComment(postId, inputComment))
+        .ReturnsAsync(updatedPostFromRepo);
+
+    // Act
+    var result = await _controller.EditComment(postId, inputComment);
+
+    // Assert
+    var okResult = result.Result as OkObjectResult;
+    Assert.IsNotNull(okResult, "Expected OkObjectResult");
+    Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+
+    var returnedPost = okResult.Value as Post;
+    Assert.IsNotNull(returnedPost, "Expected Post as value");
+    Assert.AreSame(updatedPostFromRepo, returnedPost, "Controller should return the Post from the repository");
+
+    _mockRepository.Verify(
+        r => r.EditComment(postId, inputComment),
+        Times.Once);
+}
+
+[TestMethod]
+public async Task EditComment_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
+{
+    // Arrange
+    var postId = "post-123";
+
+    var inputComment = new Comment
+    {
+        Id = "comment-1",
+        CommentText = "Edited text"
+    };
+
+    _mockRepository
+        .Setup(r => r.EditComment(postId, inputComment))
+        .ThrowsAsync(new KeyNotFoundException("Post not found or comment not found"));
+
+    // Act
+    var result = await _controller.EditComment(postId, inputComment);
+
+    // Assert
+    var notFound = result.Result as NotFoundObjectResult;
+    Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
+    Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
+    Assert.AreEqual("Post not found or comment not found", notFound.Value);
+}
+
+[TestMethod]
+public async Task EditComment_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
+{
+    // Arrange
+    var postId = "post-123";
+
+    var inputComment = new Comment
+    {
+        Id = "comment-1",
+        CommentText = "Edited text"
+    };
+
+    _mockRepository
+        .Setup(r => r.EditComment(postId, inputComment))
+        .ThrowsAsync(new Exception("Unexpected"));
+
+    // Act
+    var result = await _controller.EditComment(postId, inputComment);
+
+    // Assert
+    var statusResult = result.Result as ObjectResult;
+    Assert.IsNotNull(statusResult, "Expected ObjectResult");
+    Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
+    Assert.AreEqual("An unexpected error occurred", statusResult.Value);
+}
+
 
 }
