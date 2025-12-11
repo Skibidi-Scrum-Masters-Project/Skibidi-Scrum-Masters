@@ -63,63 +63,61 @@ public class SocialRepository : ISocialRepository
 
     }
     
-    public async Task<Friendship> DeclineFriendRequestAsync(int senderId, int receiverId)
+    public async Task<Friendship> DeclineFriendRequestAsync(int userId, int receiverId)
     {
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
         var existingFriendshipRequest = await _friendshipCollection
-            .Find(f => (f.SenderId == senderId && f.ReceiverId == receiverId)
-                                || (f.ReceiverId == senderId && f.SenderId == receiverId))
+            .Find(f => (
+                f.ReceiverId == userId && 
+                f.SenderId == receiverId &&
+                f.FriendShipStatus == FriendshipStatus.Pending))
             .FirstOrDefaultAsync();
         
         //Der findes ikke nogen friendship request
         if (existingFriendshipRequest == null)
         {
-            throw new Exception("Friendship request not found");
+            throw new InvalidOperationException("Friendship request not found or not pending");
         }
 
-        //Der findes en request, og den bliver ændret til Declined istedet for pending
-        if (existingFriendshipRequest.FriendShipStatus == FriendshipStatus.Pending)
-        {
-            var update = Builders<Friendship>.Update.Set(f => f.FriendShipStatus, FriendshipStatus.Declined);
-             
-            await _friendshipCollection.UpdateOneAsync(
-                friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
-                update
-            );
-            
-            existingFriendshipRequest.FriendShipStatus = FriendshipStatus.Declined;
-            return existingFriendshipRequest;
 
-        }
-        
-        //Der findes en FriendShipRequest, men den er enten accepteret eller declined.
-        throw new Exception("Friendship request is not pending");
+        var update = Builders<Friendship>.Update
+            .Set(f => f.FriendShipStatus, FriendshipStatus.Declined);
+
+        await _friendshipCollection.UpdateOneAsync(
+            friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
+            update
+        );
+
+        existingFriendshipRequest.FriendShipStatus = FriendshipStatus.Declined;
+        return existingFriendshipRequest;
         
     }
 
 
-    public async Task<IEnumerable<Friendship?>> GetAllFriends(int senderId)
+    public async Task<IEnumerable<Friendship?>> GetAllFriends(int userId)
     {
         var findFriendsForUser = await _friendshipCollection
-            .FindAsync(f => f.ReceiverId == senderId && f.FriendShipStatus == FriendshipStatus.Accepted);
+            .FindAsync(f => 
+                f.FriendShipStatus == FriendshipStatus.Accepted &&
+                            (f.SenderId == userId || f.ReceiverId == userId));
         
         return await findFriendsForUser.ToListAsync();
     }
 
-    public async Task<Friendship?> GetFriendById(int senderId, int receiverId)
+    public async Task<Friendship?> GetFriendById(int userId, int receiverId)
     {
         
         var findFriendForUser = await _friendshipCollection
-            .FindAsync(f => f.ReceiverId == receiverId && f.SenderId == senderId  && f.FriendShipStatus == FriendshipStatus.Accepted);
+            .FindAsync(f => f.ReceiverId == receiverId && f.SenderId == userId  && f.FriendShipStatus == FriendshipStatus.Accepted);
         
         return await findFriendForUser.SingleOrDefaultAsync();
     }
 
-    public async Task<Friendship> CancelFriendRequest(int senderId, int receiverId)
+    public async Task<Friendship> CancelFriendRequest(int userId, int receiverId)
     {
         var existingFriendshipRequest = await _friendshipCollection
-            .Find(f => f.SenderId == senderId 
+            .Find(f => f.SenderId == userId 
                        && f.ReceiverId == receiverId 
                        && f.FriendShipStatus == FriendshipStatus.Pending)
             .FirstOrDefaultAsync();
@@ -146,13 +144,43 @@ public class SocialRepository : ISocialRepository
         return existingFriendshipRequest;
     }
 
-    public async Task<IEnumerable<Friendship>?> GetAllFriendRequests(int senderId)
+    public async Task<IEnumerable<Friendship>?> GetAllFriendRequests(int userId)
     {
         var findFriendRequestForUser = await _friendshipCollection
-            .Find(f => f.SenderId == senderId && f.FriendShipStatus == FriendshipStatus.Pending)
+            .Find(f => f.ReceiverId == userId && f.FriendShipStatus == FriendshipStatus.Pending)
             .ToListAsync();
         
         return findFriendRequestForUser;
         
+    }
+
+    public async Task<Friendship?> AcceptFriendRequest(int senderId, int receiverId)
+    {
+        var existingFriendshipRequest = await _friendshipCollection
+            .Find(f => f.SenderId == senderId 
+                       && f.ReceiverId == receiverId 
+                       && f.FriendShipStatus == FriendshipStatus.Pending)
+            .FirstOrDefaultAsync();
+        
+        if (existingFriendshipRequest == null)
+        {
+            throw new KeyNotFoundException("Friend request not found");
+        }
+        
+
+        var newStatus = FriendshipStatus.Accepted;
+
+        var updateStatus = Builders<Friendship>.Update
+            .Set(f => f.FriendShipStatus, newStatus);
+
+        await _friendshipCollection.UpdateOneAsync(
+            friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
+            updateStatus
+        );
+        
+       
+        existingFriendshipRequest.FriendShipStatus = newStatus;
+
+        return existingFriendshipRequest;
     }
 }

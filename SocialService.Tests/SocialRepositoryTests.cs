@@ -55,26 +55,26 @@ public class SocialRepositoryTests
     public async Task GetAllFriendRequests_WhenThereIsMultipleStatus_ShouldNotReturnAcceptedOrDeclinedRequests()
     {
         // Arrange
-        var senderId = 1;
+        var userId = 1;
         var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
-            SenderId = senderId,
+            SenderId = userId,
             ReceiverId = 2,
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var accepted = new Friendship
         {
-            SenderId = senderId,
+            SenderId = userId,
             ReceiverId = 3,
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
         var rejected = new Friendship
         {
-            SenderId = senderId,
+            SenderId = userId,
             ReceiverId = 4,
             FriendShipStatus = FriendshipStatus.Declined
         };
@@ -82,7 +82,7 @@ public class SocialRepositoryTests
         await collection.InsertManyAsync(new[] { pending, accepted, rejected });
 
         // Act
-        var result = await _repository.GetAllFriendRequests(senderId);
+        var result = await _repository.GetAllFriendRequests(userId);
         var list = result.ToList();
 
         // Assert
@@ -97,33 +97,33 @@ public class SocialRepositoryTests
     public async Task GetAllFriendRequests_WhenItsSuccessfull_ShouldReturnAllFriendRequests()
     {
         // Arrange
-        var senderId = 1;
+        var userId = 1;
         var collection = _database.GetCollection<Friendship>("Friendships");
 
         var shouldBeReturned1 = new Friendship
         {
-            SenderId = senderId,
+            SenderId = userId,
             ReceiverId = 2,
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var shouldBeReturned2 = new Friendship
         {
-            SenderId = senderId,
+            SenderId = userId,
             ReceiverId = 3,
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var otherSender = new Friendship
         {
-            SenderId = senderId,
+            SenderId = userId,
             ReceiverId = 4,
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var otherStatus = new Friendship
         {
-            SenderId = senderId,
+            SenderId = userId,
             ReceiverId = 5,
             FriendShipStatus = FriendshipStatus.Pending
         };
@@ -137,11 +137,11 @@ public class SocialRepositoryTests
         });
 
         // Act
-        var result = await _repository.GetAllFriendRequests(senderId);
+        var result = await _repository.GetAllFriendRequests(userId);
         var list = result.ToList();
 
         // Assert
-        Assert.IsTrue(list.All(f => f.SenderId == senderId),
+        Assert.IsTrue(list.All(f => f.SenderId == userId),
             "Alle resultater skal have samme SenderId som i testen");
 
         Assert.IsTrue(list.All(f => f.FriendShipStatus == FriendshipStatus.Pending),
@@ -152,18 +152,120 @@ public class SocialRepositoryTests
     public async Task GetAllFriendRequests_WhenNoRequestsExist_ShouldReturnEmptyList()
     {
         // Arrange
-        var senderId = 1;
+        var userId = 1;
         var collection = _database.GetCollection<Friendship>("Friendships");
         
 
         // Act
-        var result = await _repository.GetAllFriendRequests(senderId);
+        var result = await _repository.GetAllFriendRequests(userId);
         var list = result.ToList();
 
         // Assert
         Assert.AreEqual(0, list.Count, "Der skal ikke returneres nogen requests når der ingen findes");
     }
     
+    
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task AcceptFriendRequest_WhenPendingExists_ShouldUpdateStatusToAccepted()
+    {
+        // Arrange
+        var userId = 1;
+        var receiverId = 2;
+
+        var collection = _database.GetCollection<Friendship>("Friendships");
+
+        var pending = new Friendship
+        {
+            SenderId = userId,
+            ReceiverId = receiverId,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        await collection.InsertOneAsync(pending);
+
+        // Act
+        var result = await _repository.AcceptFriendRequest(userId, receiverId);
+
+        // Assert
+        Assert.IsNotNull(result, "Result må ikke være null");
+        Assert.AreEqual(FriendshipStatus.Accepted, result.FriendShipStatus, "Status skal være Accepted efter accept");
+
+        // Tjek også at dokumentet i databasen er opdateret
+        var stored = await collection
+            .Find(f => f.SenderId == userId && f.ReceiverId == receiverId)
+            .SingleOrDefaultAsync();
+
+        Assert.IsNotNull(stored, "Friendship skal stadig eksistere i databasen");
+        Assert.AreEqual(FriendshipStatus.Accepted, stored.FriendShipStatus, "Status i databasen skal være Accepted");
+    }
+    
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task AcceptFriendRequest_WhenNoRequestExists_ShouldThrowKeyNotFoundException()
+    {
+        // Arrange
+        var userId = 1;
+        var receiverId = 2;
+
+        // Act + Assert
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+            async () => await _repository.AcceptFriendRequest(userId, receiverId),
+            "Hvis der ikke findes en friendship skal der smides KeyNotFoundException"
+        );
+    }
+    
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task AcceptFriendRequest_WhenStatusIsNotPending_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var userId = 1;
+        var receiverId = 2;
+
+        var collection = _database.GetCollection<Friendship>("Friendships");
+
+        var alreadyAccepted = new Friendship
+        {
+            SenderId = userId,
+            ReceiverId = receiverId,
+            FriendShipStatus = FriendshipStatus.Accepted
+        };
+
+        await collection.InsertOneAsync(alreadyAccepted);
+
+        // Act + Assert
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            async () => await _repository.AcceptFriendRequest(userId, receiverId),
+            "Hvis status ikke er Pending skal der smides InvalidOperationException"
+        );
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task AcceptFriendRequest_WhenStatusIsDeclined_ShouldAlsoThrowInvalidOperationException()
+    {
+        // Arrange
+        var userId = 1;
+        var receiverId = 2;
+
+        var collection = _database.GetCollection<Friendship>("Friendships");
+
+        var declined = new Friendship
+        {
+            SenderId = userId,
+            ReceiverId = receiverId,
+            FriendShipStatus = FriendshipStatus.Declined
+        };
+
+        await collection.InsertOneAsync(declined);
+
+        // Act + Assert
+        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            async () => await _repository.AcceptFriendRequest(userId, receiverId),
+            "Det skal ikke være muligt at acceptere en Declined request"
+        );
+    }
     
 
 }

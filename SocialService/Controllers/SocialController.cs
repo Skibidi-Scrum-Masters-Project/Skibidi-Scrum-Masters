@@ -59,19 +59,19 @@ public class SocialController : ControllerBase
     }
 
 
-    [HttpPut("decline/{senderId}/{receiverId}")]
-    public async Task<IActionResult> DeclineFriendRequestAsync(int senderId, int receiverId)
+    [HttpPut("decline/{userId}/{receiverId}")]
+    public async Task<IActionResult> DeclineFriendRequestAsync(int userId, int receiverId)
     {
-        if (senderId == receiverId)
+        if (userId == receiverId)
             return BadRequest("You cannot decline a friend request to yourself.");
     
-        if (senderId <= 0 || receiverId <= 0)
+        if (userId <= 0 || receiverId <= 0)
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
         {
             var declineFriendship = await _socialRepository
-                .DeclineFriendRequestAsync(senderId, receiverId);
+                .DeclineFriendRequestAsync(userId, receiverId);
 
             return Ok(declineFriendship.FriendShipStatus);
         }
@@ -94,13 +94,13 @@ public class SocialController : ControllerBase
         }
     }
 
-    [HttpGet("{senderId}/friends")]
-    public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(int senderId)
+    [HttpGet("{userId}/friends")]
+    public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(int userId)
     {
 
         try
         {
-            var listOfFriends = await _socialRepository.GetAllFriends(senderId);
+            var listOfFriends = await _socialRepository.GetAllFriends(userId);
             return Ok(listOfFriends);
         }
         catch (KeyNotFoundException ex)
@@ -123,12 +123,12 @@ public class SocialController : ControllerBase
 
     }
     
-    [HttpGet("{senderId}/friends/{receiverId}")]
-    public async Task<ActionResult<Friendship>> GetFriendById(int senderId, int receiverId)
+    [HttpGet("{userId}/friends/{receiverId}")]
+    public async Task<ActionResult<Friendship>> GetFriendById(int userId, int receiverId)
     {
         try
         {
-            var friendFound = await _socialRepository.GetFriendById(senderId, receiverId);
+            var friendFound = await _socialRepository.GetFriendById(userId, receiverId);
 
             if (friendFound == null)
                 return NotFound();
@@ -157,23 +157,58 @@ public class SocialController : ControllerBase
         }
     }
 
-    [HttpPut("{senderId}/friends/{receiverId}")]
-    public async Task<ActionResult<Friendship>> CancelFriendRequest(int senderId, int receiverId)
+    [HttpPut("{userId}/friends/{receiverId}")]
+    public async Task<ActionResult<Friendship>> CancelFriendRequest(int userId, int receiverId)
     {
-        var friendRequestCanceled = await _socialRepository.CancelFriendRequest(senderId, receiverId);
+        var friendRequestCanceled = await _socialRepository.CancelFriendRequest(userId, receiverId);
         
         return Ok(friendRequestCanceled);
     }
 
-    [HttpGet("friendrequests/{senderId}")]
-    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllFriendRequests(int senderId)
+    [HttpGet("friendrequests/{userId}")]
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllFriendRequests(int userId)
     {
-        var friendRequests = await _socialRepository.GetAllFriendRequests(senderId);
+        var friendRequests = await _socialRepository.GetAllFriendRequests(userId);
         
         if (friendRequests == null)
             return BadRequest(friendRequests);
                 
         return Ok(friendRequests);
+    }
+    
+    [HttpPut("accept/{userId}/{receiverId}")]
+    public async Task<IActionResult> AcceptFriendRequestAsync(int userId, int receiverId)
+    {
+        if (userId == receiverId)
+            return BadRequest("You cannot accept yourself as a friend.");
+    
+        if (userId <= 0 || receiverId <= 0)
+            return BadRequest("SenderId and ReceiverId must be valid ids.");
+
+        try
+        {
+            var acceptFriendshipRequest = await _socialRepository
+                .AcceptFriendRequest(userId, receiverId);
+
+            return Ok(acceptFriendshipRequest.FriendShipStatus);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            // log her
+            return StatusCode(500, "An unexpected error occurred.");
+        }
     }
 
 }
