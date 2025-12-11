@@ -165,16 +165,28 @@ public class SocialController : ControllerBase
         return Ok(friendRequestCanceled);
     }
 
-    [HttpGet("friendrequests/{userId}")]
-    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllFriendRequests(int userId)
+    [HttpGet("friendrequests/outgoing/{userId}")]
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetOutgoingFriendRequests(int userId)
     {
-        var friendRequests = await _socialRepository.GetAllFriendRequests(userId);
+        var friendRequests = await _socialRepository.GetOutgoingFriendRequestsAsync(userId);
         
         if (friendRequests == null)
             return BadRequest(friendRequests);
                 
         return Ok(friendRequests);
     }
+    
+    [HttpGet("friendrequests/incoming/{userId}")]
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllIncomingFriendRequests(int userId)
+    {
+        var friendRequests = await _socialRepository.GetAllIncomingFriendRequests(userId);
+        
+        if (friendRequests == null)
+            return BadRequest(friendRequests);
+                
+        return Ok(friendRequests);
+    }
+    
     
     [HttpPut("accept/{userId}/{receiverId}")]
     public async Task<IActionResult> AcceptFriendRequestAsync(int userId, int receiverId)

@@ -144,15 +144,26 @@ public class SocialRepository : ISocialRepository
         return existingFriendshipRequest;
     }
 
-    public async Task<IEnumerable<Friendship>?> GetAllFriendRequests(int userId)
+    public async Task<IEnumerable<Friendship>?> GetOutgoingFriendRequestsAsync(int userId)
     {
         var findFriendRequestForUser = await _friendshipCollection
-            .Find(f => f.ReceiverId == userId && f.FriendShipStatus == FriendshipStatus.Pending)
+            .Find(f => f.SenderId == userId 
+                       && f.FriendShipStatus == FriendshipStatus.Pending)
             .ToListAsync();
-        
+    
         return findFriendRequestForUser;
-        
     }
+    
+    
+    public async Task<IEnumerable<Friendship>?> GetAllIncomingFriendRequests(int userId)
+    {
+        return await _friendshipCollection
+            .Find(f => f.ReceiverId == userId 
+                       && f.FriendShipStatus == FriendshipStatus.Pending)
+            .ToListAsync();
+    }
+
+
 
     public async Task<Friendship?> AcceptFriendRequest(int senderId, int receiverId)
     {
