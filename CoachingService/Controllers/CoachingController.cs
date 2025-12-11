@@ -148,9 +148,9 @@ public class CoachingController : ControllerBase
     }
 
     [HttpGet("AllSessions/{coachId}")]
-    public ActionResult<IEnumerable<Session>> GetSessions()
+    public ActionResult<IEnumerable<Session>> GetAllSessionsByCoachId(string coachId)
     {
-        var sessions = _coachingRepository.GetAllSessions();
+        var sessions = _coachingRepository.GetAllSessionsByCoachId(coachId);
         
         return Ok(sessions);
     }

@@ -91,8 +91,6 @@ public class CoachingRepository : ICoachingRepository
 
     public Session CreateSession(Session session)
     {
-        session.CoachId = session.UserId;
-        
         _sessionsCollection.InsertOne(session);
         
         return  session;
@@ -130,6 +128,5 @@ public class CoachingRepository : ICoachingRepository
         return _sessionsCollection
             .Find(s => s.CoachId == coachId)
             .ToList();
-        
     }
 }
