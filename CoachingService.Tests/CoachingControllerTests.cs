@@ -121,7 +121,7 @@ namespace CoachingService.Tests
             {
                 StartTime = DateTime.UtcNow.AddHours(2),
                 EndTime = DateTime.UtcNow.AddHours(3),
-                CurrentStatus = Session.Status.Booked
+                CurrentStatus = Session.Status.Planned
             }
         };
 

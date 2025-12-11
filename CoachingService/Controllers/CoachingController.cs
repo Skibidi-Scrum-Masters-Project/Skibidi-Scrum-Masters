@@ -32,7 +32,7 @@ public class CoachingController : ControllerBase
     }
 
    
-    [HttpPost("Session")]
+    [HttpPut("Session")]
     public ActionResult<Session> BookSession([FromBody] Session session)
     {
         try
@@ -113,4 +113,11 @@ public class CoachingController : ControllerBase
         }
     }
 
+    [HttpPost("CreateSession")]
+    public ActionResult<Session> CreateSession([FromBody] Session session)
+    {
+        var created = _coachingRepository.CreateSession(session);
+        
+        return Ok(created);
+    }
 }

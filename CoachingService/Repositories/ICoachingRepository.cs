@@ -8,7 +8,11 @@ public interface ICoachingRepository
         IEnumerable<Session> GetAllSessions();
         
         Session? GetSessionById(string id);
+        
         Session CancelSession(string id);
         
         Session CompleteSession(string id);
+        
+        Session CreateSession(Session session);
+        
 }
