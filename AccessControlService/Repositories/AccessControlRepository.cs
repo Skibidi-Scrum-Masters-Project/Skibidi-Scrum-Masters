@@ -13,33 +13,18 @@ public class AccessControlRepository : IAccessControlRepository
 {
     private readonly IMongoCollection<LockerRoom> _lockerRooms;
     private readonly IMongoCollection<EntryPoint> _entryPoints;
-
-    public AccessControlRepository(IMongoDatabase database)
+    private readonly HttpClient _httpClient = new HttpClient(); 
+    public AccessControlRepository(IMongoDatabase database, HttpClient httpClient)
     {
 
         _lockerRooms = database.GetCollection<LockerRoom>("LockerRooms");
         _entryPoints = database.GetCollection<EntryPoint>("EntryPoints");
+        _httpClient = httpClient;
     }
 
-    public async Task<LockerRoom?> GetByIdAsync(string lockerRoomId)
-    {
-        // FIND LOCKERS FOR LOCKER ROOM
-        return await _lockerRooms
-            .Find(lr => lr.Id == lockerRoomId)
-            .FirstOrDefaultAsync();
-    }
+   
 
-    public async Task SaveAsync(LockerRoom lockerRoom)
-    {
-        // REPLACE THE WHOLE DOCUMENT
-        await _lockerRooms.ReplaceOneAsync(
-            lr => lr.Id == lockerRoom.Id,
-            lockerRoom,
-            new ReplaceOptions { IsUpsert = true }
-        );
-    }
-
-    public Task<EntryPoint> OpenDoor(string userid)
+    public async Task<EntryPoint> OpenDoor(string userid)
     {
         EntryPoint entryPoint = new EntryPoint();
         entryPoint.UserId = userid;
@@ -47,13 +32,14 @@ public class AccessControlRepository : IAccessControlRepository
         entryPoint.ExitedAt = DateTime.MinValue;
         _entryPoints.InsertOne(entryPoint);
 
-        return Task.FromResult(entryPoint);
-
-
-        throw new NotImplementedException();
+        await _httpClient.PostAsync(
+            $"http://analyticsservice:8080/api/Analytics/entered/{userid}/{entryPoint.EnteredAt}",
+            null);
+        
+        return entryPoint;
     }
 
-    public Task<EntryPoint> CloseDoor(string userid)
+    public async Task<EntryPoint> CloseDoor(string userid)
     {
         var filter = Builders<EntryPoint>.Filter.Eq("UserId", userid) & Builders<EntryPoint>.Filter.Eq("ExitedAt", DateTime.MinValue);
         var update = Builders<EntryPoint>.Update.Set("ExitedAt", DateTime.Now);
@@ -64,9 +50,16 @@ public class AccessControlRepository : IAccessControlRepository
 
         var updatedEntryPoint = _entryPoints.FindOneAndUpdate(filter, update, options);
 
-        return Task.FromResult(updatedEntryPoint);
+        if (updatedEntryPoint != null)
+        {
+            await _httpClient.PutAsync(
+                $"http://analyticsservice:8080/api/Analytics/Exited/{userid}/{updatedEntryPoint.ExitedAt}",
+                null);
+        }
 
+        return updatedEntryPoint;
 
+    
     }
 
     public Task<List<Models.Locker>> GetAllAvailableLockers(string lockerRoomId)
@@ -160,5 +153,17 @@ public class AccessControlRepository : IAccessControlRepository
     {
         var count = _entryPoints.CountDocuments(ep => ep.ExitedAt == DateTime.MinValue);
         return Task.FromResult((int)count);
+    }
+
+    public Task<LockerRoom?> GetByIdAsync(string id)
+    {
+        var lockerRoom = _lockerRooms.Find(lr => lr.Id == id).FirstOrDefault();
+        return Task.FromResult(lockerRoom);
+    }
+
+    public Task<LockerRoom> SaveAsync(LockerRoom lockerRoom)
+    {
+        _lockerRooms.ReplaceOne(lr => lr.Id == lockerRoom.Id, lockerRoom);
+        return Task.FromResult(lockerRoom);
     }
 }

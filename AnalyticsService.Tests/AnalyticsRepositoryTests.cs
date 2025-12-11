@@ -1,109 +1,113 @@
-using FitnessApp.Shared.Models;
 using Moq;
-using Moq.Protected;
-using System.Net;
+using MongoDB.Driver;
+using AnalyticsService.Models;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace AnalyticsService.Tests;
-
-[TestClass]
-public class AnalyticsRepositoryTests
+namespace AnalyticsService.Tests
 {
-    private AnalyticsRepository _repository = null!;
-    private Mock<HttpMessageHandler> _mockHttpMessageHandler = null!;
-    private HttpClient _httpClient = null!;
-
-    [TestInitialize]
-    public void Setup()
+    [TestClass]
+    public class AnalyticsRepositoryTests
     {
-        _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
-        _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
-        _repository = new AnalyticsRepository(_httpClient);
-    }
+        private readonly Mock<IMongoDatabase> _mockDatabase;
+        private readonly Mock<IMongoCollection<ClassResultDTO>> _mockClassCollection;
+        private readonly Mock<IMongoCollection<CrowdResultDTO>> _mockCrowdCollection;
+        private readonly AnalyticsRepository _repository;
 
-    #region GetCrowd Tests
-
-    [TestMethod]
-    public async Task GetCrowd_ValidResponse_ReturnsCrowdCount()
-    {
-        // Arrange
-        var expectedCrowdCount = 42;
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        public AnalyticsRepositoryTests()
         {
-            Content = new StringContent(expectedCrowdCount.ToString())
-        };
+            _mockDatabase = new Mock<IMongoDatabase>();
+            _mockClassCollection = new Mock<IMongoCollection<ClassResultDTO>>();
+            _mockCrowdCollection = new Mock<IMongoCollection<CrowdResultDTO>>();
 
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(responseMessage);
+            _mockDatabase.Setup(db => db.GetCollection<ClassResultDTO>("ClassResults", null))
+                .Returns(_mockClassCollection.Object);
+            _mockDatabase.Setup(db => db.GetCollection<CrowdResultDTO>("CrowdResults", null))
+                .Returns(_mockCrowdCollection.Object);
 
-        // Act
-        var result = await _repository.GetCrowd();
+            _repository = new AnalyticsRepository(_mockDatabase.Object);
+        }
 
-        // Assert
-        Assert.AreEqual(expectedCrowdCount, result);
-        _mockHttpMessageHandler.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req => req.Method == HttpMethod.Get),
-            ItExpr.IsAny<CancellationToken>()
-        );
-    }
-
-    [TestMethod]
-    public async Task GetCrowd_ZeroCrowd_ReturnsZero()
-    {
-        // Arrange
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        [TestMethod]
+        public async Task GetClassesAnalytics_ShouldInsertAndReturnClassResult()
         {
-            Content = new StringContent("0")
-        };
+            // Arrange
+            var classId = "class123";
+            var userId = "user123";
+            var calories = 500.0;
+            var category = "Yoga";
+            var duration = 60;
+            var date = DateTime.Now;
 
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(responseMessage);
+            // Act
+            var result = await _repository.GetClassesAnalytics(classId, userId, calories, category, duration, date);
 
-        // Act
-        var result = await _repository.GetCrowd();
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual(classId, result.ClassId);
+            Assert.AreEqual(userId, result.UserId);
+            Assert.AreEqual(calories, result.TotalCaloriesBurned);
+            Assert.AreEqual(category, result.Category);
+            Assert.AreEqual(duration, result.DurationMin);
+            Assert.AreEqual(date, result.Date);
 
-        // Assert
-        Assert.AreEqual(0, result);
-    }
+            _mockClassCollection.Verify(c => c.InsertOne(
+                It.IsAny<ClassResultDTO>(),
+                null,
+                default(CancellationToken)), Times.Once);
+        }
 
-    [TestMethod]
-    public async Task GetCrowd_LargeCrowdCount_ReturnsValue()
-    {
-        // Arrange
-        var expectedCrowdCount = 500;
-        var responseMessage = new HttpResponseMessage(HttpStatusCode.OK)
+        [TestMethod]
+        public async Task PostEnteredUser_ShouldInsertCrowdResult()
         {
-            Content = new StringContent(expectedCrowdCount.ToString())
-        };
+            // Arrange
+            var userId = "user123";
+            var entryTime = DateTime.Now;
+            var exitTime = DateTime.MinValue;
 
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(responseMessage);
+            // Act
+            var result = await _repository.PostEnteredUser(userId, entryTime, exitTime);
 
-        // Act
-        var result = await _repository.GetCrowd();
+            // Assert
+            Assert.AreEqual("User entered crowd data posted successfully", result);
 
-        // Assert
-        Assert.AreEqual(expectedCrowdCount, result);
+            _mockCrowdCollection.Verify(c => c.InsertOne(
+                It.Is<CrowdResultDTO>(cr => 
+                    cr.UserId == userId && 
+                    cr.EntryTime == entryTime && 
+                    cr.ExitTime == exitTime),
+                null,
+                default(CancellationToken)), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task UpdateUserExitTime_ShouldUpdateExitTime()
+        {
+            // Arrange
+            var userId = "user123";
+            var exitTime = DateTime.Now;
+            var mockCursor = new Mock<IAsyncCursor<CrowdResultDTO>>();
+
+            _mockCrowdCollection.Setup(c => c.FindOneAndUpdate(
+                It.IsAny<FilterDefinition<CrowdResultDTO>>(),
+                It.IsAny<UpdateDefinition<CrowdResultDTO>>(),
+                It.IsAny<FindOneAndUpdateOptions<CrowdResultDTO>>(),
+                default(CancellationToken)))
+                .Returns(new CrowdResultDTO { UserId = userId, ExitTime = exitTime });
+
+            // Act
+            var result = await _repository.UpdateUserExitTime(userId, exitTime);
+
+            // Assert
+            Assert.AreEqual("User exit time updated successfully", result);
+
+            _mockCrowdCollection.Verify(c => c.FindOneAndUpdate(
+                It.IsAny<FilterDefinition<CrowdResultDTO>>(),
+                It.IsAny<UpdateDefinition<CrowdResultDTO>>(),
+                It.IsAny<FindOneAndUpdateOptions<CrowdResultDTO>>(),
+                default(CancellationToken)), Times.Once);
+        }
     }
-
-    #endregion
 }

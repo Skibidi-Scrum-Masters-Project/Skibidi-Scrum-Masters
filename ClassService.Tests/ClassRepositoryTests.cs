@@ -17,7 +17,8 @@ public class ClassRepositoryTests
         _runner = MongoDbRunner.Start();
         var client = new MongoClient(_runner.ConnectionString);
         _database = client.GetDatabase("TestDatabase");
-        _repository = new ClassRepository(_database);
+        var httpClient = new HttpClient();
+        _repository = new ClassRepository(_database, httpClient);
     }
 
     [TestCleanup]
@@ -554,46 +555,6 @@ public class ClassRepositoryTests
         await Assert.ThrowsExceptionAsync<Exception>(
             async () => await _repository.DeleteClassAsync(nonExistentClassId)
         );
-    }
-
-    [TestMethod]
-    public async Task FinishClass_CreatesClassResultsForAllAttendees()
-    {
-        // Arrange
-        var fitnessClass = new FitnessClass
-        {
-            InstructorId = "instructor123",
-            CenterId = "center456",
-            Name = "Morning Yoga",
-            Category = Category.Yoga,
-            Intensity = Intensity.Easy,
-            Description = "Yoga class.",
-            StartTime = DateTime.UtcNow.AddDays(1),
-            Duration = 60,
-            MaxCapacity = 10,
-            IsActive = true,
-            BookingList = new List<Booking>
-            {
-                new Booking { UserId = "user1", SeatNumber = 0 },
-                new Booking { UserId = "user2", SeatNumber = 0 },
-                new Booking { UserId = "user3", SeatNumber = 0 }
-            }
-        };
-        var collection = _database.GetCollection<FitnessClass>("Classes");
-        await collection.InsertOneAsync(fitnessClass);
-
-        // Act
-        await _repository.FinishClass(fitnessClass.Id!);
-
-        // Assert
-        var resultsCollection = _database.GetCollection<ClassResult>("ClassResults");
-        var results = resultsCollection.Find(r => r.ClassId == fitnessClass.Id).ToList();
-        Assert.AreEqual(3, results.Count);
-        Assert.IsTrue(results.Any(r => r.UserId == "user1"));
-        Assert.IsTrue(results.Any(r => r.UserId == "user2"));
-        Assert.IsTrue(results.Any(r => r.UserId == "user3"));
-        Assert.IsTrue(results.All(r => r.CaloriesBurned > 0));
-        Assert.IsTrue(results.All(r => r.DurationMin == 60));
     }
 
     [TestMethod]

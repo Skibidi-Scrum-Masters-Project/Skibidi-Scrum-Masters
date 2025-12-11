@@ -8,11 +8,13 @@ public class ClassRepository : IClassRepository
 {
     private readonly IMongoCollection<FitnessClass> _classesCollection;
     private readonly IMongoCollection<ClassResult> _classResultsCollection;
+    private readonly HttpClient _httpClient;
 
-    public ClassRepository(IMongoDatabase database)
+    public ClassRepository(IMongoDatabase database, HttpClient httpClient)
     {
         _classesCollection = database.GetCollection<FitnessClass>("Classes");
         _classResultsCollection = database.GetCollection<ClassResult>("ClassResults");
+        _httpClient = httpClient;
     }
 
     public async Task<FitnessClass> AddUserToClassWaitlistAsync(string classId, string userId)
@@ -196,19 +198,21 @@ public class ClassRepository : IClassRepository
         var finishedClass = GetClassByIdAsync(classId).Result;
         var caloriesBurnedTotal = CalculateCaloriesBurned(finishedClass.Intensity, finishedClass.Category, finishedClass.Duration);
         var wattTotal = CalculateWatt(finishedClass.Intensity, finishedClass.Category, finishedClass.Duration).Result;
-
+        
         foreach (var Attendant in finishedClass.BookingList)
         {
             //Calculate their metrics
             var Metric = new ClassResult();
+            Metric.Category = finishedClass.Category;
             Metric.ClassId = classId;
             Metric.UserId = Attendant.UserId;
             Metric.CaloriesBurned = caloriesBurnedTotal;
             Metric.Watt = wattTotal;
             Metric.DurationMin = finishedClass.Duration;
             Metric.Date = DateTime.Now;
-            //Here we would normally save the Metric to a database or send it to another service
-            _classResultsCollection.InsertOne(Metric);
+           _httpClient.PostAsync(
+               $"http://analyticsservice:8080/analytics/classes/{classId}/{Attendant.UserId}/{caloriesBurnedTotal}/{finishedClass.Category}/{finishedClass.Duration}/{Metric.Date:o}",
+               null);
         }
         finishedClass.IsActive = false;
         _classesCollection.ReplaceOne(c => c.Id == classId, finishedClass);
@@ -399,5 +403,18 @@ public class ClassRepository : IClassRepository
            c => c.Id == classId,
            Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, nextUserId)
        );
+    }
+
+    public Task<List<ClassResult>> GetUserStatisticsAsync(string userId)
+    {
+
+        List<ClassResult> results = _classResultsCollection.Find(r => r.UserId == userId).ToList();
+        if (results == null)
+        {
+            return Task.FromResult(new List<ClassResult>());
+        }
+        return Task.FromResult(results);
+
+        
     }
 }

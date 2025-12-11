@@ -5,9 +5,9 @@ using System.ComponentModel.DataAnnotations;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace ClassService.Model
+namespace AnalyticsService.Models   
 {
-    public class ClassResult
+    public class ClassResultDTO
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
@@ -15,9 +15,8 @@ namespace ClassService.Model
         public string? Id { get; set; }
         public string ClassId { get; set; } = string.Empty;
         public string UserId { get; set; } = string.Empty;
-        public Category Category { get; set; }
-        public Double CaloriesBurned { get; set; }
-        public Double Watt { get; set; }
+        public double TotalCaloriesBurned { get; set; }
+        public string Category { get; set; } = string.Empty;
         public int DurationMin { get; set; }
         public DateTime Date { get; set; }
     }

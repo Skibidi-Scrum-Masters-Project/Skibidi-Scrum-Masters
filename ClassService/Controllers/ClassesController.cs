@@ -230,4 +230,22 @@ public class ClassesController : ControllerBase
             return BadRequest(new { error = "Finishing class failed", message = ex.Message });
         }
     }
+
+    [HttpGet("classes/{userId}/statistics")] 
+    public async Task<ActionResult> GetUserStatistics(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
+        }
+        try
+        {
+            var statistics = await _classRepository.GetUserStatisticsAsync(userId);
+            return Ok(statistics);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = "Retrieving statistics failed", message = ex.Message });
+        }
+    }
 }

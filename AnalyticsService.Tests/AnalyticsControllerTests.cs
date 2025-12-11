@@ -1,99 +1,97 @@
-using Microsoft.AspNetCore.Mvc;
-using FitnessApp.Shared.Models;
-using AnalyticsService.Controllers;
 using Moq;
+using Microsoft.AspNetCore.Mvc;
+using AnalyticsService.Controllers;
+using AnalyticsService.Models;
+using System;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace AnalyticsService.Tests;
-
-[TestClass]
-public class AnalyticsControllerTests
+namespace AnalyticsService.Tests
 {
-    private AnalyticsController _controller = null!;
-    private Mock<IAnalyticsRepository> _mockRepository = null!;
-
-    [TestInitialize]
-    public void Setup()
+    [TestClass]
+    public class AnalyticsControllerTests
     {
-        _mockRepository = new Mock<IAnalyticsRepository>();
-        _controller = new AnalyticsController(_mockRepository.Object);
+        private readonly Mock<IAnalyticsRepository> _mockRepository;
+        private readonly AnalyticsController _controller;
+
+        public AnalyticsControllerTests()
+        {
+            _mockRepository = new Mock<IAnalyticsRepository>();
+            _controller = new AnalyticsController(_mockRepository.Object);
+        }
+
+        [TestMethod]
+        public async Task GetClassesAnalytics_ShouldReturnOkWithClassResult()
+        {
+            // Arrange
+            var classId = "class123";
+            var userId = "user123";
+            var calories = 500.0;
+            var category = "Yoga";
+            var duration = 60;
+            var date = DateTime.Now;
+
+            var expectedResult = new ClassResultDTO
+            {
+                ClassId = classId,
+                UserId = userId,
+                TotalCaloriesBurned = calories,
+                Category = category,
+                DurationMin = duration,
+                Date = date
+            };
+
+            _mockRepository.Setup(r => r.GetClassesAnalytics(classId, userId, calories, category, duration, date))
+                .ReturnsAsync(expectedResult);
+
+            // Act
+            var result = await _controller.GetClassesAnalytics(classId, userId, calories, category, duration, date);
+
+            // Assert
+            var okResult = result as OkObjectResult;
+            Assert.IsNotNull(okResult);
+            var returnValue = okResult.Value as ClassResultDTO;
+            Assert.IsNotNull(returnValue);
+            Assert.AreEqual(classId, returnValue.ClassId);
+            Assert.AreEqual(userId, returnValue.UserId);
+        }
+
+        [TestMethod]
+        public async Task PostEnteredUser_ShouldReturnOkWithSuccessMessage()
+        {
+            // Arrange
+            var userId = "user123";
+            var entryTime = DateTime.Now;
+
+            _mockRepository.Setup(r => r.PostEnteredUser(userId, entryTime, DateTime.MinValue))
+                .ReturnsAsync("User entered crowd data posted successfully");
+
+            // Act
+            var result = await _controller.AddUserToCrowd(userId, entryTime);
+
+            // Assert
+            var okResult = result as OkObjectResult;
+            Assert.IsNotNull(okResult);
+            Assert.AreEqual("User entered crowd data posted successfully", okResult.Value);
+        }
+
+        [TestMethod]
+        public async Task UpdateUserExitTime_ShouldReturnOkWithSuccessMessage()
+        {
+            // Arrange
+            var userId = "user123";
+            var exitTime = DateTime.Now;
+
+            _mockRepository.Setup(r => r.UpdateUserExitTime(userId, exitTime))
+                .ReturnsAsync("User exit time updated successfully");
+
+            // Act
+            var result = await _controller.UpdateUserExitTime(userId, exitTime);
+
+            // Assert
+            var okResult = result as OkObjectResult;
+            Assert.IsNotNull(okResult);
+            Assert.AreEqual("User exit time updated successfully", okResult.Value);
+        }
     }
-
-    [TestMethod]
-    public void GetAnalytics_ShouldReturnAnalyticsData()
-    {
-        // TBA: Implement test for getting analytics data
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void GetUsers_WhenNoUsers_ShouldReturnEmptyList()
-    {
-        // TBA: Implement test for empty user list
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void GetUsers_ShouldReturnOkResult()
-    {
-        // TBA: Implement test for OK status code
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    #region GetCrowd Tests
-
-    [TestMethod]
-    public async Task GetCrowd_ValidRequest_ReturnsOkWithCrowdCount()
-    {
-        // Arrange
-        int expectedCrowdCount = 42;
-        _mockRepository.Setup(repo => repo.GetCrowd())
-            .ReturnsAsync(expectedCrowdCount);
-
-        // Act
-        var result = await _controller.GetCrowd();
-
-        // Assert
-        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
-        var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult);
-        Assert.AreEqual(expectedCrowdCount, okResult.Value);
-        _mockRepository.Verify(repo => repo.GetCrowd(), Times.Once);
-    }
-
-    [TestMethod]
-    public async Task GetCrowd_ZeroCrowd_ReturnsOkWithZero()
-    {
-        // Arrange
-        _mockRepository.Setup(repo => repo.GetCrowd())
-            .ReturnsAsync(0);
-
-        // Act
-        var result = await _controller.GetCrowd();
-
-        // Assert
-        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
-        var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult);
-        Assert.AreEqual(0, okResult.Value);
-    }
-
-    [TestMethod]
-    public async Task GetCrowd_LargeCrowdCount_ReturnsOkWithValue()
-    {
-        // Arrange
-        int expectedCrowdCount = 500;
-        _mockRepository.Setup(repo => repo.GetCrowd())
-            .ReturnsAsync(expectedCrowdCount);
-
-        // Act
-        var result = await _controller.GetCrowd();
-
-        // Assert
-        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
-        var okResult = result as OkObjectResult;
-        Assert.IsNotNull(okResult);
-        Assert.AreEqual(expectedCrowdCount, okResult.Value);
-    }
-
-    #endregion
 }

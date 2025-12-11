@@ -15,4 +15,9 @@ public interface IClassRepository
    public Task DeleteClassAsync(string classId);
    public Task FinishClass(string classId);
 
+   public Task<List<ClassResult>> GetUserStatisticsAsync(string userId);
+
+  
+  
+
 }
