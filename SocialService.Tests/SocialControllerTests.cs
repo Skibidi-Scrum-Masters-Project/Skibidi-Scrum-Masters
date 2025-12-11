@@ -1315,4 +1315,46 @@ public async Task EditComment_ShouldReturn500_WhenRepositoryThrowsUnexpectedExce
 }
 
 
+[TestMethod]
+public async Task SeeAllCommentForPost_calls_repository_and_returns_comment_list()
+{
+    // Arrange
+    var postId = "post-123";
+
+    var commentsFromRepo = new List<Comment>
+    {
+        new Comment
+        {
+            Id = "comment-1",
+            AuthorId = 1,
+            CommentText = "First comment",
+            CommentDate = DateTime.UtcNow
+        },
+        new Comment
+        {
+            Id = "comment-2",
+            AuthorId = 2,
+            CommentText = "Second comment",
+            CommentDate = DateTime.UtcNow
+        }
+    };
+
+    _mockRepository
+        .Setup(r => r.SeeAllCommentForPostId(postId))
+        .ReturnsAsync(commentsFromRepo);
+
+    // Act
+    var result = await _controller.SeeAllCommentForPost(postId);
+
+    // Assert
+    Assert.IsNotNull(result, "Expected a list of comments to be returned");
+    Assert.AreSame(commentsFromRepo, result, "Controller should return the list from the repository");
+
+    _mockRepository.Verify(
+        r => r.SeeAllCommentForPostId(postId),
+        Times.Once);
+}
+
+
+
 }
