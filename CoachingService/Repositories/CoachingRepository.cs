@@ -107,4 +107,20 @@ public class CoachingRepository : ICoachingRepository
 
         return deletedSession;
     }
+
+
+    public List<Session> GetAllAvaliableCoachSessions()
+    {
+        var allSessionsWithAvalibility = _sessionsCollection
+            .Find(s => s.CurrentStatus == Session.Status.Available);
+
+        return allSessionsWithAvalibility.ToList();
+    }
+    
+    public List<Session> GetAllAvailableCoachSessions(string coachId)
+    {
+        return _sessionsCollection
+            .Find(s => s.CurrentStatus == Session.Status.Available && s.CoachId == coachId)
+            .ToList();
+    }
 }

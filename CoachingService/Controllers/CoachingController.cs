@@ -130,4 +130,21 @@ public class CoachingController : ControllerBase
         
         return Ok(deleted);
     }
+    
+    [HttpGet("GetAllSessionsWithAvalibility")]
+    public ActionResult<IEnumerable<Session>> GetAvailableSessions()
+    {
+        var sessions = _coachingRepository.GetAllAvaliableCoachSessions();
+
+        return Ok(sessions);
+    }
+    
+    [HttpGet("Sessions/Available/{coachId}")]
+    public ActionResult<IEnumerable<Session>> GetAvailableSessions(string coachId)
+    {
+        var sessions = _coachingRepository.GetAllAvailableCoachSessions(coachId);
+
+        return Ok(sessions);
+    }
+    
 }
