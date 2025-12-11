@@ -43,9 +43,6 @@ public class AccessControlController : ControllerBase
         {
             return NotFound($"User {userid} not found");
         }
-
-
-
         return Ok(door);
     }
 
@@ -79,7 +76,12 @@ public class AccessControlController : ControllerBase
             var locker = await _accessControlRepository.UnlockLocker(lockerRoomId, lockerId, userId);
             return Ok(locker);
         }
-
+        [HttpGet("crowd")]
+        public async Task<IActionResult> GetCrowd()
+        {
+            var crowd = await _accessControlRepository.GetCrowd();
+            return Ok(crowd);
+        }
     
     
             

@@ -317,4 +317,63 @@ public class AccessControlControllerTests
     }
 
     #endregion
+
+    #region GetCrowd Tests
+
+    [TestMethod]
+    public async Task GetCrowd_ValidRequest_ReturnsOkWithCrowdCount()
+    {
+        // Arrange
+        int expectedCrowdCount = 15;
+        _mockRepository.Setup(repo => repo.GetCrowd())
+            .ReturnsAsync(expectedCrowdCount);
+
+        // Act
+        var result = await _controller.GetCrowd();
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(expectedCrowdCount, okResult.Value);
+        _mockRepository.Verify(repo => repo.GetCrowd(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetCrowd_NoCrowd_ReturnsOkWithZero()
+    {
+        // Arrange
+        _mockRepository.Setup(repo => repo.GetCrowd())
+            .ReturnsAsync(0);
+
+        // Act
+        var result = await _controller.GetCrowd();
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(0, okResult.Value);
+    }
+
+    [TestMethod]
+    public async Task GetCrowd_LargeCrowd_ReturnsOkWithValue()
+    {
+        // Arrange
+        int expectedCrowdCount = 1000;
+        _mockRepository.Setup(repo => repo.GetCrowd())
+            .ReturnsAsync(expectedCrowdCount);
+
+        // Act
+        var result = await _controller.GetCrowd();
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(expectedCrowdCount, okResult.Value);
+    }
+
+    #endregion
 }
+

@@ -38,4 +38,62 @@ public class AnalyticsControllerTests
         // TBA: Implement test for OK status code
         Assert.Inconclusive("Test not implemented yet");
     }
+
+    #region GetCrowd Tests
+
+    [TestMethod]
+    public async Task GetCrowd_ValidRequest_ReturnsOkWithCrowdCount()
+    {
+        // Arrange
+        int expectedCrowdCount = 42;
+        _mockRepository.Setup(repo => repo.GetCrowd())
+            .ReturnsAsync(expectedCrowdCount);
+
+        // Act
+        var result = await _controller.GetCrowd();
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(expectedCrowdCount, okResult.Value);
+        _mockRepository.Verify(repo => repo.GetCrowd(), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetCrowd_ZeroCrowd_ReturnsOkWithZero()
+    {
+        // Arrange
+        _mockRepository.Setup(repo => repo.GetCrowd())
+            .ReturnsAsync(0);
+
+        // Act
+        var result = await _controller.GetCrowd();
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(0, okResult.Value);
+    }
+
+    [TestMethod]
+    public async Task GetCrowd_LargeCrowdCount_ReturnsOkWithValue()
+    {
+        // Arrange
+        int expectedCrowdCount = 500;
+        _mockRepository.Setup(repo => repo.GetCrowd())
+            .ReturnsAsync(expectedCrowdCount);
+
+        // Act
+        var result = await _controller.GetCrowd();
+
+        // Assert
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.AreEqual(expectedCrowdCount, okResult.Value);
+    }
+
+    #endregion
 }

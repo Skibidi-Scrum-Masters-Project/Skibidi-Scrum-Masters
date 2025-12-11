@@ -16,4 +16,5 @@ public interface IAccessControlRepository
     Task<Locker> LockLocker(string lockerRoomId, string lockerId, string userId);
 
     Task<Locker> UnlockLocker(string lockerRoomId, string lockerId, string userId);
+    Task<int> GetCrowd();
 }

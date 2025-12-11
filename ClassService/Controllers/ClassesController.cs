@@ -104,14 +104,14 @@ public class ClassesController : ControllerBase
 
     }
     [HttpPut("classes/{classId}/{userId}/friends/seats")]
-    public async Task<ActionResult> BookClassForUserWithFriendsWithSeats(string classId, string userId, List<string> friends, List<int> seats)
+    public async Task<ActionResult> BookClassForUserWithFriendsWithSeats(string classId, string userId, [FromBody] BookClassWithFriendsRequestDTO request)
     {
         var classInfo = await _classRepository.GetClassByIdAsync(classId);
         if (classInfo == null)
         {
             return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
         }
-        if (seats.Count != friends.Count + 1)
+        if (request.Seats.Count != request.Friends.Count + 1)
         {
             return BadRequest(new { error = "Invalid input", message = "Number of seats must match number of users (including main user)." });
         }
@@ -119,21 +119,24 @@ public class ClassesController : ControllerBase
         {
             return BadRequest(new { error = "Invalid operation", message = "Class doesnt have seat booking. Use the appropriate endpoint." });
         }
-        if (classInfo.BookingList.Count + friends.Count + 1 > classInfo.MaxCapacity)
+        if (classInfo.BookingList.Count + request.Friends.Count + 1 > classInfo.MaxCapacity)
         {
             return BadRequest(new { error = "Booking failed", message = "Not enough available spots for the group booking." });
         }
-        foreach (var seat in seats)
+        foreach (var seat in request.Seats)
         {
             if (seat < 0 || seat >= classInfo.SeatMap!.Length || classInfo.SeatMap[seat])
             {
                 return BadRequest(new { error = "Invalid input", message = $"Seat number {seat} is invalid or already booked." });
             }
         }
-        foreach (var id in friends)
+        // Book main user
+        request.Friends.Insert(0, userId);
+
+        foreach (var id in request.Friends)
         {
-            var index = friends.IndexOf(id) + 1; // +1 to account for main user at index 0
-            var seatNumber = seats[index];
+            var index = request.Friends.IndexOf(id);
+            var seatNumber = request.Seats[index];
             try
             {
                 var classes = await _classRepository.BookClassForUserWithSeatAsync(classId, id, seatNumber);
