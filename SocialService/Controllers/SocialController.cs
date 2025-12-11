@@ -308,7 +308,26 @@ public class SocialController : ControllerBase
         }
     }
 
+    [HttpPut("EditComment/{postId}")]
+    public async Task<ActionResult<Post>> EditComment(string postId, [FromBody] Comment comment)
+    {
+        try
+        {
+            var editedComment = await _socialRepository.EditComment(postId, comment);
+            return Ok(editedComment);
 
+        }
+        catch (KeyNotFoundException ex)
+        {
+            // Post eller comment fandtes ikke
+            return NotFound(ex.Message);
+        }
+        catch (Exception)
+        {
+            // Anden type fejl: database nede, null reference, osv.
+            return StatusCode(500, "An unexpected error occurred");
+        }
+    }
 
 }
 

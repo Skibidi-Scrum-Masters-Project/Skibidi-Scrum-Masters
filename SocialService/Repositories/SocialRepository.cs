@@ -326,6 +326,54 @@ public class SocialRepository : ISocialRepository
         return post;
     }
 
+
+    public async Task<Post> EditComment(string postId, Comment comment)
+    {
+        // 1. Find the post
+        var post = await _postCollection
+            .Find(p => p.Id == postId)
+            .FirstOrDefaultAsync();
     
+        if (post == null)
+        {
+            throw new KeyNotFoundException("Post not found");
+        }
     
+        // 2. Check that the comment exists on this post
+        var exists = post.Comments.Any(c => c.Id == comment.Id);
+    
+        if (!exists)
+        {
+            throw new KeyNotFoundException("Comment not found");
+        }
+
+        // 3. Build a filter that matches the post AND the specific comment
+        var filter = Builders<Post>.Filter.And(
+            Builders<Post>.Filter.Eq(p => p.Id, postId),
+            Builders<Post>.Filter.ElemMatch(p => p.Comments, c => c.Id == comment.Id)
+        );
+
+        // 4. "$" refererer til det comment i Comments-arrayet, som matchede ElemMatch-filteret
+        var update = Builders<Post>.Update
+            .Set("Comments.$.CommentText", comment.CommentText);
+
+        var options = new FindOneAndUpdateOptions<Post>
+        {
+            ReturnDocument = ReturnDocument.After
+        };
+
+        // 5. Correct order of parameters: filter, update, options
+        var updated = await _postCollection.FindOneAndUpdateAsync(
+            filter,
+            update,
+            options
+        );
+
+        if (updated == null)
+        {
+            throw new KeyNotFoundException("Post not found or access denied");
+        }
+
+        return updated;
+    }
 }

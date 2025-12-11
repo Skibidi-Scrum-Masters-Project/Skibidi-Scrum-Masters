@@ -1107,6 +1107,156 @@ public class SocialRepositoryTests
         Assert.AreEqual(1, stored.Comments.Count);
         Assert.AreEqual(otherComment.Id, stored.Comments[0].Id);
     }
+    
+    
+    // EditComment tests
+
+[TestMethod]
+[DoNotParallelize]
+public async Task EditComment_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
+{
+    // Arrange
+    var postId = ObjectId.GenerateNewId().ToString();
+
+    var commentToEdit = new Comment
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        AuthorId = 1,
+        CommentDate = DateTime.UtcNow,
+        CommentText = "New text"
+    };
+
+    var existing = await _posts
+        .Find(p => p.Id == postId)
+        .SingleOrDefaultAsync();
+    Assert.IsNull(existing, "There must not be a post with this id");
+
+    // Act + Assert
+    await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+        async () => await _repository.EditComment(postId, commentToEdit));
+}
+
+[TestMethod]
+[DoNotParallelize]
+public async Task EditComment_WhenCommentDoesNotExistOnPost_ShouldThrowKeyNotFoundException()
+{
+    // Arrange
+    var postId = ObjectId.GenerateNewId().ToString();
+
+    var existingPost = new Post
+    {
+        Id = postId,
+        UserId = 1,
+        FitnessClassId = 2,
+        WorkoutId = 3,
+        PostTitle = "Title",
+        PostContent = "Content",
+        PostDate = new DateTime(2020, 1, 1),
+        Comments = new List<Comment>
+        {
+            new Comment
+            {
+                Id = ObjectId.GenerateNewId().ToString(),
+                AuthorId = 1,
+                CommentDate = DateTime.UtcNow,
+                CommentText = "Existing comment"
+            }
+        }
+    };
+
+    await _posts.InsertOneAsync(existingPost);
+
+    var nonExistingComment = new Comment
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        AuthorId = 1,
+        CommentDate = DateTime.UtcNow,
+        CommentText = "Should not be found"
+    };
+
+    // Act + Assert
+    await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+        async () => await _repository.EditComment(postId, nonExistingComment));
+}
+
+[TestMethod]
+[DoNotParallelize]
+public async Task EditComment_WhenPostAndCommentExist_ShouldUpdateCommentTextAndReturnUpdatedPost()
+{
+    // Arrange
+    var postId = ObjectId.GenerateNewId().ToString();
+
+    var commentId = ObjectId.GenerateNewId().ToString();
+
+    var originalComment = new Comment
+    {
+        Id = commentId,
+        AuthorId = 1,
+        CommentDate = new DateTime(2020, 1, 1),
+        CommentText = "Old text"
+    };
+
+    var otherComment = new Comment
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        AuthorId = 2,
+        CommentDate = new DateTime(2020, 1, 2),
+        CommentText = "Other comment"
+    };
+
+    var existingPost = new Post
+    {
+        Id = postId,
+        UserId = 1,
+        FitnessClassId = 2,
+        WorkoutId = 3,
+        PostTitle = "Title",
+        PostContent = "Content",
+        PostDate = new DateTime(2020, 1, 1),
+        Comments = new List<Comment> { originalComment, otherComment }
+    };
+
+    await _posts.InsertOneAsync(existingPost);
+
+    var updatedComment = new Comment
+    {
+        Id = commentId,
+        AuthorId = originalComment.AuthorId,
+        CommentDate = originalComment.CommentDate,
+        CommentText = "New edited text"
+    };
+
+    // Act
+    var result = await _repository.EditComment(postId, updatedComment);
+
+    // Assert returværdi
+    Assert.IsNotNull(result);
+    Assert.AreEqual(postId, result.Id);
+    Assert.IsNotNull(result.Comments);
+    Assert.AreEqual(2, result.Comments.Count);
+
+    var editedFromResult = result.Comments.Single(c => c.Id == commentId);
+    Assert.AreEqual("New edited text", editedFromResult.CommentText);
+    Assert.AreEqual(originalComment.AuthorId, editedFromResult.AuthorId);
+
+    var otherFromResult = result.Comments.Single(c => c.Id == otherComment.Id);
+    Assert.AreEqual(otherComment.CommentText, otherFromResult.CommentText);
+
+    // Assert i databasen
+    var stored = await _posts
+        .Find(p => p.Id == postId)
+        .SingleOrDefaultAsync();
+
+    Assert.IsNotNull(stored);
+    Assert.IsNotNull(stored.Comments);
+    Assert.AreEqual(2, stored.Comments.Count);
+
+    var editedInDb = stored.Comments.Single(c => c.Id == commentId);
+    Assert.AreEqual("New edited text", editedInDb.CommentText);
+
+    var otherInDb = stored.Comments.Single(c => c.Id == otherComment.Id);
+    Assert.AreEqual(otherComment.CommentText, otherInDb.CommentText);
+}
 
 
 
