@@ -878,4 +878,48 @@ public class SocialControllerTests
         Assert.IsNotNull(statusResult, "Expected ObjectResult");
         Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
     }
+    
+    
+    
+    
+    
+    //Post tests
+    [TestMethod]
+    public async Task PostAPost_calls_repository_and_returns_created_post()
+    {
+        // Arrange
+        var repoMock = new Mock<ISocialRepository>();
+
+        var inputPost = new Post
+        {
+            UserId = 1,
+            FitnessClassId = 10,
+            WorkoutId = 100,
+            PostTitle = "Test title",
+            PostContent = "Test content"
+        };
+
+        var createdPost = new Post
+        {
+            Id = "some-mongo-id",
+            UserId = inputPost.UserId,
+            FitnessClassId = inputPost.FitnessClassId,
+            WorkoutId = inputPost.WorkoutId,
+            PostTitle = inputPost.PostTitle,
+            PostContent = inputPost.PostContent
+        };
+
+        repoMock
+            .Setup(r => r.PostAPost(inputPost))
+            .ReturnsAsync(createdPost);
+
+        var controller = new SocialController(repoMock.Object);
+
+        // Act
+        var result = await controller.PostAPost(inputPost);
+
+        // Assert
+        Assert.AreSame(createdPost, result);
+        repoMock.Verify(r => r.PostAPost(inputPost), Times.Once);
+    }
 }

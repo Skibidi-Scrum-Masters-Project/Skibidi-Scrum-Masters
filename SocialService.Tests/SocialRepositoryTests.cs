@@ -16,6 +16,9 @@ public class SocialRepositoryTests
     private static MongoDbRunner _runner = null!;
     private IMongoDatabase _database = null!;
     private SocialRepository _repository = null!;
+    
+    private IMongoCollection<Friendship> _friendships = null!;
+    private IMongoCollection<Post> _posts = null!;
 
     [ClassInitialize]
     public static void ClassInit(TestContext _)
@@ -30,7 +33,11 @@ public class SocialRepositoryTests
 
         _database = client.GetDatabase("SocialServiceTests");
         _database.DropCollection("Friendships");
+        _database.DropCollection("Posts");
 
+        _friendships = _database.GetCollection<Friendship>("Friendships");
+        _posts = _database.GetCollection<Post>("Posts");
+        
         _repository = new SocialRepository(_database);
     }
 
@@ -49,7 +56,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         // Act
         var result = await _repository.SendFriendRequestAsync(userId, receiverId);
@@ -60,7 +66,7 @@ public class SocialRepositoryTests
         Assert.AreEqual(receiverId, result.ReceiverId);
         Assert.AreEqual(FriendshipStatus.Pending, result.FriendShipStatus);
 
-        var stored = await collection
+        var stored = await _friendships
             .Find(f => f.SenderId == userId && f.ReceiverId == receiverId)
             .SingleOrDefaultAsync();
 
@@ -75,7 +81,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
@@ -84,7 +89,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertOneAsync(pending);
+        await _friendships.InsertOneAsync(pending);
 
         // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
@@ -98,7 +103,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
@@ -107,7 +111,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertOneAsync(pending);
+        await _friendships.InsertOneAsync(pending);
 
         // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
@@ -121,7 +125,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var declined = new Friendship
         {
@@ -130,7 +133,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Declined
         };
 
-        await collection.InsertOneAsync(declined);
+        await _friendships.InsertOneAsync(declined);
 
         // Act
         var result = await _repository.SendFriendRequestAsync(userId, receiverId);
@@ -139,7 +142,7 @@ public class SocialRepositoryTests
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.Pending, result.FriendShipStatus);
 
-        var stored = await collection
+        var stored = await _friendships
             .Find(f => f.SenderId == userId && f.ReceiverId == receiverId)
             .SingleOrDefaultAsync();
 
@@ -154,7 +157,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var accepted = new Friendship
         {
@@ -163,7 +165,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
-        await collection.InsertOneAsync(accepted);
+        await _friendships.InsertOneAsync(accepted);
 
         // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
@@ -179,7 +181,6 @@ public class SocialRepositoryTests
         // Arrange
         var senderId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
@@ -188,7 +189,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertOneAsync(pending);
+        await _friendships.InsertOneAsync(pending);
 
         // Act
         var result = await _repository.DeclineFriendRequestAsync(receiverId, senderId);
@@ -197,7 +198,7 @@ public class SocialRepositoryTests
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.Declined, result.FriendShipStatus);
 
-        var stored = await collection
+        var stored = await _friendships
             .Find(f => f.SenderId == senderId && f.ReceiverId == receiverId)
             .SingleOrDefaultAsync();
 
@@ -225,7 +226,6 @@ public class SocialRepositoryTests
         // Arrange
         var senderId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var accepted = new Friendship
         {
@@ -234,7 +234,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
-        await collection.InsertOneAsync(accepted);
+        await _friendships.InsertOneAsync(accepted);
 
         // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
@@ -249,7 +249,6 @@ public class SocialRepositoryTests
     {
         // Arrange
         var userId = 1;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var acceptedAsSender = new Friendship
         {
@@ -286,7 +285,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
-        await collection.InsertManyAsync(new[]
+        await _friendships.InsertManyAsync(new[]
         {
             acceptedAsSender,
             acceptedAsReceiver,
@@ -329,7 +328,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var accepted = new Friendship
         {
@@ -338,7 +336,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
-        await collection.InsertOneAsync(accepted);
+        await _friendships.InsertOneAsync(accepted);
 
         // Act
         var result = await _repository.GetFriendById(userId, receiverId);
@@ -357,7 +355,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var acceptedOpposite = new Friendship
         {
@@ -366,7 +363,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
-        await collection.InsertOneAsync(acceptedOpposite);
+        await _friendships.InsertOneAsync(acceptedOpposite);
 
         // Act
         var result = await _repository.GetFriendById(userId, receiverId);
@@ -382,7 +379,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
@@ -391,7 +387,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertOneAsync(pending);
+        await _friendships.InsertOneAsync(pending);
 
         // Act
         var result = await _repository.GetFriendById(userId, receiverId);
@@ -409,7 +405,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
@@ -418,7 +413,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertOneAsync(pending);
+        await _friendships.InsertOneAsync(pending);
 
         // Act
         var result = await _repository.CancelFriendRequest(userId, receiverId);
@@ -427,7 +422,7 @@ public class SocialRepositoryTests
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.None, result.FriendShipStatus);
 
-        var stored = await collection
+        var stored = await _friendships
             .Find(f => f.SenderId == userId && f.ReceiverId == receiverId)
             .SingleOrDefaultAsync();
 
@@ -455,7 +450,6 @@ public class SocialRepositoryTests
         // Arrange
         var userId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var accepted = new Friendship
         {
@@ -464,7 +458,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
-        await collection.InsertOneAsync(accepted);
+        await _friendships.InsertOneAsync(accepted);
 
         // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
@@ -480,7 +474,6 @@ public class SocialRepositoryTests
     {
         // Arrange
         var userId = 1;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
@@ -503,7 +496,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Declined
         };
 
-        await collection.InsertManyAsync(new[] { pending, accepted, rejected });
+        await _friendships.InsertManyAsync(new[] { pending, accepted, rejected });
 
         // Act
         var result = await _repository.GetOutgoingFriendRequestsAsync(userId);
@@ -520,7 +513,6 @@ public class SocialRepositoryTests
     {
         // Arrange
         var userId = 1;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var shouldBeReturned1 = new Friendship
         {
@@ -550,7 +542,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertManyAsync(new[]
+        await _friendships.InsertManyAsync(new[]
         {
             shouldBeReturned1,
             shouldBeReturned2,
@@ -593,7 +585,6 @@ public class SocialRepositoryTests
     {
         // Arrange
         var userId = 1;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pendingForUser = new Friendship
         {
@@ -623,7 +614,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertManyAsync(new[]
+        await _friendships.InsertManyAsync(new[]
         {
             pendingForUser,
             acceptedForUser,
@@ -665,7 +656,6 @@ public class SocialRepositoryTests
         // Arrange
         var senderId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var pending = new Friendship
         {
@@ -674,7 +664,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Pending
         };
 
-        await collection.InsertOneAsync(pending);
+        await _friendships.InsertOneAsync(pending);
 
         // Act
         var result = await _repository.AcceptFriendRequest(senderId, receiverId);
@@ -683,7 +673,7 @@ public class SocialRepositoryTests
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.Accepted, result.FriendShipStatus);
 
-        var stored = await collection
+        var stored = await _friendships
             .Find(f => f.SenderId == senderId && f.ReceiverId == receiverId)
             .SingleOrDefaultAsync();
 
@@ -711,7 +701,6 @@ public class SocialRepositoryTests
         // Arrange
         var senderId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
 
         var accepted = new Friendship
         {
@@ -720,7 +709,7 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
-        await collection.InsertOneAsync(accepted);
+        await _friendships.InsertOneAsync(accepted);
 
         // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
@@ -734,8 +723,6 @@ public class SocialRepositoryTests
         // Arrange
         var senderId = 1;
         var receiverId = 2;
-        var collection = _database.GetCollection<Friendship>("Friendships");
-
         var declined = new Friendship
         {
             SenderId = senderId,
@@ -743,10 +730,72 @@ public class SocialRepositoryTests
             FriendShipStatus = FriendshipStatus.Declined
         };
 
-        await collection.InsertOneAsync(declined);
+        await _friendships.InsertOneAsync(declined);
 
         // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.AcceptFriendRequest(senderId, receiverId));
     }
+    
+    
+    
+    
+    
+    //Post Tests
+    
+    //PostAPost
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task PostAPost_inserts_new_post_and_returns_it()
+    {
+        // Arrange
+
+
+        var inputPost = new Post
+        {
+            UserId = 1,
+            FitnessClassId = 2,
+            WorkoutId = 3,
+            PostTitle = "Some title",
+            PostContent = "Some content",
+            PostDate = new DateTime(2000, 1, 1) // bliver overskrevet af DateTime.UtcNow i metoden
+        };
+
+        var before = DateTime.UtcNow;
+
+        // Act
+        var result = await _repository.PostAPost(inputPost);
+
+        var after = DateTime.UtcNow;
+
+        // Assert - metoden returnerer noget
+        Assert.IsNotNull(result);
+
+        // Tjek at den er mappet korrekt
+        Assert.AreEqual(inputPost.UserId, result.UserId);
+        Assert.AreEqual(inputPost.FitnessClassId, result.FitnessClassId);
+        Assert.AreEqual(inputPost.WorkoutId, result.WorkoutId);
+        Assert.AreEqual(inputPost.PostTitle, result.PostTitle);
+        Assert.AreEqual(inputPost.PostContent, result.PostContent);
+
+        // DateTime.UtcNow er brugt
+        Assert.IsTrue(result.PostDate >= before && result.PostDate <= after, "PostDate skal ligge mellem before og after");
+
+        // Comments er initialiseret
+        Assert.IsNotNull(result.Comments);
+        Assert.AreEqual(0, result.Comments.Count);
+
+        // Tjek at posten rent faktisk er gemt i databasen
+        var stored = await _posts
+            .Find(p => p.Id == result.Id)
+            .SingleOrDefaultAsync();
+
+        Assert.IsNotNull(stored);
+        Assert.AreEqual(result.UserId, stored.UserId);
+        Assert.AreEqual(result.FitnessClassId, stored.FitnessClassId);
+        Assert.AreEqual(result.WorkoutId, stored.WorkoutId);
+        Assert.AreEqual(result.PostTitle, stored.PostTitle);
+        Assert.AreEqual(result.PostContent, stored.PostContent);
+    }
+
 }

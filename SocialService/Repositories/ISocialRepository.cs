@@ -29,4 +29,17 @@ public interface ISocialRepository
     
     //Metode til at hente alle friend requests der er sendt til user
     Task<IEnumerable<Friendship>?> GetAllIncomingFriendRequests (int userId);
+    
+    
+    
+    
+    
+    
+    
+    //Post delen af SocialService
+    
+    
+    //Metode til at oprette et post
+    
+    Task<Post> PostAPost(Post post);
 }

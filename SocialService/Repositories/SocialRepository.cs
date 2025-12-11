@@ -3,6 +3,7 @@ using SocialService.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;
+using System.Data;
 
 
 namespace SocialService.Repositories;
@@ -10,11 +11,13 @@ namespace SocialService.Repositories;
 public class SocialRepository : ISocialRepository
 {
     private readonly IMongoCollection<Friendship> _friendshipCollection;
+    private readonly IMongoCollection<Post> _postCollection;
     
     public SocialRepository(IMongoDatabase database)
     {
        
         _friendshipCollection = database.GetCollection<Friendship>("Friendships"); 
+        _postCollection =  database.GetCollection<Post>("Posts");
     }
 
     public async Task<Friendship> SendFriendRequestAsync(int userId, int receiverId)
@@ -203,6 +206,27 @@ public class SocialRepository : ISocialRepository
         existingFriendshipRequest.FriendShipStatus = newStatus;
 
         return existingFriendshipRequest;
+    }
+
+
+    public async Task<Post> PostAPost(Post post)
+    {
+        var newPost = new Post
+        {
+            UserId = post.UserId,
+            FitnessClassId = post.FitnessClassId,
+            WorkoutId = post.WorkoutId,
+            PostTitle = post.PostTitle,
+            PostContent = post.PostContent,
+            PostDate = DateTime.UtcNow,
+            Comments = new List<Comment>()
+
+        };
+        
+        await _postCollection.InsertOneAsync(newPost);
+        
+        return newPost;
+        
     }
 
 }
