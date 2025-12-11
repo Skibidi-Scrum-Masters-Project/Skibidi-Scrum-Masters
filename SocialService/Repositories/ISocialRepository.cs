@@ -47,4 +47,7 @@ public interface ISocialRepository
     
     //Metode til at redigere et post
     Task<Post> EditAPost(Post post, int currentUserId);
+    
+    Task<Post> AddCommentToPost(string postId, Comment comment);
+    
 }

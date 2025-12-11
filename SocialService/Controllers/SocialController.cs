@@ -241,9 +241,6 @@ public class SocialController : ControllerBase
         return _socialRepository.RemoveAPost(postId);
     }
 
-
-    
-
     
     [Authorize]
     [HttpPut("EditAPost")]
@@ -276,6 +273,15 @@ public class SocialController : ControllerBase
             // Enten fandtes posten ikke, eller også var den ikke ejet af brugeren
             return NotFound();
         }
+    }
+
+
+    [HttpPut("AddACommentToPost/{postId}")]
+    public async Task<Post> AddACommentToPost(string postId, [FromBody]Comment comment)
+    {
+        var addedComment = await _socialRepository.AddCommentToPost(postId, comment);
+        
+        return addedComment;
     }
 
 

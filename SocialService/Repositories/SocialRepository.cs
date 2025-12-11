@@ -281,5 +281,24 @@ public class SocialRepository : ISocialRepository
     }
 
 
+    public async Task<Post> AddCommentToPost(string postId, Comment comment)
+    {
+        var existingPost = await _postCollection
+            .Find(p => p.Id == postId)
+            .FirstOrDefaultAsync();
+
+        if (existingPost == null)
+        {
+            throw new  KeyNotFoundException("Post not found");
+        }
+        
+        existingPost.Comments.Add(comment);
+        
+        await _postCollection.ReplaceOneAsync(p=> p.Id == postId, existingPost);
+
+        return existingPost;
+    }
+
+    
     
 }

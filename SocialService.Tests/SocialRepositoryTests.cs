@@ -740,8 +740,6 @@ public class SocialRepositoryTests
     
     
     
-    
-    
     //Post Tests
     
     //PostAPost
@@ -995,6 +993,61 @@ public class SocialRepositoryTests
         Assert.AreEqual(existingPost.PostTitle, stored.PostTitle);
         Assert.AreEqual(existingPost.PostContent, stored.PostContent);
     }
+    
+    
+    //Comment Test
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task AddCommentToPost_WhenPostExists_ShouldAppendCommentAndReturnUpdatedPost()
+    {
+        // Arrange
+        var postId = ObjectId.GenerateNewId().ToString();
+
+        var existingPost = new Post
+        {
+            Id = postId,
+            UserId = 1,
+            FitnessClassId = 2,
+            WorkoutId = 3,
+            PostTitle = "Original title",
+            PostContent = "Original content",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment>()
+        };
+
+        await _posts.InsertOneAsync(existingPost);
+
+        var newComment = new Comment
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = 99,
+            CommentDate = DateTime.UtcNow,
+            CommentText = "New comment"
+        };
+
+        // Act
+        var result = await _repository.AddCommentToPost(postId, newComment);
+
+        // Assert på returværdi
+        Assert.IsNotNull(result, "Method should return updated post");
+        Assert.AreEqual(postId, result.Id);
+        Assert.IsNotNull(result.Comments);
+        Assert.AreEqual(1, result.Comments.Count);
+        Assert.AreEqual(newComment.CommentText, result.Comments[0].CommentText);
+        Assert.AreEqual(newComment.AuthorId, result.Comments[0].AuthorId);
+
+        // Tjek at det også er gemt i databasen
+        var stored = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
+
+        Assert.IsNotNull(stored, "Post should still exist in database");
+        Assert.IsNotNull(stored.Comments);
+        Assert.AreEqual(1, stored.Comments.Count);
+        Assert.AreEqual(newComment.CommentText, stored.Comments[0].CommentText);
+        Assert.AreEqual(newComment.AuthorId, stored.Comments[0].AuthorId);
+    }
+
 
 
 
