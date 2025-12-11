@@ -1,0 +1,55 @@
+@page "/workouts"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+
+<div class="workout-screen">
+
+    <h2 class="workout-title">Træningsprogrammer</h2>
+    <p class="workout-subtitle">Vælg et program for at se øvelser</p>
+
+    <div class="workout-grid">
+        @foreach (var workout in Workouts)
+        {
+            <button class="workout-card" @onclick="() => OpenWorkout(workout.Id)">
+                <div class="workout-card-header">
+                    <h3>@workout.Name</h3>
+                    <span class="workout-tag">@workout.Level</span>
+                </div>
+
+                <p class="workout-focus">@workout.Focus</p>
+
+                <p class="workout-meta">
+                    @workout.ExerciseCount øvelser • @workout.EstimatedMinutes min
+                </p>
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private List<WorkoutModel> Workouts = new()
+    {
+        new() { Id = "push", Name = "Push", Level = "Mellem", Focus = "Bryst, skuldre, triceps", ExerciseCount = 6, EstimatedMinutes = 45 },
+        new() { Id = "pull", Name = "Pull", Level = "Mellem", Focus = "Ryg, biceps", ExerciseCount = 5, EstimatedMinutes = 40 },
+        new() { Id = "legs", Name = "Ben", Level = "Øvet", Focus = "Ben og balder", ExerciseCount = 7, EstimatedMinutes = 50 },
+        new() { Id = "fullbody", Name = "Full body", Level = "Begynder", Focus = "Hele kroppen", ExerciseCount = 5, EstimatedMinutes = 35 },
+    };
+
+    private void OpenWorkout(string id)
+    {
+        Nav.NavigateTo($"/workouts/{id}");
+    }
+
+    public class WorkoutModel
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Level { get; set; } = "";
+        public string Focus { get; set; } = "";
+        public int ExerciseCount { get; set; }
+        public int EstimatedMinutes { get; set; }
+    }
+}

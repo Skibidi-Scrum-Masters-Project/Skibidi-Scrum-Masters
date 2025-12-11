@@ -1,0 +1,69 @@
+@page "/"
+@page "/login"
+@layout EmptyLayout
+
+@using System.ComponentModel.DataAnnotations
+@using FitLifeFitness.Components.Layout
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+
+<div class="login-card">
+    <h1 class="app-title">FitLife Fitness</h1>
+
+    <EditForm Model="@Login" OnValidSubmit="OnLoginClicked">
+        <DataAnnotationsValidator />
+
+        <div class="form-group">
+            <label for="username">Brugernavn</label>
+            <InputText id="username"
+                       @bind-Value="Login.Username"
+                       class="input-field" />
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <InputText id="password"
+                       type="password"
+                       @bind-Value="Login.Password"
+                       class="input-field" />
+        </div>
+
+        <ValidationSummary />
+
+        <button type="submit" class="primary-btn">
+            Log ind
+        </button>
+    </EditForm>
+
+    <div class="login-links">
+        <button type="button" class="link-btn">Glemt password?</button>
+        <button type="button" class="link-btn">Opret bruger</button>
+    </div>
+</div>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private LoginModel Login { get; set; } = new();
+
+    private void OnLoginClicked()
+    {
+        if (string.IsNullOrWhiteSpace(Login.Username) ||
+            string.IsNullOrWhiteSpace(Login.Password))
+        {
+            return;
+        }
+
+        // TODO: senere: kald backend
+        Nav.NavigateTo("/dashboard");
+    }
+
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Indtast brugernavn")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Indtast password")]
+        public string Password { get; set; } = string.Empty;
+    }
+}

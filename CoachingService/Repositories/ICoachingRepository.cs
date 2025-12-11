@@ -9,4 +9,6 @@ public interface ICoachingRepository
         
         Session? GetSessionById(string id);
         Session CancelSession(string id);
+        
+        Session CompleteSession(string id);
 }

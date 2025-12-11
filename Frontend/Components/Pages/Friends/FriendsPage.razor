@@ -1,0 +1,68 @@
+@page "/friends"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+<div class="friends-screen">
+
+    <h2 class="friends-title">Dine Venner</h2>
+    <p class="friends-subtitle">Tilføj venner og følg hinandens træning</p>
+
+    <div class="friends-list">
+        @foreach (var friend in Friends)
+        {
+            <div class="friend-card">
+                <div class="friend-avatar">
+                    @friend.Initials
+                </div>
+
+                <div class="friend-info">
+                    <p class="friend-name">@friend.Name</p>
+                    <p class="friend-status">@friend.Status</p>
+                </div>
+
+                <button class="friend-action" @onclick="() => ViewFriend(friend.Id)">
+                    ➜
+                </button>
+            </div>
+        }
+    </div>
+
+    <button class="add-btn" @onclick="AddFriend">
+        + Tilføj ven
+    </button>
+</div>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private List<FriendModel> Friends = new()
+    {
+        new() { Id = 1, Name = "Jonas Madsen", Status = "Træner lige nu" },
+        new() { Id = 2, Name = "Sara Jensen", Status = "Sidst aktiv: 2 dage siden" },
+        new() { Id = 3, Name = "Oliver Nielsen", Status = "Online" },
+    };
+
+    private void ViewFriend(int id)
+    {
+        // TODO: lav friend detail senere
+        // Nav.NavigateTo($"/friends/{id}");
+    }
+
+    private void AddFriend()
+    {
+        // TODO: lav add-friend modal eller ny side
+        // Nav.NavigateTo("/friends/add");
+    }
+
+    public class FriendModel
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Status { get; set; } = "";
+
+        public string Initials =>
+            string.Join("", Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x[0]))
+                .ToUpperInvariant();
+    }
+}

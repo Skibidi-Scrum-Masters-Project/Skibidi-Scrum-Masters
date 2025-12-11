@@ -1,0 +1,52 @@
+@page "/dashboard"
+@layout EmptyLayout
+
+@using FitLifeFitness.Components.Layout
+@using Microsoft.AspNetCore.Components
+
+<div class="dashboard-screen">
+    <h1 class="app-title">FitLife Fitness</h1>
+
+    <p class="dashboard-welcome">Velkommen tilbage, <strong>@Username</strong></p>
+
+    <section class="menu-grid">
+        <button class="menu-card">
+            <span>Workout</span>
+        </button>
+        <button class="menu-card">
+            <span>Holdtræning</span>
+        </button>
+        <button class="menu-card">
+            <span>Statistik</span>
+        </button>
+        <button class="menu-card">
+            <span>Digital hængelås</span>
+        </button>
+        <button class="menu-card">
+            <span>Personlig træner</span>
+        </button>
+        <button class="menu-card">
+            <span>Venner</span>
+        </button>
+    </section>
+
+    <section class="traffic-card">
+        <div class="traffic-header">
+            <span>Travlhed i centeret</span>
+            <span class="traffic-label">Nu</span>
+        </div>
+
+        <div class="traffic-bar">
+            <div class="traffic-bar-fill"></div>
+        </div>
+
+        <button class="primary-btn unlock-btn">
+            Lås op
+        </button>
+    </section>
+</div>
+
+@code {
+    // Midlertidig hardcoded – senere kan den hentes fra backend
+    private string Username { get; set; } = "Bruger";
+}

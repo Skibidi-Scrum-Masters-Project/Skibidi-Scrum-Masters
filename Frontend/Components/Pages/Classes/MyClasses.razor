@@ -1,0 +1,60 @@
+@page "/classes"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+<div class="classes-screen">
+    <h2 class="classes-title">Mine hold</h2>
+    <p class="classes-subtitle">Se dine kommende holdbookinger.</p>
+
+    @if (!MyClassesList.Any())
+    {
+        <p class="classes-empty">Du har ingen bookede hold endnu.</p>
+    }
+    else
+    {
+        <div class="classes-list">
+            @foreach (var c in MyClassesList)
+            {
+                <div class="class-card">
+                    <div class="class-main">
+                        <p class="class-name">@c.Name</p>
+                        <p class="class-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
+                        <p class="class-location">@c.Location</p>
+                    </div>
+                    <div class="class-status-area">
+                        <span class="class-status">@c.Status</span>
+                        <button class="class-cancel">Afbryd</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <button class="primary-btn classes-cta" @onclick="GoToBook">
+        Book nyt hold
+    </button>
+</div>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private List<MyClassModel> MyClassesList = new()
+    {
+        new() { Name = "Bodypump", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)), Time = "17:00", Location = "Sal 1", Status = "Bekræftet" },
+        new() { Name = "Spinning", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(3)), Time = "19:30", Location = "Cykelsal", Status = "Bekræftet" },
+    };
+
+    private void GoToBook()
+    {
+        Nav.NavigateTo("/classes/book");
+    }
+
+    public class MyClassModel
+    {
+        public string Name { get; set; } = "";
+        public DateOnly Date { get; set; }
+        public string Time { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+}

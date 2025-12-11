@@ -1,0 +1,53 @@
+@page "/classes/book"
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+<div class="book-screen">
+    <h2 class="book-title">Book hold</h2>
+    <p class="book-subtitle">Vælg et hold du vil booke.</p>
+
+    <div class="book-list">
+        @foreach (var c in AvailableClasses)
+        {
+            <button class="book-card" @onclick="() => ChooseSeat(c.Id)">
+                <div class="book-main">
+                    <p class="book-name">@c.Name</p>
+                    <p class="book-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
+                    <p class="book-location">@c.Location</p>
+                </div>
+                <div class="book-extra">
+                    <p class="book-type">@c.Type</p>
+                    <p class="book-spots">@c.SpotsTaken/@c.SpotsTotal pladser</p>
+                </div>
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private List<ClassOption> AvailableClasses = new()
+    {
+        new() { Id = 1, Name = "Bodypump", Type = "Styrke", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)), Time = "17:00", Location = "Sal 1", SpotsTaken = 12, SpotsTotal = 20 },
+        new() { Id = 2, Name = "Spinning", Type = "Cardio", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)), Time = "18:30", Location = "Cykelsal", SpotsTaken = 8, SpotsTotal = 18 },
+        new() { Id = 3, Name = "Yoga", Type = "Mobility", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(2)), Time = "19:00", Location = "Sal 2", SpotsTaken = 5, SpotsTotal = 15 },
+    };
+
+    private void ChooseSeat(int id)
+    {
+        Nav.NavigateTo($"/classes/seat/{id}");
+    }
+
+    public class ClassOption
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "";
+        public DateOnly Date { get; set; }
+        public string Time { get; set; } = "";
+        public string Location { get; set; } = "";
+        public int SpotsTaken { get; set; }
+        public int SpotsTotal { get; set; }
+    }
+}

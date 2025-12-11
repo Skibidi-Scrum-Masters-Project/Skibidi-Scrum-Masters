@@ -1,0 +1,49 @@
+@page "/profile"
+@using FitLifeFitness.Components.Layout
+@layout EmptyLayout
+
+<div class="profile-screen">
+
+    <h2 class="profile-title">Min Profil</h2>
+
+    <div class="profile-card">
+        <div class="profile-avatar">
+            <span>@Initials</span>
+        </div>
+
+        <div class="profile-info">
+            <p><strong>Navn:</strong> @User.Name</p>
+            <p><strong>Email:</strong> @User.Email</p>
+            <p><strong>Medlems-ID:</strong> @User.MemberId</p>
+        </div>
+    </div>
+
+    <button class="edit-btn">Rediger profil</button>
+    <button class="logout-btn" @onclick="LogOut">Log ud</button>
+
+</div>
+
+@code {
+    private UserModel User = new()
+    {
+        Name = "Bruger Eksempel",
+        Email = "bruger@fitlife.dk",
+        MemberId = "FLF-2048"
+    };
+
+    private string Initials =>
+        string.Join("", User.Name.Split(" ").Select(x => x[0])).ToUpper();
+
+    private void LogOut()
+    {
+        // TODO: Auth logout når backend er klar
+        // NavigationManager.NavigateTo("/login");
+    }
+
+    public class UserModel
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string MemberId { get; set; } = "";
+    }
+}
