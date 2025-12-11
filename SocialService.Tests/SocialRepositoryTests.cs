@@ -1047,6 +1047,67 @@ public class SocialRepositoryTests
         Assert.AreEqual(newComment.CommentText, stored.Comments[0].CommentText);
         Assert.AreEqual(newComment.AuthorId, stored.Comments[0].AuthorId);
     }
+    
+    
+    //RemoveComment Test
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task RemoveCommentFromPost_WhenPostAndCommentExist_RemovesCommentAndReturnsUpdatedPost()
+    {
+        // Arrange
+        var postId = ObjectId.GenerateNewId().ToString();
+
+        var commentToRemove = new Comment
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = 1,
+            CommentDate = DateTime.UtcNow,
+            CommentText = "Delete me"
+        };
+
+        var otherComment = new Comment
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = 2,
+            CommentDate = DateTime.UtcNow,
+            CommentText = "Keep me"
+        };
+
+        var existingPost = new Post
+        {
+            Id = postId,
+            UserId = 1,
+            FitnessClassId = 2,
+            WorkoutId = 3,
+            PostTitle = "Title",
+            PostContent = "Content",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment> { commentToRemove, otherComment }
+        };
+
+        await _posts.InsertOneAsync(existingPost);
+
+        // Act
+        var result = await _repository.RemoveCommentFromPost(postId, commentToRemove.Id!);
+
+        // Assert på returværdi
+        Assert.IsNotNull(result);
+        Assert.AreEqual(postId, result.Id);
+        Assert.IsNotNull(result.Comments);
+        Assert.AreEqual(1, result.Comments.Count);
+        Assert.AreEqual(otherComment.Id, result.Comments[0].Id);
+
+        // Assert i databasen
+        var stored = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
+
+        Assert.IsNotNull(stored);
+        Assert.IsNotNull(stored.Comments);
+        Assert.AreEqual(1, stored.Comments.Count);
+        Assert.AreEqual(otherComment.Id, stored.Comments[0].Id);
+    }
+
 
 
 

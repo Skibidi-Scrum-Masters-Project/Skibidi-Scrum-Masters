@@ -1153,11 +1153,56 @@ public class SocialControllerTests
         var result = await _controller.AddACommentToPost(postId, inputComment);
 
         // Assert
-        Assert.IsNotNull(result, "Expected a Post to be returned");
-        Assert.AreSame(updatedPostFromRepo, result, "Controller should return the Post from the repository");
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+
+        var returnedPost = okResult.Value as Post;
+        Assert.IsNotNull(returnedPost, "Expected Post as value");
+        Assert.AreSame(updatedPostFromRepo, returnedPost, "Controller should return the Post from the repository");
 
         _mockRepository.Verify(
             r => r.AddCommentToPost(postId, inputComment),
+            Times.Once);
+    }
+
+    
+    //RemoveComment Test
+    
+    [TestMethod]
+    public async Task RemoveCommentFromPost_ShouldReturnOkAndCallRepository()
+    {
+        // Arrange
+        var postId = "post-123";
+        var commentId = "comment-456";
+
+        var updatedPost = new Post
+        {
+            Id = postId,
+            UserId = 1,
+            PostTitle = "Title",
+            PostContent = "Content",
+            Comments = new List<Comment>() // fx tom efter sletning
+        };
+
+        _mockRepository
+            .Setup(r => r.RemoveCommentFromPost(postId, commentId))
+            .ReturnsAsync(updatedPost);
+
+        // Act
+        var result = await _controller.RemoveCommentFromPost(postId, commentId);
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+
+        var returnedPost = okResult.Value as Post;
+        Assert.IsNotNull(returnedPost, "Expected Post as value");
+        Assert.AreSame(updatedPost, returnedPost, "Controller should return the Post from repository");
+
+        _mockRepository.Verify(
+            r => r.RemoveCommentFromPost(postId, commentId),
             Times.Once);
     }
 

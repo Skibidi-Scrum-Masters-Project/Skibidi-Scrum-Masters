@@ -298,6 +298,33 @@ public class SocialRepository : ISocialRepository
 
         return existingPost;
     }
+    
+    
+    public async Task<Post> RemoveCommentFromPost(string postId, string commentId)
+    {
+        var post = await _postCollection
+            .Find(p => p.Id == postId)
+            .FirstOrDefaultAsync();
+
+        if (post == null)
+        {
+            throw new  KeyNotFoundException("Post not found");
+        }
+        
+        var findComment = post.Comments.Any(c => c.Id == commentId);
+
+        if (!findComment)
+        {
+            throw new KeyNotFoundException("Comment not found");
+        }
+        
+        post.Comments.Remove(post.Comments.First(c => c.Id == commentId));
+        
+        await _postCollection.ReplaceOneAsync(p => p.Id == postId, post);
+
+
+        return post;
+    }
 
     
     

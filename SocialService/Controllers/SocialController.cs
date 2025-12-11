@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using SocialService.Models;
@@ -277,12 +278,36 @@ public class SocialController : ControllerBase
 
 
     [HttpPut("AddACommentToPost/{postId}")]
-    public async Task<Post> AddACommentToPost(string postId, [FromBody]Comment comment)
+    public async Task<ActionResult<Post>> AddACommentToPost(string postId, [FromBody]Comment comment)
     {
-        var addedComment = await _socialRepository.AddCommentToPost(postId, comment);
+        try
+        {
+            var addedComment = await _socialRepository.AddCommentToPost(postId, comment);
         
-        return addedComment;
+            return Ok(addedComment);
+        }
+
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
+
+
+    [HttpDelete("RemoveACommentFromPost/{postId}/{commentId}")]
+    public async Task<ActionResult<Post>> RemoveCommentFromPost(string postId, string commentId)
+    {
+        try
+        {
+            var updatedPost = await _socialRepository.RemoveCommentFromPost(postId, commentId);
+            return Ok(updatedPost);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
 
 
 }
