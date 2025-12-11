@@ -229,4 +229,23 @@ public class SocialRepository : ISocialRepository
         
     }
 
+    
+    
+    public async Task<Post> RemoveAPost(string postId)
+    {
+        var existingPost = await _postCollection
+            .Find(p => p.Id == postId)
+            .FirstOrDefaultAsync();
+
+        if (existingPost == null)
+        {
+            throw new KeyNotFoundException("Post not found");
+        }
+        
+        await _postCollection.DeleteOneAsync(p => p.Id == postId);
+        
+        return existingPost;
+    }
+    
+    
 }

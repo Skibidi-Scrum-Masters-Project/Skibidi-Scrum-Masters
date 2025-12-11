@@ -232,5 +232,12 @@ public class SocialController : ControllerBase
         return createdPost;
     }
 
+
+    [HttpDelete("RemoveAPost/{postId}")]
+    public Task<Post> RemoveAPost(string postId)
+    {
+        return _socialRepository.RemoveAPost(postId);
+    }
+
 }
 
