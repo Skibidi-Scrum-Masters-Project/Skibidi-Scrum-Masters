@@ -919,7 +919,7 @@ public class SocialControllerTests
         var result = await controller.PostAPost(inputPost);
 
         // Assert
-        Assert.Equals(createdPost, result);
+        Assert.AreSame(createdPost, result);
         repoMock.Verify(r => r.PostAPost(inputPost), Times.Once);
     }
 }
