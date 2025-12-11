@@ -246,6 +246,40 @@ public class SocialRepository : ISocialRepository
         
         return existingPost;
     }
-    
+
+
+    public async Task<Post> EditAPost(Post post, int currentUserId)
+    {
+        var filter = Builders<Post>.Filter.And(
+            Builders<Post>.Filter.Eq(p => p.Id, post.Id),
+            Builders<Post>.Filter.Eq(p => p.UserId, currentUserId)
+        );
+
+        var updateDefinition = Builders<Post>.Update
+            .Set(p => p.PostTitle, post.PostTitle)
+            .Set(p => p.PostContent, post.PostContent)
+            .Set(p => p.FitnessClassId, post.FitnessClassId)
+            .Set(p => p.WorkoutId, post.WorkoutId);
+
+        var options = new FindOneAndUpdateOptions<Post>
+        {
+            ReturnDocument = ReturnDocument.After
+        };
+
+        var updated = await _postCollection.FindOneAndUpdateAsync(
+            filter,
+            updateDefinition,
+            options
+        );
+
+        if (updated == null)
+        {
+            throw new KeyNotFoundException("Post not found or access denied");
+        }
+
+        return updated;
+    }
+
+
     
 }

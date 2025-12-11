@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using SocialService.Models;
 using SocialService.Repositories;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SocialService.Controllers;
 
@@ -238,6 +240,44 @@ public class SocialController : ControllerBase
     {
         return _socialRepository.RemoveAPost(postId);
     }
+
+
+    
+
+    
+    [Authorize]
+    [HttpPut("EditAPost")]
+    public async Task<ActionResult<Post>> EditAPost([FromBody] Post post)
+    {
+        // Hent current user id fra JWT-claims
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim))
+        {
+            return Unauthorized();
+        }
+
+        //Prøver at ændre userIdClaim til int og give currentUserId den int, som værdi.
+        if (!int.TryParse(userIdClaim, out var currentUserId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            // Sørg evt. for at UserId på posten matcher current user (klienten ignoreres)
+            post.UserId = currentUserId;
+
+            var editedPost = await _socialRepository.EditAPost(post, currentUserId);
+
+            return Ok(editedPost);
+        }
+        catch (KeyNotFoundException)
+        {
+            // Enten fandtes posten ikke, eller også var den ikke ejet af brugeren
+            return NotFound();
+        }
+    }
+
 
 }
 
