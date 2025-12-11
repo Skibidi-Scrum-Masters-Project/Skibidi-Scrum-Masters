@@ -862,6 +862,140 @@ public class SocialRepositoryTests
             await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
                 async () => await _repository.RemoveAPost(nonExistingPostId));
         }
+        
+            // EditAPost
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task EditAPost_WhenPostExistsAndBelongsToUser_ShouldUpdateAndReturnUpdatedPost()
+    {
+        // Arrange
+        var postId = ObjectId.GenerateNewId().ToString();
+        var userId = 42;
+
+        var existingPost = new Post
+        {
+            Id = postId,
+            UserId = userId,
+            FitnessClassId = 1,
+            WorkoutId = 2,
+            PostTitle = "Old title",
+            PostContent = "Old content",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment>()
+        };
+
+        await _posts.InsertOneAsync(existingPost);
+
+        var updatedInput = new Post
+        {
+            Id = postId,
+            UserId = 999, // bliver ikke brugt direkte, currentUserId styrer filteret
+            FitnessClassId = 10,
+            WorkoutId = 20,
+            PostTitle = "New title",
+            PostContent = "New content"
+        };
+
+        // Act
+        var result = await _repository.EditAPost(updatedInput, userId);
+
+        // Assert - returværdi
+        Assert.IsNotNull(result);
+        Assert.AreEqual(postId, result.Id);
+        Assert.AreEqual(userId, result.UserId);
+        Assert.AreEqual(updatedInput.FitnessClassId, result.FitnessClassId);
+        Assert.AreEqual(updatedInput.WorkoutId, result.WorkoutId);
+        Assert.AreEqual(updatedInput.PostTitle, result.PostTitle);
+        Assert.AreEqual(updatedInput.PostContent, result.PostContent);
+
+        // Tjek at den faktisk er opdateret i databasen
+        var stored = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
+
+        Assert.IsNotNull(stored);
+        Assert.AreEqual(userId, stored.UserId);
+        Assert.AreEqual(updatedInput.FitnessClassId, stored.FitnessClassId);
+        Assert.AreEqual(updatedInput.WorkoutId, stored.WorkoutId);
+        Assert.AreEqual(updatedInput.PostTitle, stored.PostTitle);
+        Assert.AreEqual(updatedInput.PostContent, stored.PostContent);
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task EditAPost_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
+    {
+        // Arrange
+        var nonExistingPostId = ObjectId.GenerateNewId().ToString();
+        var userId = 42;
+
+        var input = new Post
+        {
+            Id = nonExistingPostId,
+            PostTitle = "Does not matter",
+            PostContent = "Does not matter"
+        };
+
+        var existing = await _posts
+            .Find(p => p.Id == nonExistingPostId)
+            .SingleOrDefaultAsync();
+        Assert.IsNull(existing, "Der må ikke eksistere en post med dette id i testen");
+
+        // Act + Assert
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+            async () => await _repository.EditAPost(input, userId));
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task EditAPost_WhenPostBelongsToOtherUser_ShouldThrowKeyNotFoundException_AndNotChangePost()
+    {
+        // Arrange
+        var postId = ObjectId.GenerateNewId().ToString();
+        var ownerUserId = 1;
+        var otherUserId = 2;
+
+        var existingPost = new Post
+        {
+            Id = postId,
+            UserId = ownerUserId,
+            FitnessClassId = 1,
+            WorkoutId = 2,
+            PostTitle = "Original title",
+            PostContent = "Original content",
+            PostDate = new DateTime(2020, 1, 1)
+        };
+
+        await _posts.InsertOneAsync(existingPost);
+
+        var attemptedUpdate = new Post
+        {
+            Id = postId,
+            UserId = otherUserId, // forsøger at "snyde", men filter bruger currentUserId
+            FitnessClassId = 99,
+            WorkoutId = 88,
+            PostTitle = "Hacked title",
+            PostContent = "Hacked content"
+        };
+
+        // Act + Assert
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+            async () => await _repository.EditAPost(attemptedUpdate, otherUserId));
+
+        // Posten skal stadig være uændret i databasen
+        var stored = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
+
+        Assert.IsNotNull(stored);
+        Assert.AreEqual(existingPost.UserId, stored.UserId);
+        Assert.AreEqual(existingPost.FitnessClassId, stored.FitnessClassId);
+        Assert.AreEqual(existingPost.WorkoutId, stored.WorkoutId);
+        Assert.AreEqual(existingPost.PostTitle, stored.PostTitle);
+        Assert.AreEqual(existingPost.PostContent, stored.PostContent);
+    }
+
 
 
 }

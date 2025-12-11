@@ -8,6 +8,7 @@ using SocialService.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace SocialService.Tests;
@@ -23,6 +24,27 @@ public class SocialControllerTests
     {
         _mockRepository = new Mock<ISocialRepository>();
         _controller = new SocialController(_mockRepository.Object);
+    }
+    
+    private void SetUserOnController(string? userIdClaim)
+    {
+        var claims = new List<Claim>();
+
+        if (userIdClaim != null)
+        {
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, userIdClaim));
+        }
+
+        var identity = new ClaimsIdentity(claims, "TestAuthType");
+        var user = new ClaimsPrincipal(identity);
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = user
+            }
+        };
     }
 
     // GetUserFriends
@@ -955,6 +977,146 @@ public class SocialControllerTests
         Assert.AreSame(removedPost, result, "Controller should return the Post from the repository");
 
         _mockRepository.Verify(r => r.RemoveAPost(postId), Times.Once);
+    }
+    
+    
+        [TestMethod]
+    public async Task EditAPost_ShouldReturnUnauthorized_WhenNoUserIdClaim()
+    {
+        // Arrange
+        SetUserOnController(null);
+
+        var post = new Post
+        {
+            Id = "post-1",
+            PostTitle = "Title",
+            PostContent = "Content"
+        };
+
+        // Act
+        var result = await _controller.EditAPost(post);
+
+        // Assert
+        var unauthorized = result.Result as UnauthorizedResult;
+        Assert.IsNotNull(unauthorized, "Expected UnauthorizedResult");
+        Assert.AreEqual(StatusCodes.Status401Unauthorized, unauthorized.StatusCode);
+
+        _mockRepository.Verify(
+            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    public async Task EditAPost_ShouldReturnUnauthorized_WhenUserIdClaimIsNotInt()
+    {
+        // Arrange
+        SetUserOnController("not-an-int");
+
+        var post = new Post
+        {
+            Id = "post-1",
+            PostTitle = "Title",
+            PostContent = "Content"
+        };
+
+        // Act
+        var result = await _controller.EditAPost(post);
+
+        // Assert
+        var unauthorized = result.Result as UnauthorizedResult;
+        Assert.IsNotNull(unauthorized, "Expected UnauthorizedResult");
+        Assert.AreEqual(StatusCodes.Status401Unauthorized, unauthorized.StatusCode);
+
+        _mockRepository.Verify(
+            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    public async Task EditAPost_ShouldCallRepositoryWithCurrentUserId_AndReturnOkWithEditedPost()
+    {
+        // Arrange
+        var userId = 42;
+        SetUserOnController(userId.ToString());
+
+        var inputPost = new Post
+        {
+            Id = "post-1",
+            UserId = 999, // bliver ignorert og overskrevet i controlleren
+            PostTitle = "Old title",
+            PostContent = "Old content",
+            FitnessClassId = 1,
+            WorkoutId = 2
+        };
+
+        var editedPostFromRepo = new Post
+        {
+            Id = "post-1",
+            UserId = userId,
+            PostTitle = "New title",
+            PostContent = "New content",
+            FitnessClassId = 3,
+            WorkoutId = 4
+        };
+
+        _mockRepository
+            .Setup(r => r.EditAPost(It.IsAny<Post>(), userId))
+            .ReturnsAsync(editedPostFromRepo);
+
+        // Act
+        var result = await _controller.EditAPost(inputPost);
+
+        // Assert
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+
+        var post = okResult.Value as Post;
+        Assert.IsNotNull(post, "Expected Post as value");
+
+        Assert.AreEqual(editedPostFromRepo.Id, post.Id);
+        Assert.AreEqual(editedPostFromRepo.UserId, post.UserId);
+        Assert.AreEqual(editedPostFromRepo.PostTitle, post.PostTitle);
+        Assert.AreEqual(editedPostFromRepo.PostContent, post.PostContent);
+        Assert.AreEqual(editedPostFromRepo.FitnessClassId, post.FitnessClassId);
+        Assert.AreEqual(editedPostFromRepo.WorkoutId, post.WorkoutId);
+
+        _mockRepository.Verify(
+            r => r.EditAPost(
+                It.Is<Post>(p =>
+                    p.Id == inputPost.Id &&
+                    p.UserId == userId && // vigtigt: controlleren sætter UserId = currentUserId
+                    p.PostTitle == inputPost.PostTitle &&
+                    p.PostContent == inputPost.PostContent),
+                userId),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task EditAPost_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
+    {
+        // Arrange
+        var userId = 42;
+        SetUserOnController(userId.ToString());
+
+        var inputPost = new Post
+        {
+            Id = "post-1",
+            PostTitle = "Title",
+            PostContent = "Content"
+        };
+
+        _mockRepository
+            .Setup(r => r.EditAPost(It.IsAny<Post>(), userId))
+            .ThrowsAsync(new KeyNotFoundException("Post not found or access denied"));
+
+        // Act
+        var result = await _controller.EditAPost(inputPost);
+
+        // Assert
+        var notFound = result.Result as NotFoundResult;
+        Assert.IsNotNull(notFound, "Expected NotFoundResult");
+        Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
 
 }
