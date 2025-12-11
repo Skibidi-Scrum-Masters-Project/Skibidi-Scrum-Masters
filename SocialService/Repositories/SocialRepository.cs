@@ -17,13 +17,13 @@ public class SocialRepository : ISocialRepository
         _friendshipCollection = database.GetCollection<Friendship>("Friendships"); 
     }
 
-    public async Task<Friendship> SendFriendRequestAsync(int senderId, int receiverId)
+    public async Task<Friendship> SendFriendRequestAsync(int userId, int receiverId)
     {
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
         var existingFriendship = await _friendshipCollection
-            .Find(f => (f.SenderId == senderId && f.ReceiverId == receiverId)
-                                || (f.ReceiverId == senderId && f.SenderId == receiverId))
+            .Find(f => (f.SenderId == userId && f.ReceiverId == receiverId)
+                                || (f.ReceiverId == userId && f.SenderId == receiverId))
             .FirstOrDefaultAsync();
 
         
@@ -53,7 +53,7 @@ public class SocialRepository : ISocialRepository
         
         var friendship = new Friendship
             {
-                SenderId = senderId,
+                SenderId = userId,
                 ReceiverId = receiverId,
                 FriendShipStatus = FriendshipStatus.Pending,
             };
