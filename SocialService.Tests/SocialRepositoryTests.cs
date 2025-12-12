@@ -1320,5 +1320,124 @@ public class SocialRepositoryTests
         var count = await _posts.Find(p => p.SourceEventId == eventId).CountDocumentsAsync();
         Assert.AreEqual(1, (int)count, "Expected only one post for the same SourceEventId");
     }
+    
+    [TestMethod]
+[DoNotParallelize]
+public async Task SeeAllFriendsPosts_WhenUserHasAcceptedFriends_ShouldReturnFriendsAndOwnPosts_SortedByPostDateDesc()
+{
+    var userId = "user-1";
+
+    // friendships:
+    // accepted friend: user-2, user-3
+    // pending friend: user-4 (skal ikke tælle)
+    await _friendships.InsertManyAsync(new[]
+    {
+        new Friendship
+        {
+            SenderId = userId,
+            ReceiverId = "user-2",
+            FriendShipStatus = FriendshipStatus.Accepted
+        },
+        new Friendship
+        {
+            SenderId = "user-3",
+            ReceiverId = userId,
+            FriendShipStatus = FriendshipStatus.Accepted
+        },
+        new Friendship
+        {
+            SenderId = userId,
+            ReceiverId = "user-4",
+            FriendShipStatus = FriendshipStatus.Pending
+        }
+    });
+
+    // posts:
+    var ownPostOld = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = userId,
+        PostTitle = "own old",
+        PostContent = "own old",
+        PostDate = new DateTime(2020, 1, 1),
+        Comments = new List<Comment>()
+    };
+
+    var ownPostNew = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = userId,
+        PostTitle = "own new",
+        PostContent = "own new",
+        PostDate = new DateTime(2020, 1, 5),
+        Comments = new List<Comment>()
+    };
+
+    var friend2Post = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = "user-2",
+        PostTitle = "friend2",
+        PostContent = "friend2",
+        PostDate = new DateTime(2020, 1, 3),
+        Comments = new List<Comment>()
+    };
+
+    var friend3Post = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = "user-3",
+        PostTitle = "friend3",
+        PostContent = "friend3",
+        PostDate = new DateTime(2020, 1, 4),
+        Comments = new List<Comment>()
+    };
+
+    var pendingFriendPost = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = "user-4",
+        PostTitle = "pending friend",
+        PostContent = "pending friend",
+        PostDate = new DateTime(2020, 1, 6),
+        Comments = new List<Comment>()
+    };
+
+    var nonFriendPost = new Post
+    {
+        Id = ObjectId.GenerateNewId().ToString(),
+        UserId = "user-999",
+        PostTitle = "non friend",
+        PostContent = "non friend",
+        PostDate = new DateTime(2020, 1, 7),
+        Comments = new List<Comment>()
+    };
+
+    await _posts.InsertManyAsync(new[]
+    {
+        ownPostOld, ownPostNew, friend2Post, friend3Post, pendingFriendPost, nonFriendPost
+    });
+
+    // act
+    var result = await _repository.SeeAllFriendsPosts(userId);
+    var list = result.ToList();
+
+    // assert: kun egne + accepterede venner
+    Assert.AreEqual(4, list.Count, "Expected posts from user-1, user-2 and user-3 only");
+
+    Assert.IsTrue(list.Any(p => p.Id == ownPostOld.Id));
+    Assert.IsTrue(list.Any(p => p.Id == ownPostNew.Id));
+    Assert.IsTrue(list.Any(p => p.Id == friend2Post.Id));
+    Assert.IsTrue(list.Any(p => p.Id == friend3Post.Id));
+
+    Assert.IsFalse(list.Any(p => p.Id == pendingFriendPost.Id), "Pending friend posts must not be included");
+    Assert.IsFalse(list.Any(p => p.Id == nonFriendPost.Id), "Non-friend posts must not be included");
+
+    // assert: sorteret nyeste først
+    var orderedDates = list.Select(p => p.PostDate).ToList();
+    var expected = orderedDates.OrderByDescending(d => d).ToList();
+    CollectionAssert.AreEqual(expected, orderedDates, "Posts must be sorted by PostDate desc");
+}
+
 
 }

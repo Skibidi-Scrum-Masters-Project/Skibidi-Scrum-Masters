@@ -461,5 +461,31 @@ public class SocialRepository : ISocialRepository
     }
 
 
+    public async Task<IEnumerable<Post>> SeeAllFriendsPosts(string userId)
+    {
+         //Hent accepterede friendships
+        var friendships = await GetAllFriends(userId);
+
+        //// Udled friend ids (den modsatte af userId)
+        var friendIds = friendships
+            .Where(f => f != null)
+            .Select(f => f!.SenderId == userId ? f.ReceiverId : f.SenderId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+        
+        friendIds.Add(userId);
+
+        // 3) Find posts for alle friendIds
+        var postsWithFriendIds = await _postCollection.FindAsync(p => friendIds.Contains(p.UserId));
+
+        // 4) (valgfrit) sortér
+        var posts = await postsWithFriendIds.ToListAsync();
+        return posts
+            .OrderByDescending(p => p.PostDate); 
+    }
+
+
+
 
 }
