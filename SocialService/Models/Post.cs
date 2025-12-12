@@ -42,10 +42,6 @@ public enum PostType
 
 public class WorkoutStatsSnapshot
 {
-    public double? DistanceKm { get; set; }
     public int? DurationSeconds { get; set; }
     public int? Calories { get; set; }
-    public int? AverageHeartRate { get; set; }
-    public int? MaxHeartRate { get; set; }
-    public double? AvgPaceMinPerKm { get; set; }
 }

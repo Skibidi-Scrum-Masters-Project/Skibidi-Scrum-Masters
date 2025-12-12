@@ -62,5 +62,8 @@ public interface ISocialRepository
     
     //Metode til at se alle post for user
     Task<IEnumerable<Post>> SeeAllPostsForUser(string userId);
+    
+    Task<string?> CreateDraftFromClassWorkoutCompletedAsync(ClassResultEventDto metric);
+
 
 }

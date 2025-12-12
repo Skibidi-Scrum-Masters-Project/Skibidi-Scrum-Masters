@@ -395,5 +395,35 @@ public class SocialRepository : ISocialRepository
         return posts;
 
     }
+    
+    
+    public async Task<string?> CreateDraftFromClassWorkoutCompletedAsync(ClassResultEventDto metric)
+    {
+        // dedupe
+        var already = await _postCollection.Find(p => p.SourceEventId == metric.EventId).AnyAsync();
+        if (already) return null;
+
+        var draft = new Post
+        {
+            UserId = metric.UserId,
+            FitnessClassId = metric.ClassId,
+            WorkoutId = metric.ClassId,
+            PostDate = DateTime.UtcNow,
+            PostTitle = "Class completed",
+            PostContent = $"Duration: {metric.DurationMin} min. Calories: {metric.CaloriesBurned:0}. Watt: {metric.Watt:0}",
+            Type = PostType.Workout,
+            IsDraft = true,
+            SourceEventId = metric.EventId,
+            WorkoutStats = new WorkoutStatsSnapshot
+            {
+                DurationSeconds = metric.DurationMin * 60,
+                Calories = (int?)Math.Round(metric.CaloriesBurned)
+            }
+        };
+
+        await _postCollection.InsertOneAsync(draft);
+        return draft.Id;
+    }
+
 
 }

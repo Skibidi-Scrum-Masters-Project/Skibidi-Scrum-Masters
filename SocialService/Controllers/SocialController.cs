@@ -17,10 +17,9 @@ public class SocialController : ControllerBase
     private readonly IMongoCollection<Post> _posts;
 
 
-    public SocialController(ISocialRepository socialRepository, IMongoDatabase db)
+    public SocialController(ISocialRepository socialRepository)
     {
         _socialRepository = socialRepository;
-        _posts = db.GetCollection<Post>("Posts");
     }
     
     [HttpPost("/internal/events/class-workout-completed")]
@@ -31,41 +30,14 @@ public class SocialController : ControllerBase
             string.IsNullOrWhiteSpace(metric.ClassId))
             return BadRequest("Invalid payload.");
 
-        // dedupe
-        var already = await _posts.Find(p => p.SourceEventId == metric.EventId).AnyAsync();
-        if (already) return Ok();
+        var draftId = await _socialRepository.CreateDraftFromClassWorkoutCompletedAsync(metric);
 
-        var draft = new Post
-        {
-            UserId = metric.UserId,
-            FitnessClassId = metric.ClassId,
-            WorkoutId = metric.ClassId,
-            PostDate = DateTime.UtcNow,
-            PostTitle = "Class completed",
-            PostContent = $"Duration: {metric.DurationMin} min. Calories: {metric.CaloriesBurned:0}. Watt: {metric.Watt:0}",
-            Type = PostType.Workout,
-            IsDraft = true,
-            SourceEventId = metric.EventId,
-            WorkoutStats = new WorkoutStatsSnapshot
-            {
-                DurationSeconds = metric.DurationMin * 60,
-                Calories = (int?)Math.Round(metric.CaloriesBurned)
-            }
-        };
+        // Hvis dedupe ramte, kan du stadig returnere Ok()
+        if (draftId == null) return Ok();
 
-        await _posts.InsertOneAsync(draft);
-        return Ok(new { draftId = draft.Id });
+        return Ok(new { draftId });
     }
-
-
-
-    [HttpGet("user/{userId}")]
-    public ActionResult<IEnumerable<Friend>> GetUserFriends(string userId)
-    {
-        // TBA: Implement get user's friends
-        return Ok(new { message = $"Get friends for user {userId} - TBA" });
-    }
-
+    
     [HttpPost("{userId}/sendFriendrequest/{receiverId}")]
     public async Task<ActionResult<Friendship>> SendFriendRequestAsync(string userId, string receiverId)
     {

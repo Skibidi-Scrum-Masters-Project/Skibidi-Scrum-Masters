@@ -1275,4 +1275,50 @@ public class SocialRepositoryTests
         Assert.IsNotNull(result, "Method should not return null");
         Assert.AreEqual(0, list.Count, "Expected no posts for this user");
     }
+    
+    
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task CreateDraftFromClassWorkoutCompletedAsync_WhenCalledTwiceWithSameEventId_ShouldInsertOnceAndReturnNullSecondTime()
+    {
+        var eventId = Guid.NewGuid().ToString();
+
+        var dto = new ClassResultEventDto(
+            EventId: eventId,
+            ClassId: "class-1",
+            UserId: "user-1",
+            CaloriesBurned: 123.4,
+            Watt: 250.0,
+            DurationMin: 60,
+            Date: DateTime.UtcNow
+        );
+
+        // first call should create draft and return id
+        var firstDraftId = await _repository.CreateDraftFromClassWorkoutCompletedAsync(dto);
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(firstDraftId), "Expected a draft id on first call");
+
+        var inserted = await _posts.Find(p => p.SourceEventId == eventId).FirstOrDefaultAsync();
+
+        Assert.IsNotNull(inserted, "Expected a Post inserted in MongoDB");
+        Assert.AreEqual(dto.UserId, inserted.UserId);
+        Assert.AreEqual(dto.ClassId, inserted.FitnessClassId);
+        Assert.AreEqual(dto.ClassId, inserted.WorkoutId);
+        Assert.AreEqual(eventId, inserted.SourceEventId);
+        Assert.IsTrue(inserted.IsDraft, "Expected IsDraft = true");
+        Assert.AreEqual(PostType.Workout, inserted.Type);
+
+        Assert.IsNotNull(inserted.WorkoutStats, "Expected WorkoutStatsSnapshot to be set");
+        Assert.AreEqual(dto.DurationMin * 60, inserted.WorkoutStats.DurationSeconds);
+        Assert.AreEqual((int)Math.Round(dto.CaloriesBurned), inserted.WorkoutStats.Calories);
+
+        // second call should dedupe and return null
+        var secondDraftId = await _repository.CreateDraftFromClassWorkoutCompletedAsync(dto);
+
+        Assert.IsNull(secondDraftId, "Expected null on second call because of dedupe");
+
+        var count = await _posts.Find(p => p.SourceEventId == eventId).CountDocumentsAsync();
+        Assert.AreEqual(1, (int)count, "Expected only one post for the same SourceEventId");
+    }
+
 }
