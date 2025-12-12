@@ -348,6 +348,15 @@ public class SocialController : ControllerBase
     }
 
 
+    [HttpGet("SeeAllDraftPostsForUser/{userId}")]
+    public async Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId)
+    {
+        var listOfDraftPosts = await _socialRepository.SeeAllDraftPostsForUser(userId);
+
+        return listOfDraftPosts;
+    }
+
+
 
 }
 
