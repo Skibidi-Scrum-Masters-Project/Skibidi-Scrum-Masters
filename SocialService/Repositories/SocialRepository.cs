@@ -20,7 +20,7 @@ public class SocialRepository : ISocialRepository
         _postCollection =  database.GetCollection<Post>("Posts");
     }
 
-    public async Task<Friendship> SendFriendRequestAsync(int userId, int receiverId)
+    public async Task<Friendship> SendFriendRequestAsync(string userId, string receiverId)
     {
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
@@ -66,7 +66,7 @@ public class SocialRepository : ISocialRepository
 
     }
     
-    public async Task<Friendship> DeclineFriendRequestAsync(int userId, int receiverId)
+    public async Task<Friendship> DeclineFriendRequestAsync(string userId, string receiverId)
     {
 
         //Vi tjekker for, at se om de har en aktiv friendrequest.
@@ -98,7 +98,7 @@ public class SocialRepository : ISocialRepository
     }
 
 
-    public async Task<IEnumerable<Friendship?>> GetAllFriends(int userId)
+    public async Task<IEnumerable<Friendship?>> GetAllFriends(string userId)
     {
         var findFriendsForUser = await _friendshipCollection
             .FindAsync(f => 
@@ -108,7 +108,7 @@ public class SocialRepository : ISocialRepository
         return await findFriendsForUser.ToListAsync();
     }
 
-    public async Task<Friendship?> GetFriendById(int userId, int receiverId)
+    public async Task<Friendship?> GetFriendById(string userId, string receiverId)
     {
         
         var findFriendForUser = await _friendshipCollection
@@ -117,7 +117,7 @@ public class SocialRepository : ISocialRepository
         return await findFriendForUser.SingleOrDefaultAsync();
     }
 
-    public async Task<Friendship> CancelFriendRequest(int userId, int receiverId)
+    public async Task<Friendship> CancelFriendRequest(string userId, string receiverId)
     {
         var existingFriendshipRequest = await _friendshipCollection
             .Find(f => f.SenderId == userId 
@@ -147,7 +147,7 @@ public class SocialRepository : ISocialRepository
         return existingFriendshipRequest;
     }
 
-    public async Task<IEnumerable<Friendship>?> GetOutgoingFriendRequestsAsync(int userId)
+    public async Task<IEnumerable<Friendship>?> GetOutgoingFriendRequestsAsync(string userId)
     {
         var findFriendRequestForUser = await _friendshipCollection
             .Find(f => f.SenderId == userId 
@@ -158,7 +158,7 @@ public class SocialRepository : ISocialRepository
     }
     
     
-    public async Task<IEnumerable<Friendship>?> GetAllIncomingFriendRequests(int userId)
+    public async Task<IEnumerable<Friendship>?> GetAllIncomingFriendRequests(string userId)
     {
         return await _friendshipCollection
             .Find(f => f.ReceiverId == userId 
@@ -168,7 +168,7 @@ public class SocialRepository : ISocialRepository
 
 
 
-    public async Task<Friendship?> AcceptFriendRequest(int senderId, int receiverId)
+    public async Task<Friendship?> AcceptFriendRequest(string senderId, string receiverId)
     {
         // 1. Find venskabet uanset status
         var existingFriendshipRequest = await _friendshipCollection
@@ -248,7 +248,7 @@ public class SocialRepository : ISocialRepository
     }
 
 
-    public async Task<Post> EditAPost(Post post, int currentUserId)
+    public async Task<Post> EditAPost(Post post, string currentUserId)
     {
         var filter = Builders<Post>.Filter.And(
             Builders<Post>.Filter.Eq(p => p.Id, post.Id),
@@ -386,7 +386,7 @@ public class SocialRepository : ISocialRepository
         return post?.Comments ?? Enumerable.Empty<Comment>();
     }
 
-    public async Task<IEnumerable<Post>> SeeAllPostsForUser(int userId)
+    public async Task<IEnumerable<Post>> SeeAllPostsForUser(string userId)
     {
         var posts = await _postCollection
             .Find(p => p.UserId == userId)
@@ -395,5 +395,35 @@ public class SocialRepository : ISocialRepository
         return posts;
 
     }
+    
+    
+    public async Task<string?> CreateDraftFromClassWorkoutCompletedAsync(ClassResultEventDto metric)
+    {
+        // dedupe
+        var already = await _postCollection.Find(p => p.SourceEventId == metric.EventId).AnyAsync();
+        if (already) return null;
+
+        var draft = new Post
+        {
+            UserId = metric.UserId,
+            FitnessClassId = metric.ClassId,
+            WorkoutId = metric.ClassId,
+            PostDate = DateTime.UtcNow,
+            PostTitle = "Class completed",
+            PostContent = $"Duration: {metric.DurationMin} min. Calories: {metric.CaloriesBurned:0}. Watt: {metric.Watt:0}",
+            Type = PostType.Workout,
+            IsDraft = true,
+            SourceEventId = metric.EventId,
+            WorkoutStats = new WorkoutStatsSnapshot
+            {
+                DurationSeconds = metric.DurationMin * 60,
+                Calories = (int?)Math.Round(metric.CaloriesBurned)
+            }
+        };
+
+        await _postCollection.InsertOneAsync(draft);
+        return draft.Id;
+    }
+
 
 }

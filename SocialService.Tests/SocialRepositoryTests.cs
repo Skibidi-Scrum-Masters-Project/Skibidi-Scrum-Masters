@@ -17,7 +17,7 @@ public class SocialRepositoryTests
     private static MongoDbRunner _runner = null!;
     private IMongoDatabase _database = null!;
     private SocialRepository _repository = null!;
-    
+
     private IMongoCollection<Friendship> _friendships = null!;
     private IMongoCollection<Post> _posts = null!;
 
@@ -38,7 +38,7 @@ public class SocialRepositoryTests
 
         _friendships = _database.GetCollection<Friendship>("Friendships");
         _posts = _database.GetCollection<Post>("Posts");
-        
+
         _repository = new SocialRepository(_database);
     }
 
@@ -54,14 +54,11 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task SendFriendRequestAsync_WhenNoExistingFriendship_ShouldCreatePendingRequest()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
-        // Act
         var result = await _repository.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(userId, result.SenderId);
         Assert.AreEqual(receiverId, result.ReceiverId);
@@ -79,9 +76,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task SendFriendRequestAsync_WhenPendingExistsSameDirection_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var pending = new Friendship
         {
@@ -92,7 +88,6 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(pending);
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.SendFriendRequestAsync(userId, receiverId));
     }
@@ -101,9 +96,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task SendFriendRequestAsync_WhenPendingExistsOppositeDirection_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var pending = new Friendship
         {
@@ -114,7 +108,6 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(pending);
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.SendFriendRequestAsync(userId, receiverId));
     }
@@ -123,9 +116,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task SendFriendRequestAsync_WhenExistingDeclined_ShouldUpdateToPending()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var declined = new Friendship
         {
@@ -136,10 +128,8 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(declined);
 
-        // Act
         var result = await _repository.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.Pending, result.FriendShipStatus);
 
@@ -155,9 +145,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task SendFriendRequestAsync_WhenExistingAccepted_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var accepted = new Friendship
         {
@@ -168,7 +157,6 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(accepted);
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.SendFriendRequestAsync(userId, receiverId));
     }
@@ -179,9 +167,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task DeclineFriendRequestAsync_WhenPendingExists_ShouldUpdateStatusToDeclined()
     {
-        // Arrange
-        var senderId = 1;
-        var receiverId = 2;
+        var senderId = "user-1";
+        var receiverId = "user-2";
 
         var pending = new Friendship
         {
@@ -192,10 +179,9 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(pending);
 
-        // Act
+        // bemærk: du kalder med (receiverId, senderId) i din test
         var result = await _repository.DeclineFriendRequestAsync(receiverId, senderId);
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.Declined, result.FriendShipStatus);
 
@@ -211,11 +197,9 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task DeclineFriendRequestAsync_WhenNoPendingExists_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.DeclineFriendRequestAsync(userId, receiverId));
     }
@@ -224,9 +208,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task DeclineFriendRequestAsync_WhenStatusNotPending_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var senderId = 1;
-        var receiverId = 2;
+        var senderId = "user-1";
+        var receiverId = "user-2";
 
         var accepted = new Friendship
         {
@@ -237,7 +220,6 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(accepted);
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.DeclineFriendRequestAsync(receiverId, senderId));
     }
@@ -248,19 +230,18 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetAllFriends_WhenMultipleStatuses_ShouldOnlyReturnAcceptedForUser()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         var acceptedAsSender = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 2,
+            ReceiverId = "user-2",
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
         var acceptedAsReceiver = new Friendship
         {
-            SenderId = 3,
+            SenderId = "user-3",
             ReceiverId = userId,
             FriendShipStatus = FriendshipStatus.Accepted
         };
@@ -268,21 +249,21 @@ public class SocialRepositoryTests
         var pending = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 4,
+            ReceiverId = "user-4",
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var declined = new Friendship
         {
-            SenderId = 5,
+            SenderId = "user-5",
             ReceiverId = userId,
             FriendShipStatus = FriendshipStatus.Declined
         };
 
         var otherUser = new Friendship
         {
-            SenderId = 10,
-            ReceiverId = 11,
+            SenderId = "user-10",
+            ReceiverId = "user-11",
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
@@ -295,11 +276,9 @@ public class SocialRepositoryTests
             otherUser
         });
 
-        // Act
         var result = await _repository.GetAllFriends(userId);
         var list = result.ToList();
 
-        // Assert
         Assert.AreEqual(2, list.Count);
         Assert.IsTrue(list.All(f => f.FriendShipStatus == FriendshipStatus.Accepted));
         Assert.IsTrue(list.All(f => f.SenderId == userId || f.ReceiverId == userId));
@@ -309,14 +288,11 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetAllFriends_WhenNoFriends_ShouldReturnEmptyList()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
-        // Act
         var result = await _repository.GetAllFriends(userId);
         var list = result.ToList();
 
-        // Assert
         Assert.AreEqual(0, list.Count);
     }
 
@@ -326,9 +302,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetFriendById_WhenAcceptedExists_ShouldReturnFriendship()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var accepted = new Friendship
         {
@@ -339,10 +314,8 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(accepted);
 
-        // Act
         var result = await _repository.GetFriendById(userId, receiverId);
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(userId, result!.SenderId);
         Assert.AreEqual(receiverId, result.ReceiverId);
@@ -353,9 +326,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetFriendById_WhenAcceptedExistsOppositeDirection_ShouldReturnNull()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var acceptedOpposite = new Friendship
         {
@@ -366,10 +338,8 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(acceptedOpposite);
 
-        // Act
         var result = await _repository.GetFriendById(userId, receiverId);
 
-        // Assert
         Assert.IsNull(result);
     }
 
@@ -377,9 +347,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetFriendById_WhenStatusNotAccepted_ShouldReturnNull()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var pending = new Friendship
         {
@@ -390,10 +359,8 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(pending);
 
-        // Act
         var result = await _repository.GetFriendById(userId, receiverId);
 
-        // Assert
         Assert.IsNull(result);
     }
 
@@ -403,9 +370,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task CancelFriendRequest_WhenPendingExists_ShouldUpdateStatusToNone()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var pending = new Friendship
         {
@@ -416,10 +382,8 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(pending);
 
-        // Act
         var result = await _repository.CancelFriendRequest(userId, receiverId);
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.None, result.FriendShipStatus);
 
@@ -435,11 +399,9 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task CancelFriendRequest_WhenNoPendingExists_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.CancelFriendRequest(userId, receiverId));
     }
@@ -448,9 +410,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task CancelFriendRequest_WhenStatusNotPending_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var accepted = new Friendship
         {
@@ -461,85 +422,79 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(accepted);
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.CancelFriendRequest(userId, receiverId));
     }
 
     // GetOutgoingFriendRequestsAsync
-    // DINE TO TDD-TESTS BEHOLDES UDEN ÆNDRING
 
     [TestMethod]
     [DoNotParallelize]
     public async Task GetOutgoingFriendRequestsAsync_WhenThereIsMultipleStatus_ShouldNotReturnAcceptedOrDeclinedRequests()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         var pending = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 2,
+            ReceiverId = "user-2",
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var accepted = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 3,
+            ReceiverId = "user-3",
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
         var rejected = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 4,
+            ReceiverId = "user-4",
             FriendShipStatus = FriendshipStatus.Declined
         };
 
         await _friendships.InsertManyAsync(new[] { pending, accepted, rejected });
 
-        // Act
         var result = await _repository.GetOutgoingFriendRequestsAsync(userId);
         var list = result.ToList();
 
-        // Assert
         Assert.AreEqual(1, list.Count, "Kun pending requests skal returneres");
         Assert.AreEqual(FriendshipStatus.Pending, list.Single().FriendShipStatus);
     }
-    
+
     [TestMethod]
     [DoNotParallelize]
     public async Task GetOutgoingFriendRequestsAsync_WhenItsSuccessfull_ShouldReturnAllFriendRequests()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         var shouldBeReturned1 = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 2,
+            ReceiverId = "user-2",
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var shouldBeReturned2 = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 3,
+            ReceiverId = "user-3",
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var otherSender = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 4,
+            ReceiverId = "user-4",
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var otherStatus = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 5,
+            ReceiverId = "user-5",
             FriendShipStatus = FriendshipStatus.Pending
         };
 
@@ -551,11 +506,9 @@ public class SocialRepositoryTests
             otherStatus
         });
 
-        // Act
         var result = await _repository.GetOutgoingFriendRequestsAsync(userId);
         var list = result.ToList();
 
-        // Assert
         Assert.IsTrue(list.All(f => f.SenderId == userId),
             "Alle resultater skal have samme SenderId som i testen");
 
@@ -567,14 +520,11 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetOutgoingFriendRequestsAsync_WhenNoRequestsExist_ShouldReturnEmptyList()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
-        // Act
         var result = await _repository.GetOutgoingFriendRequestsAsync(userId);
         var list = result.ToList();
 
-        // Assert
         Assert.AreEqual(0, list.Count);
     }
 
@@ -584,34 +534,33 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetAllIncomingFriendRequests_WhenThereIsMultipleStatuses_ShouldOnlyReturnPendingForUser()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         var pendingForUser = new Friendship
         {
-            SenderId = 2,
+            SenderId = "user-2",
             ReceiverId = userId,
             FriendShipStatus = FriendshipStatus.Pending
         };
 
         var acceptedForUser = new Friendship
         {
-            SenderId = 3,
+            SenderId = "user-3",
             ReceiverId = userId,
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
         var declinedForUser = new Friendship
         {
-            SenderId = 4,
+            SenderId = "user-4",
             ReceiverId = userId,
             FriendShipStatus = FriendshipStatus.Declined
         };
 
         var pendingOtherUser = new Friendship
         {
-            SenderId = 5,
-            ReceiverId = 6,
+            SenderId = "user-5",
+            ReceiverId = "user-6",
             FriendShipStatus = FriendshipStatus.Pending
         };
 
@@ -623,11 +572,9 @@ public class SocialRepositoryTests
             pendingOtherUser
         });
 
-        // Act
         var result = await _repository.GetAllIncomingFriendRequests(userId);
         var list = result.ToList();
 
-        // Assert
         Assert.AreEqual(1, list.Count);
         Assert.IsTrue(list.All(f => f.ReceiverId == userId));
         Assert.IsTrue(list.All(f => f.FriendShipStatus == FriendshipStatus.Pending));
@@ -637,14 +584,11 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task GetAllIncomingFriendRequests_WhenNoRequestsExist_ShouldReturnEmptyList()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
-        // Act
         var result = await _repository.GetAllIncomingFriendRequests(userId);
         var list = result.ToList();
 
-        // Assert
         Assert.AreEqual(0, list.Count);
     }
 
@@ -654,9 +598,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task AcceptFriendRequest_WhenPendingExists_ShouldUpdateToAccepted()
     {
-        // Arrange
-        var senderId = 1;
-        var receiverId = 2;
+        var senderId = "user-1";
+        var receiverId = "user-2";
 
         var pending = new Friendship
         {
@@ -667,10 +610,8 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(pending);
 
-        // Act
         var result = await _repository.AcceptFriendRequest(senderId, receiverId);
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(FriendshipStatus.Accepted, result.FriendShipStatus);
 
@@ -686,11 +627,9 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task AcceptFriendRequest_WhenNoRequestExists_ShouldThrowKeyNotFoundException()
     {
-        // Arrange
-        var senderId = 1;
-        var receiverId = 2;
+        var senderId = "user-1";
+        var receiverId = "user-2";
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
             async () => await _repository.AcceptFriendRequest(senderId, receiverId));
     }
@@ -699,9 +638,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task AcceptFriendRequest_WhenStatusIsAccepted_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var senderId = 1;
-        var receiverId = 2;
+        var senderId = "user-1";
+        var receiverId = "user-2";
 
         var accepted = new Friendship
         {
@@ -712,7 +650,6 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(accepted);
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.AcceptFriendRequest(senderId, receiverId));
     }
@@ -721,9 +658,9 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task AcceptFriendRequest_WhenStatusIsDeclined_ShouldThrowInvalidOperationException()
     {
-        // Arrange
-        var senderId = 1;
-        var receiverId = 2;
+        var senderId = "user-1";
+        var receiverId = "user-2";
+
         var declined = new Friendship
         {
             SenderId = senderId,
@@ -733,58 +670,46 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(declined);
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _repository.AcceptFriendRequest(senderId, receiverId));
     }
-    
-    
-    
-    //Post Tests
-    
-    //PostAPost
+
+    // Post Tests
+
     [TestMethod]
     [DoNotParallelize]
     public async Task PostAPost_inserts_new_post_and_returns_it()
     {
-        // Arrange
-
-
         var inputPost = new Post
         {
-            UserId = 1,
-            FitnessClassId = 2,
-            WorkoutId = 3,
+            UserId = "user-1",
+            FitnessClassId = "class-2",
+            WorkoutId = "workout-3",
             PostTitle = "Some title",
             PostContent = "Some content",
-            PostDate = new DateTime(2000, 1, 1) // bliver overskrevet af DateTime.UtcNow i metoden
+            PostDate = new DateTime(2000, 1, 1)
         };
 
         var before = DateTime.UtcNow;
 
-        // Act
         var result = await _repository.PostAPost(inputPost);
 
         var after = DateTime.UtcNow;
 
-        // Assert - metoden returnerer noget
         Assert.IsNotNull(result);
 
-        // Tjek at den er mappet korrekt
         Assert.AreEqual(inputPost.UserId, result.UserId);
         Assert.AreEqual(inputPost.FitnessClassId, result.FitnessClassId);
         Assert.AreEqual(inputPost.WorkoutId, result.WorkoutId);
         Assert.AreEqual(inputPost.PostTitle, result.PostTitle);
         Assert.AreEqual(inputPost.PostContent, result.PostContent);
 
-        // DateTime.UtcNow er brugt
-        Assert.IsTrue(result.PostDate >= before && result.PostDate <= after, "PostDate skal ligge mellem before og after");
+        Assert.IsTrue(result.PostDate >= before && result.PostDate <= after,
+            "PostDate skal ligge mellem before og after");
 
-        // Comments er initialiseret
         Assert.IsNotNull(result.Comments);
         Assert.AreEqual(0, result.Comments.Count);
 
-        // Tjek at posten rent faktisk er gemt i databasen
         var stored = await _posts
             .Find(p => p.Id == result.Id)
             .SingleOrDefaultAsync();
@@ -796,87 +721,78 @@ public class SocialRepositoryTests
         Assert.AreEqual(result.PostTitle, stored.PostTitle);
         Assert.AreEqual(result.PostContent, stored.PostContent);
     }
-    
-        // RemoveAPost
 
-        [TestMethod]
-        [DoNotParallelize]
-        public async Task RemoveAPost_WhenPostExists_ShouldDeleteAndReturnExistingPost()
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task RemoveAPost_WhenPostExists_ShouldDeleteAndReturnExistingPost()
+    {
+        var postId = ObjectId.GenerateNewId().ToString();
+
+        var existingPost = new Post
         {
-            // Arrange
-            var postId = ObjectId.GenerateNewId().ToString();
+            Id = postId,
+            UserId = "user-1",
+            FitnessClassId = "class-2",
+            WorkoutId = "workout-3",
+            PostTitle = "Title to be deleted",
+            PostContent = "Content to be deleted",
+            PostDate = new DateTime(2020, 1, 1)
+        };
 
-            var existingPost = new Post
-            {
-                Id = postId,
-                UserId = 1,
-                FitnessClassId = 2,
-                WorkoutId = 3,
-                PostTitle = "Title to be deleted",
-                PostContent = "Content to be deleted",
-                PostDate = new DateTime(2020, 1, 1)
-            };
+        await _posts.InsertOneAsync(existingPost);
 
-            await _posts.InsertOneAsync(existingPost);
+        var before = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
+        Assert.IsNotNull(before, "Posten skal eksistere før RemoveAPost kaldes");
 
-            var before = await _posts
-                .Find(p => p.Id == postId)
-                .SingleOrDefaultAsync();
-            Assert.IsNotNull(before, "Posten skal eksistere før RemoveAPost kaldes");
+        var result = await _repository.RemoveAPost(postId);
 
-            // Act
-            var result = await _repository.RemoveAPost(postId);
+        Assert.IsNotNull(result, "Metoden skal returnere den fundne post");
+        Assert.AreEqual(postId, result.Id);
+        Assert.AreEqual(existingPost.UserId, result.UserId);
+        Assert.AreEqual(existingPost.FitnessClassId, result.FitnessClassId);
+        Assert.AreEqual(existingPost.WorkoutId, result.WorkoutId);
+        Assert.AreEqual(existingPost.PostTitle, result.PostTitle);
+        Assert.AreEqual(existingPost.PostContent, result.PostContent);
 
-            // Assert
-            Assert.IsNotNull(result, "Metoden skal returnere den fundne post");
-            Assert.AreEqual(postId, result.Id);
-            Assert.AreEqual(existingPost.UserId, result.UserId);
-            Assert.AreEqual(existingPost.FitnessClassId, result.FitnessClassId);
-            Assert.AreEqual(existingPost.WorkoutId, result.WorkoutId);
-            Assert.AreEqual(existingPost.PostTitle, result.PostTitle);
-            Assert.AreEqual(existingPost.PostContent, result.PostContent);
+        var stored = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
 
-            var stored = await _posts
-                .Find(p => p.Id == postId)
-                .SingleOrDefaultAsync();
+        Assert.IsNull(stored, "Posten skal være slettet fra databasen");
+    }
 
-            Assert.IsNull(stored, "Posten skal være slettet fra databasen");
-        }
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task RemoveAPost_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
+    {
+        var nonExistingPostId = ObjectId.GenerateNewId().ToString();
 
-        [TestMethod]
-        [DoNotParallelize]
-        public async Task RemoveAPost_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
-        {
-            // Arrange
-            var nonExistingPostId = ObjectId.GenerateNewId().ToString();
+        var existing = await _posts
+            .Find(p => p.Id == nonExistingPostId)
+            .SingleOrDefaultAsync();
+        Assert.IsNull(existing, "Der må ikke eksistere en post med dette id i testen");
 
-            // For en sikkerheds skyld, tjek at der ikke ligger en post med det id
-            var existing = await _posts
-                .Find(p => p.Id == nonExistingPostId)
-                .SingleOrDefaultAsync();
-            Assert.IsNull(existing, "Der må ikke eksistere en post med dette id i testen");
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+            async () => await _repository.RemoveAPost(nonExistingPostId));
+    }
 
-            // Act + Assert
-            await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
-                async () => await _repository.RemoveAPost(nonExistingPostId));
-        }
-        
-            // EditAPost
+    // EditAPost
 
     [TestMethod]
     [DoNotParallelize]
     public async Task EditAPost_WhenPostExistsAndBelongsToUser_ShouldUpdateAndReturnUpdatedPost()
     {
-        // Arrange
         var postId = ObjectId.GenerateNewId().ToString();
-        var userId = 42;
+        var userId = "user-42";
 
         var existingPost = new Post
         {
             Id = postId,
             UserId = userId,
-            FitnessClassId = 1,
-            WorkoutId = 2,
+            FitnessClassId = "class-1",
+            WorkoutId = "workout-2",
             PostTitle = "Old title",
             PostContent = "Old content",
             PostDate = new DateTime(2020, 1, 1),
@@ -888,17 +804,15 @@ public class SocialRepositoryTests
         var updatedInput = new Post
         {
             Id = postId,
-            UserId = 999, // bliver ikke brugt direkte, currentUserId styrer filteret
-            FitnessClassId = 10,
-            WorkoutId = 20,
+            UserId = "user-999",
+            FitnessClassId = "class-10",
+            WorkoutId = "workout-20",
             PostTitle = "New title",
             PostContent = "New content"
         };
 
-        // Act
         var result = await _repository.EditAPost(updatedInput, userId);
 
-        // Assert - returværdi
         Assert.IsNotNull(result);
         Assert.AreEqual(postId, result.Id);
         Assert.AreEqual(userId, result.UserId);
@@ -907,7 +821,6 @@ public class SocialRepositoryTests
         Assert.AreEqual(updatedInput.PostTitle, result.PostTitle);
         Assert.AreEqual(updatedInput.PostContent, result.PostContent);
 
-        // Tjek at den faktisk er opdateret i databasen
         var stored = await _posts
             .Find(p => p.Id == postId)
             .SingleOrDefaultAsync();
@@ -924,9 +837,8 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task EditAPost_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
     {
-        // Arrange
         var nonExistingPostId = ObjectId.GenerateNewId().ToString();
-        var userId = 42;
+        var userId = "user-42";
 
         var input = new Post
         {
@@ -940,7 +852,6 @@ public class SocialRepositoryTests
             .SingleOrDefaultAsync();
         Assert.IsNull(existing, "Der må ikke eksistere en post med dette id i testen");
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
             async () => await _repository.EditAPost(input, userId));
     }
@@ -949,17 +860,16 @@ public class SocialRepositoryTests
     [DoNotParallelize]
     public async Task EditAPost_WhenPostBelongsToOtherUser_ShouldThrowKeyNotFoundException_AndNotChangePost()
     {
-        // Arrange
         var postId = ObjectId.GenerateNewId().ToString();
-        var ownerUserId = 1;
-        var otherUserId = 2;
+        var ownerUserId = "user-1";
+        var otherUserId = "user-2";
 
         var existingPost = new Post
         {
             Id = postId,
             UserId = ownerUserId,
-            FitnessClassId = 1,
-            WorkoutId = 2,
+            FitnessClassId = "class-1",
+            WorkoutId = "workout-2",
             PostTitle = "Original title",
             PostContent = "Original content",
             PostDate = new DateTime(2020, 1, 1)
@@ -970,18 +880,16 @@ public class SocialRepositoryTests
         var attemptedUpdate = new Post
         {
             Id = postId,
-            UserId = otherUserId, // forsøger at "snyde", men filter bruger currentUserId
-            FitnessClassId = 99,
-            WorkoutId = 88,
+            UserId = otherUserId,
+            FitnessClassId = "class-99",
+            WorkoutId = "workout-88",
             PostTitle = "Hacked title",
             PostContent = "Hacked content"
         };
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
             async () => await _repository.EditAPost(attemptedUpdate, otherUserId));
 
-        // Posten skal stadig være uændret i databasen
         var stored = await _posts
             .Find(p => p.Id == postId)
             .SingleOrDefaultAsync();
@@ -993,22 +901,21 @@ public class SocialRepositoryTests
         Assert.AreEqual(existingPost.PostTitle, stored.PostTitle);
         Assert.AreEqual(existingPost.PostContent, stored.PostContent);
     }
-    
-    
-    //Comment Test
+
+    // Comment Test
+
     [TestMethod]
     [DoNotParallelize]
     public async Task AddCommentToPost_WhenPostExists_ShouldAppendCommentAndReturnUpdatedPost()
     {
-        // Arrange
         var postId = ObjectId.GenerateNewId().ToString();
 
         var existingPost = new Post
         {
             Id = postId,
-            UserId = 1,
-            FitnessClassId = 2,
-            WorkoutId = 3,
+            UserId = "user-1",
+            FitnessClassId = "class-2",
+            WorkoutId = "workout-3",
             PostTitle = "Original title",
             PostContent = "Original content",
             PostDate = new DateTime(2020, 1, 1),
@@ -1020,15 +927,13 @@ public class SocialRepositoryTests
         var newComment = new Comment
         {
             Id = ObjectId.GenerateNewId().ToString(),
-            AuthorId = 99,
+            AuthorId = "user-99",
             CommentDate = DateTime.UtcNow,
             CommentText = "New comment"
         };
 
-        // Act
         var result = await _repository.AddCommentToPost(postId, newComment);
 
-        // Assert på returværdi
         Assert.IsNotNull(result, "Method should return updated post");
         Assert.AreEqual(postId, result.Id);
         Assert.IsNotNull(result.Comments);
@@ -1036,7 +941,6 @@ public class SocialRepositoryTests
         Assert.AreEqual(newComment.CommentText, result.Comments[0].CommentText);
         Assert.AreEqual(newComment.AuthorId, result.Comments[0].AuthorId);
 
-        // Tjek at det også er gemt i databasen
         var stored = await _posts
             .Find(p => p.Id == postId)
             .SingleOrDefaultAsync();
@@ -1047,20 +951,17 @@ public class SocialRepositoryTests
         Assert.AreEqual(newComment.CommentText, stored.Comments[0].CommentText);
         Assert.AreEqual(newComment.AuthorId, stored.Comments[0].AuthorId);
     }
-    
-    
-    //RemoveComment Test
+
     [TestMethod]
     [DoNotParallelize]
     public async Task RemoveCommentFromPost_WhenPostAndCommentExist_RemovesCommentAndReturnsUpdatedPost()
     {
-        // Arrange
         var postId = ObjectId.GenerateNewId().ToString();
 
         var commentToRemove = new Comment
         {
             Id = ObjectId.GenerateNewId().ToString(),
-            AuthorId = 1,
+            AuthorId = "user-1",
             CommentDate = DateTime.UtcNow,
             CommentText = "Delete me"
         };
@@ -1068,7 +969,7 @@ public class SocialRepositoryTests
         var otherComment = new Comment
         {
             Id = ObjectId.GenerateNewId().ToString(),
-            AuthorId = 2,
+            AuthorId = "user-2",
             CommentDate = DateTime.UtcNow,
             CommentText = "Keep me"
         };
@@ -1076,9 +977,9 @@ public class SocialRepositoryTests
         var existingPost = new Post
         {
             Id = postId,
-            UserId = 1,
-            FitnessClassId = 2,
-            WorkoutId = 3,
+            UserId = "user-1",
+            FitnessClassId = "class-2",
+            WorkoutId = "workout-3",
             PostTitle = "Title",
             PostContent = "Content",
             PostDate = new DateTime(2020, 1, 1),
@@ -1087,17 +988,14 @@ public class SocialRepositoryTests
 
         await _posts.InsertOneAsync(existingPost);
 
-        // Act
         var result = await _repository.RemoveCommentFromPost(postId, commentToRemove.Id!);
 
-        // Assert på returværdi
         Assert.IsNotNull(result);
         Assert.AreEqual(postId, result.Id);
         Assert.IsNotNull(result.Comments);
         Assert.AreEqual(1, result.Comments.Count);
         Assert.AreEqual(otherComment.Id, result.Comments[0].Id);
 
-        // Assert i databasen
         var stored = await _posts
             .Find(p => p.Id == postId)
             .SingleOrDefaultAsync();
@@ -1107,297 +1005,320 @@ public class SocialRepositoryTests
         Assert.AreEqual(1, stored.Comments.Count);
         Assert.AreEqual(otherComment.Id, stored.Comments[0].Id);
     }
-    
-    
+
     // EditComment tests
 
-[TestMethod]
-[DoNotParallelize]
-public async Task EditComment_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
-{
-    // Arrange
-    var postId = ObjectId.GenerateNewId().ToString();
-
-    var commentToEdit = new Comment
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task EditComment_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
     {
-        Id = ObjectId.GenerateNewId().ToString(),
-        AuthorId = 1,
-        CommentDate = DateTime.UtcNow,
-        CommentText = "New text"
-    };
+        var postId = ObjectId.GenerateNewId().ToString();
 
-    var existing = await _posts
-        .Find(p => p.Id == postId)
-        .SingleOrDefaultAsync();
-    Assert.IsNull(existing, "There must not be a post with this id");
-
-    // Act + Assert
-    await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
-        async () => await _repository.EditComment(postId, commentToEdit));
-}
-
-[TestMethod]
-[DoNotParallelize]
-public async Task EditComment_WhenCommentDoesNotExistOnPost_ShouldThrowKeyNotFoundException()
-{
-    // Arrange
-    var postId = ObjectId.GenerateNewId().ToString();
-
-    var existingPost = new Post
-    {
-        Id = postId,
-        UserId = 1,
-        FitnessClassId = 2,
-        WorkoutId = 3,
-        PostTitle = "Title",
-        PostContent = "Content",
-        PostDate = new DateTime(2020, 1, 1),
-        Comments = new List<Comment>
+        var commentToEdit = new Comment
         {
-            new Comment
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = "user-1",
+            CommentDate = DateTime.UtcNow,
+            CommentText = "New text"
+        };
+
+        var existing = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
+        Assert.IsNull(existing, "There must not be a post with this id");
+
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+            async () => await _repository.EditComment(postId, commentToEdit));
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task EditComment_WhenCommentDoesNotExistOnPost_ShouldThrowKeyNotFoundException()
+    {
+        var postId = ObjectId.GenerateNewId().ToString();
+
+        var existingPost = new Post
+        {
+            Id = postId,
+            UserId = "user-1",
+            FitnessClassId = "class-2",
+            WorkoutId = "workout-3",
+            PostTitle = "Title",
+            PostContent = "Content",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment>
             {
-                Id = ObjectId.GenerateNewId().ToString(),
-                AuthorId = 1,
-                CommentDate = DateTime.UtcNow,
-                CommentText = "Existing comment"
+                new Comment
+                {
+                    Id = ObjectId.GenerateNewId().ToString(),
+                    AuthorId = "user-1",
+                    CommentDate = DateTime.UtcNow,
+                    CommentText = "Existing comment"
+                }
             }
-        }
-    };
+        };
 
-    await _posts.InsertOneAsync(existingPost);
+        await _posts.InsertOneAsync(existingPost);
 
-    var nonExistingComment = new Comment
+        var nonExistingComment = new Comment
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = "user-1",
+            CommentDate = DateTime.UtcNow,
+            CommentText = "Should not be found"
+        };
+
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+            async () => await _repository.EditComment(postId, nonExistingComment));
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task EditComment_WhenPostAndCommentExist_ShouldUpdateCommentTextAndReturnUpdatedPost()
     {
-        Id = ObjectId.GenerateNewId().ToString(),
-        AuthorId = 1,
-        CommentDate = DateTime.UtcNow,
-        CommentText = "Should not be found"
-    };
+        var postId = ObjectId.GenerateNewId().ToString();
 
-    // Act + Assert
-    await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
-        async () => await _repository.EditComment(postId, nonExistingComment));
-}
+        var commentId = ObjectId.GenerateNewId().ToString();
 
-[TestMethod]
-[DoNotParallelize]
-public async Task EditComment_WhenPostAndCommentExist_ShouldUpdateCommentTextAndReturnUpdatedPost()
-{
-    // Arrange
-    var postId = ObjectId.GenerateNewId().ToString();
+        var originalComment = new Comment
+        {
+            Id = commentId,
+            AuthorId = "user-1",
+            CommentDate = new DateTime(2020, 1, 1),
+            CommentText = "Old text"
+        };
 
-    var commentId = ObjectId.GenerateNewId().ToString();
+        var otherComment = new Comment
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = "user-2",
+            CommentDate = new DateTime(2020, 1, 2),
+            CommentText = "Other comment"
+        };
 
-    var originalComment = new Comment
+        var existingPost = new Post
+        {
+            Id = postId,
+            UserId = "user-1",
+            FitnessClassId = "class-2",
+            WorkoutId = "workout-3",
+            PostTitle = "Title",
+            PostContent = "Content",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment> { originalComment, otherComment }
+        };
+
+        await _posts.InsertOneAsync(existingPost);
+
+        var updatedComment = new Comment
+        {
+            Id = commentId,
+            AuthorId = originalComment.AuthorId,
+            CommentDate = originalComment.CommentDate,
+            CommentText = "New edited text"
+        };
+
+        var result = await _repository.EditComment(postId, updatedComment);
+
+        Assert.IsNotNull(result);
+        Assert.AreEqual(postId, result.Id);
+        Assert.IsNotNull(result.Comments);
+        Assert.AreEqual(2, result.Comments.Count);
+
+        var editedFromResult = result.Comments.Single(c => c.Id == commentId);
+        Assert.AreEqual("New edited text", editedFromResult.CommentText);
+        Assert.AreEqual(originalComment.AuthorId, editedFromResult.AuthorId);
+
+        var otherFromResult = result.Comments.Single(c => c.Id == otherComment.Id);
+        Assert.AreEqual(otherComment.CommentText, otherFromResult.CommentText);
+
+        var stored = await _posts
+            .Find(p => p.Id == postId)
+            .SingleOrDefaultAsync();
+
+        Assert.IsNotNull(stored);
+        Assert.IsNotNull(stored.Comments);
+        Assert.AreEqual(2, stored.Comments.Count);
+
+        var editedInDb = stored.Comments.Single(c => c.Id == commentId);
+        Assert.AreEqual("New edited text", editedInDb.CommentText);
+
+        var otherInDb = stored.Comments.Single(c => c.Id == otherComment.Id);
+        Assert.AreEqual(otherComment.CommentText, otherInDb.CommentText);
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task SeeAllCommentForPostId_WhenPostExistsWithComments_ReturnsAllComments()
     {
-        Id = commentId,
-        AuthorId = 1,
-        CommentDate = new DateTime(2020, 1, 1),
-        CommentText = "Old text"
-    };
+        var postId = ObjectId.GenerateNewId().ToString();
 
-    var otherComment = new Comment
+        var comment1 = new Comment
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = "user-1",
+            CommentDate = new DateTime(2020, 1, 1),
+            CommentText = "First comment"
+        };
+
+        var comment2 = new Comment
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            AuthorId = "user-2",
+            CommentDate = new DateTime(2020, 1, 2),
+            CommentText = "Second comment"
+        };
+
+        var post = new Post
+        {
+            Id = postId,
+            UserId = "user-10",
+            FitnessClassId = "class-20",
+            WorkoutId = "workout-30",
+            PostTitle = "Some title",
+            PostContent = "Some content",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment> { comment1, comment2 }
+        };
+
+        await _posts.InsertOneAsync(post);
+
+        var result = await _repository.SeeAllCommentForPostId(postId);
+        var list = result.ToList();
+
+        Assert.IsNotNull(result, "Method should return a list, not null");
+        Assert.AreEqual(2, list.Count, "Expected exactly 2 comments");
+
+        Assert.IsTrue(list.Any(c => c.Id == comment1.Id && c.CommentText == comment1.CommentText));
+        Assert.IsTrue(list.Any(c => c.Id == comment2.Id && c.CommentText == comment2.CommentText));
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task SeeAllPostsForUser_WhenUserHasMultiplePosts_ReturnsOnlyThosePosts()
     {
-        Id = ObjectId.GenerateNewId().ToString(),
-        AuthorId = 2,
-        CommentDate = new DateTime(2020, 1, 2),
-        CommentText = "Other comment"
-    };
+        var userId = "user-1";
+        var otherUserId = "user-2";
 
-    var existingPost = new Post
+        var post1 = new Post
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            UserId = userId,
+            FitnessClassId = "class-10",
+            WorkoutId = "workout-100",
+            PostTitle = "User1 post 1",
+            PostContent = "Content 1",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment>()
+        };
+
+        var post2 = new Post
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            UserId = userId,
+            FitnessClassId = "class-11",
+            WorkoutId = "workout-101",
+            PostTitle = "User1 post 2",
+            PostContent = "Content 2",
+            PostDate = new DateTime(2020, 1, 2),
+            Comments = new List<Comment>()
+        };
+
+        var otherUsersPost = new Post
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            UserId = otherUserId,
+            FitnessClassId = "class-20",
+            WorkoutId = "workout-200",
+            PostTitle = "Other user post",
+            PostContent = "Other content",
+            PostDate = new DateTime(2020, 1, 3),
+            Comments = new List<Comment>()
+        };
+
+        await _posts.InsertManyAsync(new[] { post1, post2, otherUsersPost });
+
+        var result = await _repository.SeeAllPostsForUser(userId);
+        var list = result.ToList();
+
+        Assert.IsNotNull(result, "Method should not return null");
+        Assert.AreEqual(2, list.Count, "Expected exactly the two posts for this user");
+        Assert.IsTrue(list.All(p => p.UserId == userId), "All returned posts must belong to the requested user");
+        Assert.IsTrue(list.Any(p => p.Id == post1.Id));
+        Assert.IsTrue(list.Any(p => p.Id == post2.Id));
+        Assert.IsFalse(list.Any(p => p.Id == otherUsersPost.Id), "Posts from other users must not be returned");
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task SeeAllPostsForUser_WhenUserHasNoPosts_ReturnsEmptyList()
     {
-        Id = postId,
-        UserId = 1,
-        FitnessClassId = 2,
-        WorkoutId = 3,
-        PostTitle = "Title",
-        PostContent = "Content",
-        PostDate = new DateTime(2020, 1, 1),
-        Comments = new List<Comment> { originalComment, otherComment }
-    };
+        var userId = "user-999";
 
-    await _posts.InsertOneAsync(existingPost);
+        var otherPost = new Post
+        {
+            Id = ObjectId.GenerateNewId().ToString(),
+            UserId = "user-1",
+            FitnessClassId = "class-10",
+            WorkoutId = "workout-100",
+            PostTitle = "Other users post",
+            PostContent = "Content",
+            PostDate = new DateTime(2020, 1, 1),
+            Comments = new List<Comment>()
+        };
 
-    var updatedComment = new Comment
+        await _posts.InsertOneAsync(otherPost);
+
+        var result = await _repository.SeeAllPostsForUser(userId);
+        var list = result.ToList();
+
+        Assert.IsNotNull(result, "Method should not return null");
+        Assert.AreEqual(0, list.Count, "Expected no posts for this user");
+    }
+    
+    
+    [TestMethod]
+    [DoNotParallelize]
+    public async Task CreateDraftFromClassWorkoutCompletedAsync_WhenCalledTwiceWithSameEventId_ShouldInsertOnceAndReturnNullSecondTime()
     {
-        Id = commentId,
-        AuthorId = originalComment.AuthorId,
-        CommentDate = originalComment.CommentDate,
-        CommentText = "New edited text"
-    };
+        var eventId = Guid.NewGuid().ToString();
 
-    // Act
-    var result = await _repository.EditComment(postId, updatedComment);
+        var dto = new ClassResultEventDto(
+            EventId: eventId,
+            ClassId: "class-1",
+            UserId: "user-1",
+            CaloriesBurned: 123.4,
+            Watt: 250.0,
+            DurationMin: 60,
+            Date: DateTime.UtcNow
+        );
 
-    // Assert returværdi
-    Assert.IsNotNull(result);
-    Assert.AreEqual(postId, result.Id);
-    Assert.IsNotNull(result.Comments);
-    Assert.AreEqual(2, result.Comments.Count);
+        // first call should create draft and return id
+        var firstDraftId = await _repository.CreateDraftFromClassWorkoutCompletedAsync(dto);
 
-    var editedFromResult = result.Comments.Single(c => c.Id == commentId);
-    Assert.AreEqual("New edited text", editedFromResult.CommentText);
-    Assert.AreEqual(originalComment.AuthorId, editedFromResult.AuthorId);
+        Assert.IsFalse(string.IsNullOrWhiteSpace(firstDraftId), "Expected a draft id on first call");
 
-    var otherFromResult = result.Comments.Single(c => c.Id == otherComment.Id);
-    Assert.AreEqual(otherComment.CommentText, otherFromResult.CommentText);
+        var inserted = await _posts.Find(p => p.SourceEventId == eventId).FirstOrDefaultAsync();
 
-    // Assert i databasen
-    var stored = await _posts
-        .Find(p => p.Id == postId)
-        .SingleOrDefaultAsync();
+        Assert.IsNotNull(inserted, "Expected a Post inserted in MongoDB");
+        Assert.AreEqual(dto.UserId, inserted.UserId);
+        Assert.AreEqual(dto.ClassId, inserted.FitnessClassId);
+        Assert.AreEqual(dto.ClassId, inserted.WorkoutId);
+        Assert.AreEqual(eventId, inserted.SourceEventId);
+        Assert.IsTrue(inserted.IsDraft, "Expected IsDraft = true");
+        Assert.AreEqual(PostType.Workout, inserted.Type);
 
-    Assert.IsNotNull(stored);
-    Assert.IsNotNull(stored.Comments);
-    Assert.AreEqual(2, stored.Comments.Count);
+        Assert.IsNotNull(inserted.WorkoutStats, "Expected WorkoutStatsSnapshot to be set");
+        Assert.AreEqual(dto.DurationMin * 60, inserted.WorkoutStats.DurationSeconds);
+        Assert.AreEqual((int)Math.Round(dto.CaloriesBurned), inserted.WorkoutStats.Calories);
 
-    var editedInDb = stored.Comments.Single(c => c.Id == commentId);
-    Assert.AreEqual("New edited text", editedInDb.CommentText);
+        // second call should dedupe and return null
+        var secondDraftId = await _repository.CreateDraftFromClassWorkoutCompletedAsync(dto);
 
-    var otherInDb = stored.Comments.Single(c => c.Id == otherComment.Id);
-    Assert.AreEqual(otherComment.CommentText, otherInDb.CommentText); 
-}
+        Assert.IsNull(secondDraftId, "Expected null on second call because of dedupe");
 
-
-[TestMethod]
-[DoNotParallelize]
-public async Task SeeAllCommentForPostId_WhenPostExistsWithComments_ReturnsAllComments()
-{
-    // Arrange
-    var postId = ObjectId.GenerateNewId().ToString();
-
-    var comment1 = new Comment
-    {
-        Id = ObjectId.GenerateNewId().ToString(),
-        AuthorId = 1,
-        CommentDate = new DateTime(2020, 1, 1),
-        CommentText = "First comment"
-    };
-
-    var comment2 = new Comment
-    {
-        Id = ObjectId.GenerateNewId().ToString(),
-        AuthorId = 2,
-        CommentDate = new DateTime(2020, 1, 2),
-        CommentText = "Second comment"
-    };
-
-    var post = new Post
-    {
-        Id = postId,
-        UserId = 10,
-        FitnessClassId = 20,
-        WorkoutId = 30,
-        PostTitle = "Some title",
-        PostContent = "Some content",
-        PostDate = new DateTime(2020, 1, 1),
-        Comments = new List<Comment> { comment1, comment2 }
-    };
-
-    await _posts.InsertOneAsync(post);
-
-    // Act
-    var result = await _repository.SeeAllCommentForPostId(postId);
-    var list = result.ToList();
-
-    // Assert
-    Assert.IsNotNull(result, "Method should return a list, not null");
-    Assert.AreEqual(2, list.Count, "Expected exactly 2 comments");
-
-    Assert.IsTrue(list.Any(c => c.Id == comment1.Id && c.CommentText == comment1.CommentText));
-    Assert.IsTrue(list.Any(c => c.Id == comment2.Id && c.CommentText == comment2.CommentText));
-}
-
-
-[TestMethod]
-[DoNotParallelize]
-public async Task SeeAllPostsForUser_WhenUserHasMultiplePosts_ReturnsOnlyThosePosts()
-{
-    // Arrange
-    var userId = 1;
-    var otherUserId = 2;
-
-    var post1 = new Post
-    {
-        Id = ObjectId.GenerateNewId().ToString(),
-        UserId = userId,
-        FitnessClassId = 10,
-        WorkoutId = 100,
-        PostTitle = "User1 post 1",
-        PostContent = "Content 1",
-        PostDate = new DateTime(2020, 1, 1),
-        Comments = new List<Comment>()
-    };
-
-    var post2 = new Post
-    {
-        Id = ObjectId.GenerateNewId().ToString(),
-        UserId = userId,
-        FitnessClassId = 11,
-        WorkoutId = 101,
-        PostTitle = "User1 post 2",
-        PostContent = "Content 2",
-        PostDate = new DateTime(2020, 1, 2),
-        Comments = new List<Comment>()
-    };
-
-    var otherUsersPost = new Post
-    {
-        Id = ObjectId.GenerateNewId().ToString(),
-        UserId = otherUserId,
-        FitnessClassId = 20,
-        WorkoutId = 200,
-        PostTitle = "Other user post",
-        PostContent = "Other content",
-        PostDate = new DateTime(2020, 1, 3),
-        Comments = new List<Comment>()
-    };
-
-    await _posts.InsertManyAsync(new[] { post1, post2, otherUsersPost });
-
-    // Act
-    var result = await _repository.SeeAllPostsForUser(userId);
-    var list = result.ToList();
-
-    // Assert
-    Assert.IsNotNull(result, "Method should not return null");
-    Assert.AreEqual(2, list.Count, "Expected exactly the two posts for this user");
-    Assert.IsTrue(list.All(p => p.UserId == userId), "All returned posts must belong to the requested user");
-    Assert.IsTrue(list.Any(p => p.Id == post1.Id));
-    Assert.IsTrue(list.Any(p => p.Id == post2.Id));
-    Assert.IsFalse(list.Any(p => p.Id == otherUsersPost.Id), "Posts from other users must not be returned");
-}
-
-[TestMethod]
-[DoNotParallelize]
-public async Task SeeAllPostsForUser_WhenUserHasNoPosts_ReturnsEmptyList()
-{
-    // Arrange
-    var userId = 999;
-
-    // Læg evt. nogle posts ind for andre users
-    var otherPost = new Post
-    {
-        Id = ObjectId.GenerateNewId().ToString(),
-        UserId = 1,
-        FitnessClassId = 10,
-        WorkoutId = 100,
-        PostTitle = "Other users post",
-        PostContent = "Content",
-        PostDate = new DateTime(2020, 1, 1),
-        Comments = new List<Comment>()
-    };
-
-    await _posts.InsertOneAsync(otherPost);
-
-    // Act
-    var result = await _repository.SeeAllPostsForUser(userId);
-    var list = result.ToList();
-
-    // Assert
-    Assert.IsNotNull(result, "Method should not return null");
-    Assert.AreEqual(0, list.Count, "Expected no posts for this user");
-}
-
+        var count = await _posts.Find(p => p.SourceEventId == eventId).CountDocumentsAsync();
+        Assert.AreEqual(1, (int)count, "Expected only one post for the same SourceEventId");
+    }
 
 }
