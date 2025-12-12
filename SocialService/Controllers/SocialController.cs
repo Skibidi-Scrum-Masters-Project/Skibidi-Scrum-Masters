@@ -357,6 +357,15 @@ public class SocialController : ControllerBase
     }
 
 
+    [HttpPut("ChangeDraftStatusForPost/{postId}")]
+    public async Task<Post> ChangeDraftStatusForPost(string postId)
+    {
+        var post = await _socialRepository.ChangeDraftStatusForPost(postId);
+        
+        return post;
+    }
+
+
 
 }
 
