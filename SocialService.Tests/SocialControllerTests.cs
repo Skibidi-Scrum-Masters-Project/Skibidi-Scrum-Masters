@@ -25,7 +25,7 @@ public class SocialControllerTests
         _mockRepository = new Mock<ISocialRepository>();
         _controller = new SocialController(_mockRepository.Object);
     }
-    
+
     private void SetUserOnController(string? userIdClaim)
     {
         var claims = new List<Claim>();
@@ -52,13 +52,10 @@ public class SocialControllerTests
     [TestMethod]
     public void GetUserFriends_ShouldReturnOkWithMessage()
     {
-        // Arrange
         var userId = "user-123";
 
-        // Act
         var result = _controller.GetUserFriends(userId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -70,9 +67,8 @@ public class SocialControllerTests
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldReturnOkWithFriendship_WhenSuccessful()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var friendshipFromRepo = new Friendship
         {
@@ -85,10 +81,8 @@ public class SocialControllerTests
             .Setup(r => r.SendFriendRequestAsync(userId, receiverId))
             .ReturnsAsync(friendshipFromRepo);
 
-        // Act
         var result = await _controller.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -103,52 +97,45 @@ public class SocialControllerTests
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldReturnBadRequest_WhenUserIdEqualsReceiverId()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 1;
+        var userId = "user-1";
+        var receiverId = "user-1";
 
-        // Act
         var result = await _controller.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result.Result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
-        _mockRepository.Verify(r => r.SendFriendRequestAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+
+        _mockRepository.Verify(r => r.SendFriendRequestAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldReturnBadRequest_WhenIdsAreInvalid()
     {
-        // Arrange
-        var userId = 0;
-        var receiverId = -5;
+        var userId = "";
+        var receiverId = "   ";
 
-        // Act
         var result = await _controller.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result.Result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
-        _mockRepository.Verify(r => r.SendFriendRequestAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+
+        _mockRepository.Verify(r => r.SendFriendRequestAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldReturnBadRequest_WhenRepositoryThrowsArgumentException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.SendFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new ArgumentException("Invalid"));
 
-        // Act
         var result = await _controller.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result.Result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
@@ -157,18 +144,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldReturnConflict_WhenRepositoryThrowsInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.SendFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new InvalidOperationException("Friendship already exists"));
 
-        // Act
         var result = await _controller.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var conflict = result.Result as ConflictObjectResult;
         Assert.IsNotNull(conflict, "Expected ConflictObjectResult");
         Assert.AreEqual(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -177,18 +161,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.SendFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new KeyNotFoundException("User not found"));
 
-        // Act
         var result = await _controller.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var notFound = result.Result as NotFoundObjectResult;
         Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
@@ -197,18 +178,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task SendFriendRequestAsync_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.SendFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new Exception("Unexpected"));
 
-        // Act
         var result = await _controller.SendFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var statusResult = result.Result as ObjectResult;
         Assert.IsNotNull(statusResult, "Expected ObjectResult");
         Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
@@ -219,9 +197,8 @@ public class SocialControllerTests
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturnOkWithStatusDeclined_WhenSuccessful()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var friendshipFromRepo = new Friendship
         {
@@ -234,10 +211,8 @@ public class SocialControllerTests
             .Setup(r => r.DeclineFriendRequestAsync(userId, receiverId))
             .ReturnsAsync(friendshipFromRepo);
 
-        // Act
         var result = await _controller.DeclineFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var okResult = result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -249,52 +224,45 @@ public class SocialControllerTests
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturnBadRequest_WhenUserIdEqualsReceiverId()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 1;
+        var userId = "user-1";
+        var receiverId = "user-1";
 
-        // Act
         var result = await _controller.DeclineFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
-        _mockRepository.Verify(r => r.DeclineFriendRequestAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+
+        _mockRepository.Verify(r => r.DeclineFriendRequestAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturnBadRequest_WhenIdsAreInvalid()
     {
-        // Arrange
-        var userId = -1;
-        var receiverId = 0;
+        var userId = "   ";
+        var receiverId = "";
 
-        // Act
         var result = await _controller.DeclineFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
-        _mockRepository.Verify(r => r.DeclineFriendRequestAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+
+        _mockRepository.Verify(r => r.DeclineFriendRequestAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.DeclineFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new KeyNotFoundException("Not found"));
 
-        // Act
         var result = await _controller.DeclineFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var notFound = result as NotFoundObjectResult;
         Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
@@ -303,18 +271,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturnConflict_WhenRepositoryThrowsInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.DeclineFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new InvalidOperationException("Cannot decline"));
 
-        // Act
         var result = await _controller.DeclineFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var conflict = result as ConflictObjectResult;
         Assert.IsNotNull(conflict, "Expected ConflictObjectResult");
         Assert.AreEqual(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -323,18 +288,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturnBadRequest_WhenRepositoryThrowsArgumentException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.DeclineFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new ArgumentException("Invalid"));
 
-        // Act
         var result = await _controller.DeclineFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
@@ -343,18 +305,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task DeclineFriendRequestAsync_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.DeclineFriendRequestAsync(userId, receiverId))
             .ThrowsAsync(new Exception("Unexpected"));
 
-        // Act
         var result = await _controller.DeclineFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var statusResult = result as ObjectResult;
         Assert.IsNotNull(statusResult, "Expected ObjectResult");
         Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
@@ -365,13 +324,12 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetAllFriends_ShouldReturnOkWithFriends_WhenSuccessful()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         var friendship = new Friendship
         {
             SenderId = userId,
-            ReceiverId = 2,
+            ReceiverId = "user-2",
             FriendShipStatus = FriendshipStatus.Accepted
         };
 
@@ -379,10 +337,8 @@ public class SocialControllerTests
             .Setup(r => r.GetAllFriends(userId))
             .ReturnsAsync(new List<Friendship> { friendship });
 
-        // Act
         var result = await _controller.GetAllFriends(userId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -395,17 +351,14 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetAllFriends_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         _mockRepository
             .Setup(r => r.GetAllFriends(userId))
             .ThrowsAsync(new KeyNotFoundException("Not found"));
 
-        // Act
         var result = await _controller.GetAllFriends(userId);
 
-        // Assert
         var notFound = result.Result as NotFoundObjectResult;
         Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
@@ -414,17 +367,14 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetAllFriends_ShouldReturnConflict_WhenRepositoryThrowsInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         _mockRepository
             .Setup(r => r.GetAllFriends(userId))
             .ThrowsAsync(new InvalidOperationException("Conflict"));
 
-        // Act
         var result = await _controller.GetAllFriends(userId);
 
-        // Assert
         var conflict = result.Result as ConflictObjectResult;
         Assert.IsNotNull(conflict, "Expected ConflictObjectResult");
         Assert.AreEqual(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -433,17 +383,14 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetAllFriends_ShouldReturnBadRequest_WhenRepositoryThrowsArgumentException()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         _mockRepository
             .Setup(r => r.GetAllFriends(userId))
             .ThrowsAsync(new ArgumentException("Invalid"));
 
-        // Act
         var result = await _controller.GetAllFriends(userId);
 
-        // Assert
         var badRequest = result.Result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
@@ -452,17 +399,14 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetAllFriends_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         _mockRepository
             .Setup(r => r.GetAllFriends(userId))
             .ThrowsAsync(new Exception("Unexpected"));
 
-        // Act
         var result = await _controller.GetAllFriends(userId);
 
-        // Assert
         var statusResult = result.Result as ObjectResult;
         Assert.IsNotNull(statusResult, "Expected ObjectResult");
         Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
@@ -473,9 +417,8 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetFriendById_ShouldReturnOkWithFriend_WhenFound()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var friendship = new Friendship
         {
@@ -488,10 +431,8 @@ public class SocialControllerTests
             .Setup(r => r.GetFriendById(userId, receiverId))
             .ReturnsAsync(friendship);
 
-        // Act
         var result = await _controller.GetFriendById(userId, receiverId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -505,18 +446,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetFriendById_ShouldReturnNotFound_WhenRepoReturnsNull()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.GetFriendById(userId, receiverId))
             .ReturnsAsync((Friendship?)null);
 
-        // Act
         var result = await _controller.GetFriendById(userId, receiverId);
 
-        // Assert
         var notFound = result.Result as NotFoundResult;
         Assert.IsNotNull(notFound, "Expected NotFoundResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
@@ -525,18 +463,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetFriendById_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.GetFriendById(userId, receiverId))
             .ThrowsAsync(new KeyNotFoundException("Not found"));
 
-        // Act
         var result = await _controller.GetFriendById(userId, receiverId);
 
-        // Assert
         var notFound = result.Result as NotFoundObjectResult;
         Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
@@ -545,18 +480,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetFriendById_ShouldReturnConflict_WhenRepositoryThrowsInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.GetFriendById(userId, receiverId))
             .ThrowsAsync(new InvalidOperationException("Duplicate"));
 
-        // Act
         var result = await _controller.GetFriendById(userId, receiverId);
 
-        // Assert
         var conflict = result.Result as ConflictObjectResult;
         Assert.IsNotNull(conflict, "Expected ConflictObjectResult");
         Assert.AreEqual(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -565,18 +497,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetFriendById_ShouldReturnBadRequest_WhenRepositoryThrowsArgumentException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.GetFriendById(userId, receiverId))
             .ThrowsAsync(new ArgumentException("Invalid"));
 
-        // Act
         var result = await _controller.GetFriendById(userId, receiverId);
 
-        // Assert
         var badRequest = result.Result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
@@ -585,18 +514,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetFriendById_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.GetFriendById(userId, receiverId))
             .ThrowsAsync(new Exception("Unexpected"));
 
-        // Act
         var result = await _controller.GetFriendById(userId, receiverId);
 
-        // Assert
         var statusResult = result.Result as ObjectResult;
         Assert.IsNotNull(statusResult, "Expected ObjectResult");
         Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
@@ -607,9 +533,8 @@ public class SocialControllerTests
     [TestMethod]
     public async Task CancelFriendRequest_ShouldReturnOkWithFriendship_WhenSuccessful()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         var friendship = new Friendship
         {
@@ -622,10 +547,8 @@ public class SocialControllerTests
             .Setup(r => r.CancelFriendRequest(userId, receiverId))
             .ReturnsAsync(friendship);
 
-        // Act
         var result = await _controller.CancelFriendRequest(userId, receiverId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -638,68 +561,53 @@ public class SocialControllerTests
     [TestMethod]
     public async Task CancelFriendRequest_ShouldBubbleException_WhenRepositoryThrows()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.CancelFriendRequest(userId, receiverId))
             .ThrowsAsync(new InvalidOperationException("No pending request"));
 
-        // Act + Assert
         await Assert.ThrowsExceptionAsync<InvalidOperationException>(
             async () => await _controller.CancelFriendRequest(userId, receiverId));
     }
 
-    // Testing GetAllFriendRequests (OUTGOING)
-    // BEHOLDER DINE TDD TESTS UDEN ÆNDRING
+    // GetOutgoingFriendRequests
 
     [TestMethod]
-         public async Task GetAllFriendRequests_WhenItsSuccefull_ShouldReturnStatusCode200()
-         {
-             //Arrange
-             var userId = 1;
-     
-             
-             var friendshipFromRepo = new Friendship
-             {
-                 SenderId = userId,
-                 FriendShipStatus = FriendshipStatus.Pending
-             };
-             
-             
-             _mockRepository.Setup(r => r.GetOutgoingFriendRequestsAsync(userId))
-                 .ReturnsAsync(new List<Friendship> { friendshipFromRepo });
-             
-             //Act
-             var result = await _controller.GetOutgoingFriendRequests(userId);
-             
-             
-             // Assert
-             var okResult = result.Result as OkObjectResult;
-             Assert.IsNotNull(okResult, "Expected OkObjectResult");
-             Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
-     
-             
-             // Verificer at repositoryet blev kaldt korrekt
-             _mockRepository.Verify(r => r.GetOutgoingFriendRequestsAsync(userId), Times.Once);
-         }
-         
+    public async Task GetAllFriendRequests_WhenItsSuccefull_ShouldReturnStatusCode200()
+    {
+        var userId = "user-1";
+
+        var friendshipFromRepo = new Friendship
+        {
+            SenderId = userId,
+            FriendShipStatus = FriendshipStatus.Pending
+        };
+
+        _mockRepository.Setup(r => r.GetOutgoingFriendRequestsAsync(userId))
+            .ReturnsAsync(new List<Friendship> { friendshipFromRepo });
+
+        var result = await _controller.GetOutgoingFriendRequests(userId);
+
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+
+        _mockRepository.Verify(r => r.GetOutgoingFriendRequestsAsync(userId), Times.Once);
+    }
 
     [TestMethod]
     public async Task GetAllFriendRequests_WhenItsUnSuccesfull_ShouldReturnStatusCode400()
     {
-        // Arrange
-        var userId = 123; // eller en hvilken som helst int
+        var userId = "user-123";
 
         _mockRepository
             .Setup(r => r.GetOutgoingFriendRequestsAsync(userId))
             .ReturnsAsync((List<Friendship>?)null);
 
-        // Act
         var result = await _controller.GetOutgoingFriendRequests(userId);
 
-        // Assert
         var badRequestResult = result.Result as BadRequestObjectResult;
         Assert.IsNotNull(badRequestResult, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequestResult.StatusCode);
@@ -712,11 +620,10 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetAllIncomingFriendRequests_ShouldReturnOkWithList_WhenNotNull()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
         var friendship = new Friendship
         {
-            SenderId = 2,
+            SenderId = "user-2",
             ReceiverId = userId,
             FriendShipStatus = FriendshipStatus.Pending
         };
@@ -725,10 +632,8 @@ public class SocialControllerTests
             .Setup(r => r.GetAllIncomingFriendRequests(userId))
             .ReturnsAsync(new List<Friendship> { friendship });
 
-        // Act
         var result = await _controller.GetAllIncomingFriendRequests(userId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -741,17 +646,14 @@ public class SocialControllerTests
     [TestMethod]
     public async Task GetAllIncomingFriendRequests_ShouldReturnBadRequest_WhenRepositoryReturnsNull()
     {
-        // Arrange
-        var userId = 1;
+        var userId = "user-1";
 
         _mockRepository
             .Setup(r => r.GetAllIncomingFriendRequests(userId))
             .ReturnsAsync((IEnumerable<Friendship>?)null);
 
-        // Act
         var result = await _controller.GetAllIncomingFriendRequests(userId);
 
-        // Assert
         var badRequest = result.Result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
@@ -762,9 +664,8 @@ public class SocialControllerTests
     [TestMethod]
     public async Task AcceptFriendRequestAsync_ShouldReturnOkWithStatusAccepted_WhenSuccessful()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.AcceptFriendRequest(userId, receiverId))
@@ -775,10 +676,8 @@ public class SocialControllerTests
                 FriendShipStatus = FriendshipStatus.Accepted
             });
 
-        // Act
         var result = await _controller.AcceptFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var okResult = result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -790,52 +689,45 @@ public class SocialControllerTests
     [TestMethod]
     public async Task AcceptFriendRequestAsync_ShouldReturnBadRequest_WhenUserIdEqualsReceiverId()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 1;
+        var userId = "user-1";
+        var receiverId = "user-1";
 
-        // Act
         var result = await _controller.AcceptFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
-        _mockRepository.Verify(r => r.AcceptFriendRequest(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+
+        _mockRepository.Verify(r => r.AcceptFriendRequest(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
     public async Task AcceptFriendRequestAsync_ShouldReturnBadRequest_WhenIdsAreInvalid()
     {
-        // Arrange
-        var userId = 0;
-        var receiverId = -1;
+        var userId = "";
+        var receiverId = "   ";
 
-        // Act
         var result = await _controller.AcceptFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
-        _mockRepository.Verify(r => r.AcceptFriendRequest(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+
+        _mockRepository.Verify(r => r.AcceptFriendRequest(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
     public async Task AcceptFriendRequestAsync_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.AcceptFriendRequest(userId, receiverId))
             .ThrowsAsync(new KeyNotFoundException("Not found"));
 
-        // Act
         var result = await _controller.AcceptFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var notFound = result as NotFoundObjectResult;
         Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
@@ -844,18 +736,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task AcceptFriendRequestAsync_ShouldReturnConflict_WhenRepositoryThrowsInvalidOperationException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.AcceptFriendRequest(userId, receiverId))
             .ThrowsAsync(new InvalidOperationException("Cannot accept"));
 
-        // Act
         var result = await _controller.AcceptFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var conflict = result as ConflictObjectResult;
         Assert.IsNotNull(conflict, "Expected ConflictObjectResult");
         Assert.AreEqual(StatusCodes.Status409Conflict, conflict.StatusCode);
@@ -864,18 +753,15 @@ public class SocialControllerTests
     [TestMethod]
     public async Task AcceptFriendRequestAsync_ShouldReturnBadRequest_WhenRepositoryThrowsArgumentException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.AcceptFriendRequest(userId, receiverId))
             .ThrowsAsync(new ArgumentException("Invalid"));
 
-        // Act
         var result = await _controller.AcceptFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var badRequest = result as BadRequestObjectResult;
         Assert.IsNotNull(badRequest, "Expected BadRequestObjectResult");
         Assert.AreEqual(StatusCodes.Status400BadRequest, badRequest.StatusCode);
@@ -884,39 +770,32 @@ public class SocialControllerTests
     [TestMethod]
     public async Task AcceptFriendRequestAsync_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
     {
-        // Arrange
-        var userId = 1;
-        var receiverId = 2;
+        var userId = "user-1";
+        var receiverId = "user-2";
 
         _mockRepository
             .Setup(r => r.AcceptFriendRequest(userId, receiverId))
             .ThrowsAsync(new Exception("Unexpected"));
 
-        // Act
         var result = await _controller.AcceptFriendRequestAsync(userId, receiverId);
 
-        // Assert
         var statusResult = result as ObjectResult;
         Assert.IsNotNull(statusResult, "Expected ObjectResult");
         Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
     }
-    
-    
-    
-    
-    
-    //Post tests
+
+    // Post tests
+
     [TestMethod]
     public async Task PostAPost_calls_repository_and_returns_created_post()
     {
-        // Arrange
         var repoMock = new Mock<ISocialRepository>();
 
         var inputPost = new Post
         {
-            UserId = 1,
-            FitnessClassId = 10,
-            WorkoutId = 100,
+            UserId = "user-1",
+            FitnessClassId = "10",
+            WorkoutId = "100",
             PostTitle = "Test title",
             PostContent = "Test content"
         };
@@ -937,30 +816,25 @@ public class SocialControllerTests
 
         var controller = new SocialController(repoMock.Object);
 
-        // Act
         var result = await controller.PostAPost(inputPost);
 
-        // Assert
         Assert.AreSame(createdPost, result);
         repoMock.Verify(r => r.PostAPost(inputPost), Times.Once);
     }
-    
-    
-    
+
     // RemoveAPost
 
     [TestMethod]
     public async Task RemoveAPost_calls_repository_and_returns_removed_post()
     {
-        // Arrange
         var postId = "some-mongo-id";
 
         var removedPost = new Post
         {
             Id = postId,
-            UserId = 1,
-            FitnessClassId = 10,
-            WorkoutId = 100,
+            UserId = "user-1",
+            FitnessClassId = "10",
+            WorkoutId = "100",
             PostTitle = "Removed title",
             PostContent = "Removed content"
         };
@@ -969,21 +843,19 @@ public class SocialControllerTests
             .Setup(r => r.RemoveAPost(postId))
             .ReturnsAsync(removedPost);
 
-        // Act
         var result = await _controller.RemoveAPost(postId);
 
-        // Assert
         Assert.IsNotNull(result, "Expected a Post to be returned");
         Assert.AreSame(removedPost, result, "Controller should return the Post from the repository");
 
         _mockRepository.Verify(r => r.RemoveAPost(postId), Times.Once);
     }
-    
-    
-        [TestMethod]
+
+    // EditAPost
+
+    [TestMethod]
     public async Task EditAPost_ShouldReturnUnauthorized_WhenNoUserIdClaim()
     {
-        // Arrange
         SetUserOnController(null);
 
         var post = new Post
@@ -993,24 +865,21 @@ public class SocialControllerTests
             PostContent = "Content"
         };
 
-        // Act
         var result = await _controller.EditAPost(post);
 
-        // Assert
         var unauthorized = result.Result as UnauthorizedResult;
         Assert.IsNotNull(unauthorized, "Expected UnauthorizedResult");
         Assert.AreEqual(StatusCodes.Status401Unauthorized, unauthorized.StatusCode);
 
         _mockRepository.Verify(
-            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<int>()),
+            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<string>()),
             Times.Never);
     }
 
     [TestMethod]
-    public async Task EditAPost_ShouldReturnUnauthorized_WhenUserIdClaimIsNotInt()
+    public async Task EditAPost_ShouldReturnUnauthorized_WhenUserIdClaimIsWhitespace()
     {
-        // Arrange
-        SetUserOnController("not-an-int");
+        SetUserOnController("   ");
 
         var post = new Post
         {
@@ -1019,34 +888,31 @@ public class SocialControllerTests
             PostContent = "Content"
         };
 
-        // Act
         var result = await _controller.EditAPost(post);
 
-        // Assert
         var unauthorized = result.Result as UnauthorizedResult;
         Assert.IsNotNull(unauthorized, "Expected UnauthorizedResult");
         Assert.AreEqual(StatusCodes.Status401Unauthorized, unauthorized.StatusCode);
 
         _mockRepository.Verify(
-            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<int>()),
+            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<string>()),
             Times.Never);
     }
 
     [TestMethod]
     public async Task EditAPost_ShouldCallRepositoryWithCurrentUserId_AndReturnOkWithEditedPost()
     {
-        // Arrange
-        var userId = 42;
-        SetUserOnController(userId.ToString());
+        var userId = "user-42";
+        SetUserOnController(userId);
 
         var inputPost = new Post
         {
             Id = "post-1",
-            UserId = 999, // bliver ignorert og overskrevet i controlleren
+            UserId = "user-999",
             PostTitle = "Old title",
             PostContent = "Old content",
-            FitnessClassId = 1,
-            WorkoutId = 2
+            FitnessClassId = "1",
+            WorkoutId = "2"
         };
 
         var editedPostFromRepo = new Post
@@ -1055,18 +921,16 @@ public class SocialControllerTests
             UserId = userId,
             PostTitle = "New title",
             PostContent = "New content",
-            FitnessClassId = 3,
-            WorkoutId = 4
+            FitnessClassId = "3",
+            WorkoutId = "4"
         };
 
         _mockRepository
             .Setup(r => r.EditAPost(It.IsAny<Post>(), userId))
             .ReturnsAsync(editedPostFromRepo);
 
-        // Act
         var result = await _controller.EditAPost(inputPost);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -1085,7 +949,7 @@ public class SocialControllerTests
             r => r.EditAPost(
                 It.Is<Post>(p =>
                     p.Id == inputPost.Id &&
-                    p.UserId == userId && // vigtigt: controlleren sætter UserId = currentUserId
+                    p.UserId == userId &&
                     p.PostTitle == inputPost.PostTitle &&
                     p.PostContent == inputPost.PostContent),
                 userId),
@@ -1095,9 +959,8 @@ public class SocialControllerTests
     [TestMethod]
     public async Task EditAPost_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
     {
-        // Arrange
-        var userId = 42;
-        SetUserOnController(userId.ToString());
+        var userId = "user-42";
+        SetUserOnController(userId);
 
         var inputPost = new Post
         {
@@ -1110,26 +973,23 @@ public class SocialControllerTests
             .Setup(r => r.EditAPost(It.IsAny<Post>(), userId))
             .ThrowsAsync(new KeyNotFoundException("Post not found or access denied"));
 
-        // Act
         var result = await _controller.EditAPost(inputPost);
 
-        // Assert
         var notFound = result.Result as NotFoundResult;
         Assert.IsNotNull(notFound, "Expected NotFoundResult");
         Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
     }
-    
-    //Comment Test
-    
+
+    // Comment tests
+
     [TestMethod]
     public async Task AddACommentToPost_calls_repository_and_returns_updated_post()
     {
-        // Arrange
         var postId = "some-mongo-id";
 
         var inputComment = new Comment
         {
-            AuthorId = 1,
+            AuthorId = "user-1",
             CommentDate = DateTime.UtcNow,
             CommentText = "Nice workout!"
         };
@@ -1137,9 +997,9 @@ public class SocialControllerTests
         var updatedPostFromRepo = new Post
         {
             Id = postId,
-            UserId = 1,
-            FitnessClassId = 10,
-            WorkoutId = 100,
+            UserId = "user-1",
+            FitnessClassId = "10",
+            WorkoutId = "100",
             PostTitle = "Title",
             PostContent = "Content",
             Comments = new List<Comment> { inputComment }
@@ -1149,10 +1009,8 @@ public class SocialControllerTests
             .Setup(r => r.AddCommentToPost(postId, inputComment))
             .ReturnsAsync(updatedPostFromRepo);
 
-        // Act
         var result = await _controller.AddACommentToPost(postId, inputComment);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -1166,33 +1024,27 @@ public class SocialControllerTests
             Times.Once);
     }
 
-    
-    //RemoveComment Test
-    
     [TestMethod]
     public async Task RemoveCommentFromPost_ShouldReturnOkAndCallRepository()
     {
-        // Arrange
         var postId = "post-123";
         var commentId = "comment-456";
 
         var updatedPost = new Post
         {
             Id = postId,
-            UserId = 1,
+            UserId = "user-1",
             PostTitle = "Title",
             PostContent = "Content",
-            Comments = new List<Comment>() // fx tom efter sletning
+            Comments = new List<Comment>()
         };
 
         _mockRepository
             .Setup(r => r.RemoveCommentFromPost(postId, commentId))
             .ReturnsAsync(updatedPost);
 
-        // Act
         var result = await _controller.RemoveCommentFromPost(postId, commentId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
@@ -1205,226 +1057,199 @@ public class SocialControllerTests
             r => r.RemoveCommentFromPost(postId, commentId),
             Times.Once);
     }
-    
-    
-    // EditComment tests
 
-[TestMethod]
-public async Task EditComment_ShouldReturnOkWithUpdatedPost_WhenSuccessful()
-{
-    // Arrange
-    var postId = "post-123";
-
-    var inputComment = new Comment
+    [TestMethod]
+    public async Task EditComment_ShouldReturnOkWithUpdatedPost_WhenSuccessful()
     {
-        Id = "comment-1",
-        AuthorId = 1,
-        CommentDate = DateTime.UtcNow,
-        CommentText = "Edited text"
-    };
+        var postId = "post-123";
 
-    var updatedPostFromRepo = new Post
+        var inputComment = new Comment
+        {
+            Id = "comment-1",
+            AuthorId = "user-1",
+            CommentDate = DateTime.UtcNow,
+            CommentText = "Edited text"
+        };
+
+        var updatedPostFromRepo = new Post
+        {
+            Id = postId,
+            UserId = "user-1",
+            PostTitle = "Title",
+            PostContent = "Content",
+            Comments = new List<Comment>
+            {
+                new Comment
+                {
+                    Id = inputComment.Id,
+                    AuthorId = inputComment.AuthorId,
+                    CommentDate = inputComment.CommentDate,
+                    CommentText = inputComment.CommentText
+                }
+            }
+        };
+
+        _mockRepository
+            .Setup(r => r.EditComment(postId, inputComment))
+            .ReturnsAsync(updatedPostFromRepo);
+
+        var result = await _controller.EditComment(postId, inputComment);
+
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+
+        var returnedPost = okResult.Value as Post;
+        Assert.IsNotNull(returnedPost, "Expected Post as value");
+        Assert.AreSame(updatedPostFromRepo, returnedPost, "Controller should return the Post from the repository");
+
+        _mockRepository.Verify(
+            r => r.EditComment(postId, inputComment),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task EditComment_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
     {
-        Id = postId,
-        UserId = 1,
-        PostTitle = "Title",
-        PostContent = "Content",
-        Comments = new List<Comment>
+        var postId = "post-123";
+
+        var inputComment = new Comment
+        {
+            Id = "comment-1",
+            CommentText = "Edited text"
+        };
+
+        _mockRepository
+            .Setup(r => r.EditComment(postId, inputComment))
+            .ThrowsAsync(new KeyNotFoundException("Post not found or comment not found"));
+
+        var result = await _controller.EditComment(postId, inputComment);
+
+        var notFound = result.Result as NotFoundObjectResult;
+        Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
+        Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
+        Assert.AreEqual("Post not found or comment not found", notFound.Value);
+    }
+
+    [TestMethod]
+    public async Task EditComment_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
+    {
+        var postId = "post-123";
+
+        var inputComment = new Comment
+        {
+            Id = "comment-1",
+            CommentText = "Edited text"
+        };
+
+        _mockRepository
+            .Setup(r => r.EditComment(postId, inputComment))
+            .ThrowsAsync(new Exception("Unexpected"));
+
+        var result = await _controller.EditComment(postId, inputComment);
+
+        var statusResult = result.Result as ObjectResult;
+        Assert.IsNotNull(statusResult, "Expected ObjectResult");
+        Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
+        Assert.AreEqual("An unexpected error occurred", statusResult.Value);
+    }
+
+    [TestMethod]
+    public async Task SeeAllCommentForPost_calls_repository_and_returns_comment_list()
+    {
+        var postId = "post-123";
+
+        var commentsFromRepo = new List<Comment>
         {
             new Comment
             {
-                Id = inputComment.Id,
-                AuthorId = inputComment.AuthorId,
-                CommentDate = inputComment.CommentDate,
-                CommentText = inputComment.CommentText
+                Id = "comment-1",
+                AuthorId = "user-1",
+                CommentText = "First comment",
+                CommentDate = DateTime.UtcNow
+            },
+            new Comment
+            {
+                Id = "comment-2",
+                AuthorId = "user-2",
+                CommentText = "Second comment",
+                CommentDate = DateTime.UtcNow
             }
-        }
-    };
+        };
 
-    _mockRepository
-        .Setup(r => r.EditComment(postId, inputComment))
-        .ReturnsAsync(updatedPostFromRepo);
+        _mockRepository
+            .Setup(r => r.SeeAllCommentForPostId(postId))
+            .ReturnsAsync(commentsFromRepo);
 
-    // Act
-    var result = await _controller.EditComment(postId, inputComment);
+        var result = await _controller.SeeAllCommentForPost(postId);
 
-    // Assert
-    var okResult = result.Result as OkObjectResult;
-    Assert.IsNotNull(okResult, "Expected OkObjectResult");
-    Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+        Assert.IsNotNull(result, "Expected a list of comments to be returned");
+        Assert.AreSame(commentsFromRepo, result, "Controller should return the list from the repository");
 
-    var returnedPost = okResult.Value as Post;
-    Assert.IsNotNull(returnedPost, "Expected Post as value");
-    Assert.AreSame(updatedPostFromRepo, returnedPost, "Controller should return the Post from the repository");
+        _mockRepository.Verify(
+            r => r.SeeAllCommentForPostId(postId),
+            Times.Once);
+    }
 
-    _mockRepository.Verify(
-        r => r.EditComment(postId, inputComment),
-        Times.Once);
-}
-
-[TestMethod]
-public async Task EditComment_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
-{
-    // Arrange
-    var postId = "post-123";
-
-    var inputComment = new Comment
+    [TestMethod]
+    public async Task SeeAllPostsForUser_calls_repository_and_returns_post_list()
     {
-        Id = "comment-1",
-        CommentText = "Edited text"
-    };
+        var userId = "user-1";
 
-    _mockRepository
-        .Setup(r => r.EditComment(postId, inputComment))
-        .ThrowsAsync(new KeyNotFoundException("Post not found or comment not found"));
+        var postsFromRepo = new List<Post>
+        {
+            new Post
+            {
+                Id = "post-1",
+                UserId = userId,
+                FitnessClassId = "10",
+                WorkoutId = "100",
+                PostTitle = "Title 1",
+                PostContent = "Content 1"
+            },
+            new Post
+            {
+                Id = "post-2",
+                UserId = userId,
+                FitnessClassId = "11",
+                WorkoutId = "101",
+                PostTitle = "Title 2",
+                PostContent = "Content 2"
+            }
+        };
 
-    // Act
-    var result = await _controller.EditComment(postId, inputComment);
+        _mockRepository
+            .Setup(r => r.SeeAllPostsForUser(userId))
+            .ReturnsAsync(postsFromRepo);
 
-    // Assert
-    var notFound = result.Result as NotFoundObjectResult;
-    Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
-    Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
-    Assert.AreEqual("Post not found or comment not found", notFound.Value);
-}
+        var result = await _controller.SeeAllPostsForUser(userId);
 
-[TestMethod]
-public async Task EditComment_ShouldReturn500_WhenRepositoryThrowsUnexpectedException()
-{
-    // Arrange
-    var postId = "post-123";
+        Assert.IsNotNull(result, "Expected a list of posts to be returned");
+        Assert.AreSame(postsFromRepo, result, "Controller should return the list from the repository");
 
-    var inputComment = new Comment
+        _mockRepository.Verify(
+            r => r.SeeAllPostsForUser(userId),
+            Times.Once);
+    }
+
+    [TestMethod]
+    public async Task SeeAllPostsForUser_when_repo_returns_empty_list_returns_empty_list()
     {
-        Id = "comment-1",
-        CommentText = "Edited text"
-    };
+        var userId = "user-1";
 
-    _mockRepository
-        .Setup(r => r.EditComment(postId, inputComment))
-        .ThrowsAsync(new Exception("Unexpected"));
+        var emptyList = new List<Post>();
 
-    // Act
-    var result = await _controller.EditComment(postId, inputComment);
+        _mockRepository
+            .Setup(r => r.SeeAllPostsForUser(userId))
+            .ReturnsAsync(emptyList);
 
-    // Assert
-    var statusResult = result.Result as ObjectResult;
-    Assert.IsNotNull(statusResult, "Expected ObjectResult");
-    Assert.AreEqual(StatusCodes.Status500InternalServerError, statusResult.StatusCode);
-    Assert.AreEqual("An unexpected error occurred", statusResult.Value);
-}
+        var result = await _controller.SeeAllPostsForUser(userId);
 
+        Assert.IsNotNull(result, "Expected an empty list, not null");
+        Assert.AreEqual(0, result.Count(), "Expected empty list");
 
-[TestMethod]
-public async Task SeeAllCommentForPost_calls_repository_and_returns_comment_list()
-{
-    // Arrange
-    var postId = "post-123";
-
-    var commentsFromRepo = new List<Comment>
-    {
-        new Comment
-        {
-            Id = "comment-1",
-            AuthorId = 1,
-            CommentText = "First comment",
-            CommentDate = DateTime.UtcNow
-        },
-        new Comment
-        {
-            Id = "comment-2",
-            AuthorId = 2,
-            CommentText = "Second comment",
-            CommentDate = DateTime.UtcNow
-        }
-    };
-
-    _mockRepository
-        .Setup(r => r.SeeAllCommentForPostId(postId))
-        .ReturnsAsync(commentsFromRepo);
-
-    // Act
-    var result = await _controller.SeeAllCommentForPost(postId);
-
-    // Assert
-    Assert.IsNotNull(result, "Expected a list of comments to be returned");
-    Assert.AreSame(commentsFromRepo, result, "Controller should return the list from the repository");
-
-    _mockRepository.Verify(
-        r => r.SeeAllCommentForPostId(postId),
-        Times.Once);
-}
-
-
-[TestMethod]
-public async Task SeeAllPostsForUser_calls_repository_and_returns_post_list()
-{
-    // Arrange
-    var userId = 1;
-
-    var postsFromRepo = new List<Post>
-    {
-        new Post
-        {
-            Id = "post-1",
-            UserId = userId,
-            FitnessClassId = 10,
-            WorkoutId = 100,
-            PostTitle = "Title 1",
-            PostContent = "Content 1"
-        },
-        new Post
-        {
-            Id = "post-2",
-            UserId = userId,
-            FitnessClassId = 11,
-            WorkoutId = 101,
-            PostTitle = "Title 2",
-            PostContent = "Content 2"
-        }
-    };
-
-    _mockRepository
-        .Setup(r => r.SeeAllPostsForUser(userId))
-        .ReturnsAsync(postsFromRepo);
-
-    // Act
-    var result = await _controller.SeeAllPostsForUser(userId);
-
-    // Assert
-    Assert.IsNotNull(result, "Expected a list of posts to be returned");
-    Assert.AreSame(postsFromRepo, result, "Controller should return the list from the repository");
-
-    _mockRepository.Verify(
-        r => r.SeeAllPostsForUser(userId),
-        Times.Once);
-}
-
-[TestMethod]
-public async Task SeeAllPostsForUser_when_repo_returns_empty_list_returns_empty_list()
-{
-    // Arrange
-    var userId = 1;
-
-    var emptyList = new List<Post>();
-
-    _mockRepository
-        .Setup(r => r.SeeAllPostsForUser(userId))
-        .ReturnsAsync(emptyList);
-
-    // Act
-    var result = await _controller.SeeAllPostsForUser(userId);
-
-    // Assert
-    Assert.IsNotNull(result, "Expected an empty list, not null");
-    Assert.AreEqual(0, result.Count(), "Expected empty list");
-
-    _mockRepository.Verify(
-        r => r.SeeAllPostsForUser(userId),
-        Times.Once);
-}
-
-
-
-
+        _mockRepository.Verify(
+            r => r.SeeAllPostsForUser(userId),
+            Times.Once);
+    }
 }
