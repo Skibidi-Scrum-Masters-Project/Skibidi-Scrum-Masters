@@ -71,5 +71,8 @@ public interface ISocialRepository
     
     //Metode til at ændre draft status.
     Task<Post> ChangeDraftStatusForPost(string postId);
+    
+    //Metode til at se alle ens venners opslag
+    Task<IEnumerable<Post>> SeeAllFriendsPosts(string userId);
 
 }

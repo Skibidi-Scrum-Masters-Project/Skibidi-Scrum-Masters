@@ -1337,4 +1337,45 @@ public class SocialControllerTests
             r => r.SeeAllPostsForUser(userId),
             Times.Once);
     }
+    
+    [TestMethod]
+    public async Task SeeAllFriendsPosts_calls_repository_and_returns_posts()
+    {
+        var userId = "user-1";
+
+        var postsFromRepo = new List<Post>
+        {
+            new Post
+            {
+                Id = "post-1",
+                UserId = "user-1",
+                PostTitle = "Own post",
+                PostContent = "Content",
+                PostDate = new DateTime(2020, 1, 2),
+                Comments = new List<Comment>()
+            },
+            new Post
+            {
+                Id = "post-2",
+                UserId = "user-2",
+                PostTitle = "Friend post",
+                PostContent = "Content",
+                PostDate = new DateTime(2020, 1, 3),
+                Comments = new List<Comment>()
+            }
+        };
+
+        _mockRepository
+            .Setup(r => r.SeeAllFriendsPosts(userId))
+            .ReturnsAsync(postsFromRepo);
+
+        var result = await _controller.SeeAllFriendsPosts(userId);
+
+        Assert.IsNotNull(result, "Expected a list of posts to be returned");
+        Assert.AreSame(postsFromRepo, result, "Controller should return the list from the repository");
+        Assert.AreEqual(2, result.Count(), "Expected exactly 2 posts");
+
+        _mockRepository.Verify(r => r.SeeAllFriendsPosts(userId), Times.Once);
+    }
+
 }

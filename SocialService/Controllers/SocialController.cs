@@ -364,6 +364,15 @@ public class SocialController : ControllerBase
         
         return post;
     }
+    
+    
+    [HttpGet("SeeAllFriendsPosts/{userId}")]
+    public async Task<IEnumerable<Post>> SeeAllFriendsPosts(string userId)
+    {
+        var posts = await _socialRepository.SeeAllFriendsPosts(userId);
+        
+        return posts;
+    }
 
 
 
