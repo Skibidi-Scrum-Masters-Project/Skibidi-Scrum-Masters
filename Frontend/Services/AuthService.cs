@@ -2,23 +2,44 @@ namespace FitLifeFitness.Services;
 
 public class AuthService
 {
-    private readonly HttpClient _httpClient;
-
-    public AuthService(HttpClient httpClient)
+    private readonly HttpClient _http;
+    private readonly TokenService _tokenService;
+    
+    public AuthService(HttpClient httpClient, TokenService tokenService)
     {
-        _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("http://localhost:4000");
+        _http = httpClient;
+        _tokenService = tokenService;
     }
-
-    public async Task<HttpResponseMessage> LoginAsync(string email, string password)
+    
+    public async Task<HttpResponseMessage> LoginAsync(string username, string password)
     {
-        var loginData = new { email, password };
-        return await _httpClient.PostAsJsonAsync("/api/auth/login", loginData);
+        var loginData = new 
+        { 
+            Username = username,
+            Password = password 
+        };
+        
+        return await _http.PostAsJsonAsync("/api/auth/login", loginData);
     }
-
+    
     public async Task<HttpResponseMessage> RegisterAsync(string email, string password, string name)
     {
-        var registerData = new { email, password, name };
-        return await _httpClient.PostAsJsonAsync("/api/auth/register", registerData);
+        return await _http.PostAsJsonAsync("/api/auth/register", new { email, password, name });
+    }
+    
+    public async Task LogoutAsync()
+    {
+        await _tokenService.ClearAsync();
+    }
+    
+    // Helper method to add token to requests
+    public async Task AddAuthorizationHeaderAsync()
+    {
+        var token = await _tokenService.GetTokenAsync();
+        if (!string.IsNullOrEmpty(token))
+        {
+            _http.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
     }
 }
