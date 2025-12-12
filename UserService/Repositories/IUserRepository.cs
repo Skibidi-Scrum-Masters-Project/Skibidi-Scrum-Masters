@@ -4,10 +4,11 @@ public interface IUserRepository
 {
     User CreateUser(User user);
     User HashPassword(User user);
-    List<User> GetAllUsers();
-    User? GetUserById(string id);
-    User? GetUserByUsername(string username);
+    List<UserDTO> GetAllUsers();
+    UserDTO? GetUserById(string id);
+    UserDTO? GetUserByUsername(string username);
     bool DeleteUser(string id);
-    User UpdateUser(User updatedUser);
-    List<User> GetUsersByRole(Role role);
+    UserDTO UpdateUser(User updatedUser);
+    List<UserDTO> GetUsersByRole(Role role);
+    User? GetUserByUsernameSecure(string username);
 }

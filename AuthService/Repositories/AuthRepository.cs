@@ -23,7 +23,7 @@ public class AuthRepository : IAuthRepository
         {
             using var httpClient = new HttpClient();
             // Get user by username from UserService
-            var response = await httpClient.GetAsync($"http://userservice:8080/api/users/username/{request.Username}");
+            var response = await httpClient.GetAsync($"http://userservice:8080/api/users/username/{request.Username}/secure");
             
             if (response.IsSuccessStatusCode)
             {
@@ -31,11 +31,20 @@ public class AuthRepository : IAuthRepository
                 // Verify password using BCrypt (salt is embedded in the hash)
                 if (user != null && BCrypt.Net.BCrypt.Verify(request.Password, user.HashedPassword))
                 {
-                    var token = _GenerateJWT(user);
+                    UserDTO userDto = new UserDTO
+                    {
+                        Id = user.Id,
+                        Username = user.Username,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        Email = user.Email,
+                        Role = user.Role
+                    };
+                    var token = _GenerateJWT(userDto);
                     return new LoginResponse
                     {
                         Token = token,
-                        User = user,
+                        User = userDto,
                         ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes)
                     };
                 }
@@ -53,7 +62,7 @@ public class AuthRepository : IAuthRepository
         }
     }
 
-    public string _GenerateJWT(User user)
+    public string _GenerateJWT(UserDTO user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(_jwtSettings.Secret);
