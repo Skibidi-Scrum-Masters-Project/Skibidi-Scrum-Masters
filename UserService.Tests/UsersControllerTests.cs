@@ -57,7 +57,7 @@ public class UsersControllerTests
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode);
 
-        var returnedUsers = okResult.Value as IEnumerable<User>;
+        var returnedUsers = okResult.Value as IEnumerable<UserDTO>;
         Assert.IsNotNull(returnedUsers, "Expected list of users");
         Assert.AreEqual(3, returnedUsers.Count(), "Expected 3 users");
 
@@ -79,7 +79,7 @@ public class UsersControllerTests
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode);
 
-        var returnedUsers = okResult.Value as IEnumerable<User>;
+        var returnedUsers = okResult.Value as IEnumerable<UserDTO>;
         Assert.IsNotNull(returnedUsers, "Expected empty list of users");
         Assert.AreEqual(0, returnedUsers.Count(), "Expected 0 users");
 
@@ -132,7 +132,7 @@ public class UsersControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode, "Expected status code 200");
-        var returnedUser = okResult.Value as User;
+        var returnedUser = okResult.Value as UserDTO;
         Assert.IsNotNull(returnedUser, "Expected a user object");
         Assert.AreEqual(username, returnedUser.Username, "Usernames should match");
         _mockRepository.Verify(repo => repo.GetUserByUsername(username), Times.Once);
@@ -307,7 +307,7 @@ public class UsersControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode, "Expected status code 200");
-        var returnedUser = okResult.Value as User;
+        var returnedUser = okResult.Value as UserDTO;
         Assert.IsNotNull(returnedUser, "Expected a user object");
         Assert.AreEqual(userId, returnedUser.Id, "User IDs should match");
         _mockRepository.Verify(repo => repo.GetUserById(userId), Times.Once);
