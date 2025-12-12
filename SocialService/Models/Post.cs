@@ -4,28 +4,34 @@ namespace SocialService.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
+
 public class Post
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     public string? Id { get; set; }
-    
+
     public string UserId { get; set; }
     public string? FitnessClassId { get; set; }
     public string? WorkoutId { get; set; }
     public DateTime PostDate { get; set; }
-    
+
     [Required]
     public string PostTitle { get; set; }
-    
+
     [Required]
     public string PostContent { get; set; }
-    
+
     public PostType Type { get; set; } = PostType.Generic;
 
     public WorkoutStatsSnapshot? WorkoutStats { get; set; }
     
     public List<Comment> Comments { get; set; } = new();
+
+    public bool IsDraft { get; set; } = false;
+    
+    public string? SourceEventId { get; set; }
+
 }
 
 public enum PostType

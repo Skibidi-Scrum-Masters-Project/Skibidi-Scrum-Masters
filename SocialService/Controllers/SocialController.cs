@@ -5,6 +5,7 @@ using SocialService.Models;
 using SocialService.Repositories;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using MongoDB.Driver;
 
 namespace SocialService.Controllers;
 
@@ -13,11 +14,50 @@ namespace SocialService.Controllers;
 public class SocialController : ControllerBase
 {
     private readonly ISocialRepository _socialRepository;
+    private readonly IMongoCollection<Post> _posts;
 
-    public SocialController(ISocialRepository socialRepository)
+
+    public SocialController(ISocialRepository socialRepository, IMongoDatabase db)
     {
         _socialRepository = socialRepository;
+        _posts = db.GetCollection<Post>("Posts");
     }
+    
+    [HttpPost("/internal/events/class-workout-completed")]
+    public async Task<IActionResult> ClassWorkoutCompleted([FromBody] ClassResultEventDto metric)
+    {
+        if (string.IsNullOrWhiteSpace(metric.EventId) ||
+            string.IsNullOrWhiteSpace(metric.UserId) ||
+            string.IsNullOrWhiteSpace(metric.ClassId))
+            return BadRequest("Invalid payload.");
+
+        // dedupe
+        var already = await _posts.Find(p => p.SourceEventId == metric.EventId).AnyAsync();
+        if (already) return Ok();
+
+        var draft = new Post
+        {
+            UserId = metric.UserId,
+            FitnessClassId = metric.ClassId,
+            WorkoutId = metric.ClassId,
+            PostDate = DateTime.UtcNow,
+            PostTitle = "Class completed",
+            PostContent = $"Duration: {metric.DurationMin} min. Calories: {metric.CaloriesBurned:0}. Watt: {metric.Watt:0}",
+            Type = PostType.Workout,
+            IsDraft = true,
+            SourceEventId = metric.EventId,
+            WorkoutStats = new WorkoutStatsSnapshot
+            {
+                DurationSeconds = metric.DurationMin * 60,
+                Calories = (int?)Math.Round(metric.CaloriesBurned)
+            }
+        };
+
+        await _posts.InsertOneAsync(draft);
+        return Ok(new { draftId = draft.Id });
+    }
+
+
 
     [HttpGet("user/{userId}")]
     public ActionResult<IEnumerable<Friend>> GetUserFriends(string userId)
