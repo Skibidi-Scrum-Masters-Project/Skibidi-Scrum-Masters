@@ -38,6 +38,27 @@ public class SocialController : ControllerBase
         return Ok(new { draftId });
     }
     
+    [HttpPost("/internal/events/solo-training-completed")]
+    public async Task<IActionResult> SoloTrainingCompleted([FromBody] SoloTrainingCompletedEventDto metric)
+    {
+        if (string.IsNullOrWhiteSpace(metric.UserId) ||
+            string.IsNullOrWhiteSpace(metric.SoloTrainingSessionId) ||
+            string.IsNullOrWhiteSpace(metric.TrainingType) ||
+            metric.DurationMinutes <= 0)
+            return BadRequest("Invalid payload.");
+
+
+        metric.EventId ??= Guid.NewGuid().ToString();
+
+        var draftId = await _socialRepository.CreateDraftFromSoloTrainingCompletedAsync(metric);
+
+        if (draftId == null) return Ok();
+
+        return Ok(new { draftId });
+    }
+
+
+    
     [HttpPost("{userId}/sendFriendrequest/{receiverId}")]
     public async Task<ActionResult<Friendship>> SendFriendRequestAsync(string userId, string receiverId)
     {

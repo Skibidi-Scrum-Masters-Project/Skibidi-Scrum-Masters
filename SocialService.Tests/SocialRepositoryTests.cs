@@ -1439,5 +1439,51 @@ public async Task SeeAllFriendsPosts_WhenUserHasAcceptedFriends_ShouldReturnFrie
     CollectionAssert.AreEqual(expected, orderedDates, "Posts must be sorted by PostDate desc");
 }
 
+    [TestMethod]
+    public async Task CreateDraftFromSoloTrainingCompletedAsync_CreatesDraftPost()
+    {
+        var dto = new SoloTrainingCompletedEventDto
+        {
+            EventId = "evt-1",
+            UserId = "user123",
+            SoloTrainingSessionId = "session123",
+            Date = DateTime.UtcNow,
+            TrainingType = "Cardio",
+            DurationMinutes = 20,
+            ExerciseCount = 3
+        };
+
+        var draftId = await _repository.CreateDraftFromSoloTrainingCompletedAsync(dto);
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(draftId));
+
+        var posts = _database.GetCollection<Post>("Posts");
+        var saved = await posts.Find(p => p.Id == draftId).FirstOrDefaultAsync();
+        Assert.IsNotNull(saved);
+        Assert.IsTrue(saved!.IsDraft);
+        Assert.AreEqual("evt-1", saved.SourceEventId);
+    }
+
+    [TestMethod]
+    public async Task CreateDraftFromSoloTrainingCompletedAsync_WhenSameEvent_ReturnsNull()
+    {
+        var dto = new SoloTrainingCompletedEventDto
+        {
+            EventId = "evt-dup",
+            UserId = "user123",
+            SoloTrainingSessionId = "session123",
+            Date = DateTime.UtcNow,
+            TrainingType = "Cardio",
+            DurationMinutes = 20,
+            ExerciseCount = 3
+        };
+
+        var first = await _repository.CreateDraftFromSoloTrainingCompletedAsync(dto);
+        var second = await _repository.CreateDraftFromSoloTrainingCompletedAsync(dto);
+
+        Assert.IsNotNull(first);
+        Assert.IsNull(second);
+    }
+
 
 }

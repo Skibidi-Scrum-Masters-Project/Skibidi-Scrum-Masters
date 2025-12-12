@@ -65,6 +65,9 @@ public interface ISocialRepository
     
     //Event handler der subscriber til ClassService.FinishClass
     Task<string?> CreateDraftFromClassWorkoutCompletedAsync(ClassResultEventDto metric);
+
+    //Event handler der subscriber til SoloTraningService.CompleteTraning
+    Task<string?> CreateDraftFromSoloTrainingCompletedAsync(SoloTrainingCompletedEventDto metric);
     
     //Metode til at se alle Draft post for user.
     Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId);
