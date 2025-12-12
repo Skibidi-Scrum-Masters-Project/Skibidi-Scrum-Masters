@@ -7,28 +7,28 @@ public interface ISocialRepository
 {
     
     //Sender friendRequest mellem 2 users
-    Task<Friendship> SendFriendRequestAsync(int userId, int receiverId);
+    Task<Friendship> SendFriendRequestAsync(string userId, string receiverId);
     
     //Metode til at acceptere en friend request
-    Task<Friendship?> AcceptFriendRequest (int userId, int receiverId);
+    Task<Friendship?> AcceptFriendRequest (string userId, string receiverId);
     
     //Metode til at afvise en friend request
-    Task<Friendship> DeclineFriendRequestAsync (int userId, int receiverId);
+    Task<Friendship> DeclineFriendRequestAsync (string userId, string receiverId);
     
     //Metode til at hente AllFriends på en bruger.
-    Task<IEnumerable<Friendship?>> GetAllFriends(int userId);
+    Task<IEnumerable<Friendship?>> GetAllFriends(string userId);
     
     //Metode til at hente en specfik bruger.
-    Task<Friendship?> GetFriendById(int userId, int receiverId);
+    Task<Friendship?> GetFriendById(string userId, string receiverId);
     
     //Metode til at Cancel en pending request.
-    Task<Friendship> CancelFriendRequest (int userId, int receiverId);
+    Task<Friendship> CancelFriendRequest (string userId, string receiverId);
     
     //Metode til at hente alle ens sendte friend requests.
-    Task<IEnumerable<Friendship>?> GetOutgoingFriendRequestsAsync (int userId);
+    Task<IEnumerable<Friendship>?> GetOutgoingFriendRequestsAsync (string userId);
     
     //Metode til at hente alle friend requests der er sendt til user
-    Task<IEnumerable<Friendship>?> GetAllIncomingFriendRequests (int userId);
+    Task<IEnumerable<Friendship>?> GetAllIncomingFriendRequests (string userId);
     
     
     
@@ -46,7 +46,7 @@ public interface ISocialRepository
     Task<Post> RemoveAPost(string postId);
     
     //Metode til at redigere et post
-    Task<Post> EditAPost(Post post, int currentUserId);
+    Task<Post> EditAPost(Post post, string currentUserId);
     
     //Metode til at tilføje Comment til et post
     Task<Post> AddCommentToPost(string postId, Comment comment);
@@ -61,6 +61,18 @@ public interface ISocialRepository
     Task<IEnumerable<Comment>> SeeAllCommentForPostId(string postId);
     
     //Metode til at se alle post for user
-    Task<IEnumerable<Post>> SeeAllPostsForUser(int userId);
+    Task<IEnumerable<Post>> SeeAllPostsForUser(string userId);
+    
+    //Event handler der subscriber til ClassService.FinishClass
+    Task<string?> CreateDraftFromClassWorkoutCompletedAsync(ClassResultEventDto metric);
+    
+    //Metode til at se alle Draft post for user.
+    Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId);
+    
+    //Metode til at ændre draft status.
+    Task<Post> ChangeDraftStatusForPost(string postId);
+    
+    //Metode til at se alle ens venners opslag
+    Task<IEnumerable<Post>> SeeAllFriendsPosts(string userId);
 
 }

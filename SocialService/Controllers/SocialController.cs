@@ -5,6 +5,7 @@ using SocialService.Models;
 using SocialService.Repositories;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using MongoDB.Driver;
 
 namespace SocialService.Controllers;
 
@@ -13,26 +14,37 @@ namespace SocialService.Controllers;
 public class SocialController : ControllerBase
 {
     private readonly ISocialRepository _socialRepository;
+    private readonly IMongoCollection<Post> _posts;
+
 
     public SocialController(ISocialRepository socialRepository)
     {
         _socialRepository = socialRepository;
     }
-
-    [HttpGet("user/{userId}")]
-    public ActionResult<IEnumerable<Friend>> GetUserFriends(string userId)
+    
+    [HttpPost("/internal/events/class-workout-completed")]
+    public async Task<IActionResult> ClassWorkoutCompleted([FromBody] ClassResultEventDto metric)
     {
-        // TBA: Implement get user's friends
-        return Ok(new { message = $"Get friends for user {userId} - TBA" });
-    }
+        if (string.IsNullOrWhiteSpace(metric.EventId) ||
+            string.IsNullOrWhiteSpace(metric.UserId) ||
+            string.IsNullOrWhiteSpace(metric.ClassId))
+            return BadRequest("Invalid payload.");
 
+        var draftId = await _socialRepository.CreateDraftFromClassWorkoutCompletedAsync(metric);
+
+        // Hvis dedupe ramte, kan du stadig returnere Ok()
+        if (draftId == null) return Ok();
+
+        return Ok(new { draftId });
+    }
+    
     [HttpPost("{userId}/sendFriendrequest/{receiverId}")]
-    public async Task<ActionResult<Friendship>> SendFriendRequestAsync(int userId, int receiverId)
+    public async Task<ActionResult<Friendship>> SendFriendRequestAsync(string userId, string receiverId)
     {
         if (userId == receiverId)
             return BadRequest("You cannot send a friend request to yourself.");
     
-        if (userId <= 0 || receiverId <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(receiverId))
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
@@ -63,12 +75,12 @@ public class SocialController : ControllerBase
 
 
     [HttpPut("declineRequest/{userId}/{receiverId}")]
-    public async Task<IActionResult> DeclineFriendRequestAsync(int userId, int receiverId)
+    public async Task<IActionResult> DeclineFriendRequestAsync(string userId, string receiverId)
     {
         if (userId == receiverId)
             return BadRequest("You cannot decline a friend request to yourself.");
     
-        if (userId <= 0 || receiverId <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(receiverId))
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
@@ -98,7 +110,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("{userId}/friends")]
-    public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(int userId)
+    public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(string userId)
     {
 
         try
@@ -127,7 +139,7 @@ public class SocialController : ControllerBase
     }
     
     [HttpGet("{userId}/friends/{receiverId}")]
-    public async Task<ActionResult<Friendship>> GetFriendById(int userId, int receiverId)
+    public async Task<ActionResult<Friendship>> GetFriendById(string userId, string receiverId)
     {
         try
         {
@@ -161,7 +173,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpPut("{userId}/cancel/{receiverId}")]
-    public async Task<ActionResult<Friendship>> CancelFriendRequest(int userId, int receiverId)
+    public async Task<ActionResult<Friendship>> CancelFriendRequest(string userId, string receiverId)
     {
         var friendRequestCanceled = await _socialRepository.CancelFriendRequest(userId, receiverId);
         
@@ -169,7 +181,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("friendrequests/outgoing/{userId}")]
-    public async Task<ActionResult<IEnumerable<Friendship>?>> GetOutgoingFriendRequests(int userId)
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetOutgoingFriendRequests(string userId)
     {
         var friendRequests = await _socialRepository.GetOutgoingFriendRequestsAsync(userId);
         
@@ -180,7 +192,7 @@ public class SocialController : ControllerBase
     }
     
     [HttpGet("friendrequests/incoming/{userId}")]
-    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllIncomingFriendRequests(int userId)
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllIncomingFriendRequests(string userId)
     {
         var friendRequests = await _socialRepository.GetAllIncomingFriendRequests(userId);
         
@@ -192,12 +204,12 @@ public class SocialController : ControllerBase
     
     
     [HttpPut("accept/{userId}/{receiverId}")]
-    public async Task<IActionResult> AcceptFriendRequestAsync(int userId, int receiverId)
+    public async Task<IActionResult> AcceptFriendRequestAsync(string userId, string receiverId)
     {
         if (userId == receiverId)
             return BadRequest("You cannot accept yourself as a friend.");
     
-        if (userId <= 0 || receiverId <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(receiverId))
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
@@ -247,31 +259,22 @@ public class SocialController : ControllerBase
     [HttpPut("EditAPost")]
     public async Task<ActionResult<Post>> EditAPost([FromBody] Post post)
     {
-        // Hent current user id fra JWT-claims
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim))
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId))
         {
             return Unauthorized();
         }
 
-        //Prøver at ændre userIdClaim til int og give currentUserId den int, som værdi.
-        if (!int.TryParse(userIdClaim, out var currentUserId))
-        {
-            return Unauthorized();
-        }
+        // Ignorér hvad klienten sender og sæt ejer ud fra JWT
+        post.UserId = currentUserId;
 
         try
         {
-            // Sørg evt. for at UserId på posten matcher current user (klienten ignoreres)
-            post.UserId = currentUserId;
-
             var editedPost = await _socialRepository.EditAPost(post, currentUserId);
-
             return Ok(editedPost);
         }
         catch (KeyNotFoundException)
         {
-            // Enten fandtes posten ikke, eller også var den ikke ejet af brugeren
             return NotFound();
         }
     }
@@ -337,11 +340,38 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("SeeAllPostsForUser/{userId}")]
-    public async Task<IEnumerable<Post>> SeeAllPostsForUser(int userId)
+    public async Task<IEnumerable<Post>> SeeAllPostsForUser(string userId)
     {
         var listOfPostForUser = await _socialRepository.SeeAllPostsForUser(userId);
 
         return listOfPostForUser;
+    }
+
+
+    [HttpGet("SeeAllDraftPostsForUser/{userId}")]
+    public async Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId)
+    {
+        var listOfDraftPosts = await _socialRepository.SeeAllDraftPostsForUser(userId);
+
+        return listOfDraftPosts;
+    }
+
+
+    [HttpPut("ChangeDraftStatusForPost/{postId}")]
+    public async Task<Post> ChangeDraftStatusForPost(string postId)
+    {
+        var post = await _socialRepository.ChangeDraftStatusForPost(postId);
+        
+        return post;
+    }
+    
+    
+    [HttpGet("SeeAllFriendsPosts/{userId}")]
+    public async Task<IEnumerable<Post>> SeeAllFriendsPosts(string userId)
+    {
+        var posts = await _socialRepository.SeeAllFriendsPosts(userId);
+        
+        return posts;
     }
 
 

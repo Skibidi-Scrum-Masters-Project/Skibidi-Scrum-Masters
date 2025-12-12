@@ -18,6 +18,8 @@ using NLog.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+
 // Configure NLog
 var logger = NLog.LogManager.Setup().LoadConfigurationFromFile("NLog.config").GetCurrentClassLogger();
 logger.Debug("Starting ClassService application");
@@ -124,6 +126,12 @@ builder.Services.AddScoped<IClassRepository, ClassRepository>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddHttpClient("SocialService", client =>
+{
+    client.BaseAddress = new Uri("http://socialservice:8080");
+});
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -133,6 +141,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
 
 app.UseAuthentication();
 app.UseAuthorization();
