@@ -230,4 +230,9 @@ public class ClassesController : ControllerBase
             return BadRequest(new { error = "Finishing class failed", message = ex.Message });
         }
     }
+    public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByUserId(string userId)
+    {
+            var classes = await _classRepository.GetClassesByUserIdAsync(userId);
+        return Ok(classes);
+    }
 }

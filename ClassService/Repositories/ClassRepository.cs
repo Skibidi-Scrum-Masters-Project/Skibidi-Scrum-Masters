@@ -446,4 +446,10 @@ public class ClassRepository : IClassRepository
            Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, nextUserId)
        );
     }
+    public async Task<IEnumerable<FitnessClass>> GetClassesByUserIdAsync(string userId)
+    {
+        var filter = Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId);
+        var classes = await _classesCollection.Find(filter).ToListAsync();
+        return classes;
+    }
 }

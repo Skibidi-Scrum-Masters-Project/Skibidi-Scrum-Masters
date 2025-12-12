@@ -3,13 +3,13 @@ namespace FitLifeFitness.Services;
 public class ClassService
 {
     private readonly HttpClient _httpClient;
+    private readonly TokenService _tokenService;
 
-    public ClassService(HttpClient httpClient)
+    public ClassService(HttpClient httpClient, TokenService tokenService)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("http://localhost:4000");
+        _tokenService = tokenService;
     }
-
     public async Task<HttpResponseMessage> GetAllClassesAsync()
     {
         return await _httpClient.GetAsync("/api/classes/classes");
@@ -33,5 +33,9 @@ public class ClassService
     public async Task<HttpResponseMessage> FinishClassAsync(string classId)
     {
         return await _httpClient.PostAsync($"/api/classes/classes/{classId}/finish", null);
+    }
+    public async Task<HttpResponseMessage> GetClassesByUserIdAsync(string userId)
+    {
+        return await _httpClient.GetAsync($"/api/classes/classes/user/{userId}");
     }
 }

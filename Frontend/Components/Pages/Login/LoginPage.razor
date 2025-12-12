@@ -70,13 +70,20 @@
 
                 if (result != null)
                 {
-                    // Save token
+                    // Save token and ensure it's flushed to storage
                     await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username);
                     
-                    // Navigate with force reload - preserve the current port
-                    var uri = new Uri(Nav.Uri);
-                    var dashboardUrl = $"{uri.Scheme}://{uri.Authority}/dashboard";
-                    Nav.NavigateTo(dashboardUrl, forceLoad: true);
+                    // Try to flush any pending values before navigating
+                    try
+                    {
+                        await TokenService.FlushPendingAsync();
+                        // Small delay to ensure storage write completes
+                        await Task.Delay(50);
+                    }
+                    catch { }
+                    
+                    // Navigate WITHOUT force reload to preserve state
+                    Nav.NavigateTo("/dashboard", forceLoad: false);
                     return;
                 }
             }
