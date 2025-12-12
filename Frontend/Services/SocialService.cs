@@ -7,7 +7,7 @@ public class SocialService
     public SocialService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("http://localhost:4000");
+  
     }
 
     public async Task<HttpResponseMessage> GetFriendsAsync(string userId)
