@@ -1,10 +1,21 @@
 using FitLifeFitness.Components;
+using FitLifeFitness.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Register HttpClient for services
+builder.Services.AddHttpClient<AuthService>();
+builder.Services.AddHttpClient<UserService>();
+builder.Services.AddHttpClient<ClassService>();
+builder.Services.AddHttpClient<SocialService>();
+builder.Services.AddHttpClient<AccessControlService>();
+builder.Services.AddHttpClient<AnalyticsService>();
+builder.Services.AddHttpClient<CoachingService>();
+builder.Services.AddHttpClient<SoloTrainingService>();
 
 var app = builder.Build();
 
