@@ -229,13 +229,23 @@ public class ClassRepository : IClassRepository
             };
 
             await _classResultsCollection.InsertOneAsync(metric);
-            await NotifySocialService(metric);
-
+            
+            try
+            {
+                await NotifySocialService(metric);
+            }
+            catch (Exception ex)
+            {
+                // Stopper ikke finish hvis socialservice er nede
+                Console.WriteLine($"NotifySocialService failed for user {attendant.UserId} in class {classId}: {ex.Message}");
+            }
         }
-
+        
         finishedClass.IsActive = false;
         await _classesCollection.ReplaceOneAsync(c => c.Id == classId, finishedClass);
     }
+
+
 
     private async Task NotifySocialService(ClassResult evt)
     {

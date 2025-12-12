@@ -435,5 +435,31 @@ public class SocialRepository : ISocialRepository
         return posts;
     }
 
+    
+    public async Task<Post> ChangeDraftStatusForPost(string postId)
+    {
+        var update = Builders<Post>.Update
+            .Set(p => p.IsDraft, false);
+
+        var options = new FindOneAndUpdateOptions<Post>
+        {
+            ReturnDocument = ReturnDocument.After
+        };
+
+        var post = await _postCollection.FindOneAndUpdateAsync(
+            p => p.Id == postId,
+            update,
+            options
+        );
+
+        if (post == null)
+        {
+            throw new KeyNotFoundException("Post not found or access denied");
+        }
+
+        return post;
+    }
+
+
 
 }
