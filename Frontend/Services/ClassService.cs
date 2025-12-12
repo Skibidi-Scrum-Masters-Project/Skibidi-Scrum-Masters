@@ -38,4 +38,18 @@ public class ClassService
     {
         return await _httpClient.GetAsync($"/api/classes/classes/user/{userId}");
     }
+    public async Task<HttpResponseMessage> CancelClassBookingForUserAsync(string classId, string userId)
+    {
+        return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}/cancel", null);
+    }
+    public async Task<HttpResponseMessage> GetAllAvailableClassesAsync()
+    {
+        return await _httpClient.GetAsync("/api/classes/classes");
+    }
+    public async Task<HttpResponseMessage> BookSeatForClassAsync(string classId,string userId, int seatNumber)
+    {
+        return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}/{seatNumber}", null);
+    }
+
+
 }

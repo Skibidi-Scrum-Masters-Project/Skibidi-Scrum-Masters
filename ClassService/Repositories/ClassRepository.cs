@@ -229,7 +229,7 @@ public class ClassRepository : IClassRepository
             };
 
             await _classResultsCollection.InsertOneAsync(metric);
-            
+
             try
             {
                 await NotifySocialService(metric);
@@ -240,7 +240,7 @@ public class ClassRepository : IClassRepository
                 Console.WriteLine($"NotifySocialService failed for user {attendant.UserId} in class {classId}: {ex.Message}");
             }
         }
-        
+
         finishedClass.IsActive = false;
         await _classesCollection.ReplaceOneAsync(c => c.Id == classId, finishedClass);
     }
@@ -259,7 +259,7 @@ public class ClassRepository : IClassRepository
         }
     }
 
-    
+
     public async Task<Double> CalculateWatt(Intensity intensity,
      Category category, int DurationMinutes)
     {
@@ -452,4 +452,6 @@ public class ClassRepository : IClassRepository
         var classes = await _classesCollection.Find(filter).ToListAsync();
         return classes;
     }
+
+
 }

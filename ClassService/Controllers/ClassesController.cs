@@ -230,9 +230,20 @@ public class ClassesController : ControllerBase
             return BadRequest(new { error = "Finishing class failed", message = ex.Message });
         }
     }
+    [HttpGet("classes/user/{userId}")]
     public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByUserId(string userId)
     {
-            var classes = await _classRepository.GetClassesByUserIdAsync(userId);
+        var classes = await _classRepository.GetClassesByUserIdAsync(userId);
         return Ok(classes);
+    }
+    [HttpGet("classes/{classId}")]
+    public async Task<ActionResult<FitnessClass>> GetClassById(string classId)
+    {
+        var fitnessClass = await _classRepository.GetClassByIdAsync(classId);
+        if (fitnessClass == null)
+        {
+            return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
+        }
+        return Ok(fitnessClass);
     }
 }

@@ -1,43 +1,99 @@
 @page "/classes/book"
-@using Microsoft.AspNetCore.Components
-@using FitLifeFitness.Components.Layout
 @layout EmptyLayout
+@inject FitLifeFitness.Services.AuthService AuthService
+@inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.ClassService ClassService
+@using System.ComponentModel.DataAnnotations
+@using FitLifeFitness.Components.Layout
+@using System.Net.Http.Json
+@using FitlifeFitness.Models
+@using Microsoft.AspNetCore.Components
 <div class="book-screen">
+    <button class="secondary-btn book-back" @onclick="GoBack">Tilbage</button>
     <h2 class="book-title">Book hold</h2>
     <p class="book-subtitle">Vælg et hold du vil booke.</p>
 
     <div class="book-list">
-        @foreach (var c in AvailableClasses)
+        @foreach (FitnessClass c in AvailableClasses)
         {
-            <button class="book-card" @onclick="() => ChooseSeat(c.Id)">
+            @if (c.SeatBookingEnabled == false)
+            {
+                var isFull = c.BookingList.Count >= c.MaxCapacity;
+                <button class="book-card @(isFull ? "full" : "available")" @onclick="() => GoToBooking(c.Id)">
+                    <div class="book-main">
+                        <p class="book-name">@c.Name</p>
+                        <p class="book-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
+                    </div>
+                    <div class="book-extra">
+                        <p class="book-type">@c.Category</p>
+                        <p class="book-spots">@c.BookingList.Count/@c.MaxCapacity pladser</p>
+                        <p class="book-location">@c.Intensity</p>
+                    </div>
+                </button>
+            }
+            var isFullSeat = c.BookingList.Count >= c.MaxCapacity;
+            <button class="book-card @(isFullSeat ? "full" : "available")" @onclick="() => ChooseSeat(c.Id)">
                 <div class="book-main">
                     <p class="book-name">@c.Name</p>
                     <p class="book-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
-                    <p class="book-location">@c.Location</p>
                 </div>
                 <div class="book-extra">
-                    <p class="book-type">@c.Type</p>
-                    <p class="book-spots">@c.SpotsTaken/@c.SpotsTotal pladser</p>
+                    <p class="book-type">@c.Category</p>
+                    <p class="book-spots">@c.BookingList.Count/@c.MaxCapacity pladser</p>
+                    <p class="book-location">@c.Intensity</p>
                 </div>
             </button>
+
         }
     </div>
 </div>
 
+<style>
+.book-card.available {
+    background: #e8f5e9 !important;
+}
+.book-card.full {
+    background: #ffebee !important;
+}
+</style>
+
 @code {
+    private string? userId;
+    private List<FitnessClass> AvailableClasses = new List<FitnessClass> ();
     [Inject] private NavigationManager Nav { get; set; } = default!;
-
-    private List<ClassOption> AvailableClasses = new()
+    protected override async Task OnInitializedAsync()
     {
-        new() { Id = 1, Name = "Bodypump", Type = "Styrke", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)), Time = "17:00", Location = "Sal 1", SpotsTaken = 12, SpotsTotal = 20 },
-        new() { Id = 2, Name = "Spinning", Type = "Cardio", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)), Time = "18:30", Location = "Cykelsal", SpotsTaken = 8, SpotsTotal = 18 },
-        new() { Id = 3, Name = "Yoga", Type = "Mobility", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(2)), Time = "19:00", Location = "Sal 2", SpotsTaken = 5, SpotsTotal = 15 },
-    };
+        userId = await TokenService.GetUserIdAsync();
+        if (string.IsNullOrEmpty(userId))
+        {
+            // Not logged in, redirect to login
+            Nav.NavigateTo("/login");
+            return;
+        }
 
-    private void ChooseSeat(int id)
-    {
-        Nav.NavigateTo($"/classes/seat/{id}");
+        var response = await ClassService.GetAllAvailableClassesAsync();
+        if (response.IsSuccessStatusCode)
+        {
+            AvailableClasses = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
+        }
     }
+
+    
+    private void ChooseSeat(string? ClassId)
+    {
+        if (ClassId == null) return;
+            Nav.NavigateTo($"/classes/seat/{ClassId}");
+    }
+    private void GoBack()
+    {
+        Nav.NavigateTo("/classes");
+    }
+    private void GoToBooking(string? ClassId)
+    {
+        if (ClassId == null) return;
+            Nav.NavigateTo($"/classes/book/{ClassId}/confirm");
+    }
+
 
     public class ClassOption
     {

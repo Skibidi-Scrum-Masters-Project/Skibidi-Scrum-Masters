@@ -10,6 +10,7 @@
 @using FitlifeFitness.Models
 @using Microsoft.AspNetCore.Components
 <div class="classes-screen">
+    <button class="secondary-btn classes-back" @onclick="GoToDashboard">Tilbage</button>
     <h2 class="classes-title">Mine hold</h2>
     <p class="classes-subtitle">Se dine kommende holdbookinger.</p>
     <p class="classes-user">Bruger-id: @(userId ?? "ikke logget ind")</p>
@@ -21,7 +22,7 @@
     else
     {
         <div class="classes-list">
-            @foreach (var c in MyClassesList)
+            @foreach (FitnessClass c in MyClassesList)
             {
                 <div class="class-card">
                     <div class="class-main">
@@ -31,7 +32,7 @@
                     </div>
                     <div class="class-status-area">
                         <span class="class-status">@c.Status</span>
-                        <button class="class-cancel">Afbryd</button>
+                        <button class="class-cancel" @onclick="() => CancelClassBooking(c.Id)">Afbryd</button>
                     </div>
                 </div>
             }
@@ -47,6 +48,7 @@
     
     private string? userId;
     private List<FitnessClass> MyClassesList = new();
+    private bool isCancelling = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -72,9 +74,33 @@
         }
     }
 
+
     private void GoToBook()
     {
         Nav.NavigateTo("/classes/book");
+    }
+
+    private void GoToDashboard()
+    {
+        Nav.NavigateTo("/dashboard");
+    }
+
+    private async Task CancelClassBooking(string classId)
+    {
+        if (string.IsNullOrEmpty(userId)) return;
+        isCancelling = true;
+        var response = await ClassService.CancelClassBookingForUserAsync(classId, userId);
+        if (response.IsSuccessStatusCode)
+        {
+            // Refresh the list
+            var refreshed = await ClassService.GetClassesByUserIdAsync(userId);
+            if (refreshed.IsSuccessStatusCode)
+            {
+                MyClassesList = await refreshed.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
+            }
+        }
+        isCancelling = false;
+        StateHasChanged();
     }
 
     public class MyClassModel

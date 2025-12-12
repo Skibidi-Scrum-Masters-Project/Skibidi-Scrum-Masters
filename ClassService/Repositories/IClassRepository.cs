@@ -15,5 +15,4 @@ public interface IClassRepository
    public Task DeleteClassAsync(string classId);
    public Task FinishClass(string classId);
    public Task<IEnumerable<FitnessClass>> GetClassesByUserIdAsync(string userId);
-
-}
+   }
