@@ -425,5 +425,15 @@ public class SocialRepository : ISocialRepository
         return draft.Id;
     }
 
+    
+    public async Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId)
+    {
+        var posts = await _postCollection
+            .Find(p => p.UserId == userId && p.IsDraft == true)
+            .ToListAsync();
+
+        return posts;
+    }
+
 
 }

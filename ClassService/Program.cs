@@ -128,8 +128,9 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddHttpClient("SocialService", client =>
 {
-    client.BaseAddress = new Uri("http://localhost:4000"); // ret til din SocialService url/port
+    client.BaseAddress = new Uri("http://socialservice:8080");
 });
+
 
 var app = builder.Build();
 
