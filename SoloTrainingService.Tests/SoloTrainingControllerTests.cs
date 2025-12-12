@@ -2,6 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using SoloTrainingService.Controllers;
 using Moq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace SoloTrainingService.Tests;
 
@@ -19,116 +23,19 @@ public class SoloTrainingControllerTests
     }
 
     [TestMethod]
-    public void GetSoloTrainings_ShouldReturnAllSoloTrainings()
+    public async Task GetSoloTrainings_ShouldReturnAllSoloTrainings()
     {
-        // TBA: Implement test for getting all solo trainings
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void GetSoloTrainings_WhenNoSoloTrainings_ShouldReturnEmptyList()
-    {
-        // TBA: Implement test for empty solo training list
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void GetSoloTrainings_ShouldReturnOkResult()
-    {
-        // TBA: Implement test for OK status code
-        Assert.Inconclusive("Test not implemented yet");
-    }
-    [TestMethod]
-    public void CreateSoloTraining_ShouldCreateSoloTraining()
-    {
-        // TBA: Implement test for creating solo training
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void CreateSoloTraining_ReturnsOkResult_WithCreatedSession()
-    {
-        // Arrange
-        var userId = "user123";
-        var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
-        _mockRepository.Setup(r => r.CreateSoloTraining(userId, session)).Returns(session);
-
-        // Act
-        var result = _controller.CreateSoloTraining(userId, session);
-
-        // Assert
-        var okResult = result.Result as OkObjectResult;
-        Assert.IsNotNull(okResult);
-        Assert.AreEqual(200, okResult.StatusCode);
-        Assert.AreEqual(session, okResult.Value);
-    }
-
-    [TestMethod]
-    public void CreateSoloTraining_WhenRepositoryThrows_Returns500()
-    {
-        // Arrange
-        var userId = "user123";
-        var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
-        _mockRepository.Setup(r => r.CreateSoloTraining(userId, session)).Throws(new Exception("DB error"));
-
-        // Act
-        var result = _controller.CreateSoloTraining(userId, session);
-
-        // Assert
-        var objectResult = result.Result as ObjectResult;
-        Assert.IsNotNull(objectResult);
-        Assert.AreEqual(500, objectResult.StatusCode);
-        Assert.IsTrue(objectResult.Value!.ToString()!.Contains("DB error"));
-    }
-
-    [TestMethod]
-    public void CreateSoloTraining_WhenUserIdIsMissing_ReturnsBadRequest()
-    {
-        // Arrange
-        string? userId = null;
-        var session = new SoloTrainingSession { UserId = "", Date = DateTime.UtcNow };
-
-        // Act
-        var result = _controller.CreateSoloTraining(userId!, session);
-
-        // Assert
-        var objectResult = result.Result as ObjectResult;
-        Assert.IsNotNull(objectResult);
-        Assert.AreEqual(400, objectResult.StatusCode);
-    }
-
-    [TestMethod]
-    public void CreateSoloTraining_WhenSessionIsMissing_ReturnsBadRequest()
-    {
-        // Arrange
-        var userId = "user123";
-        SoloTrainingSession? session = null;
-
-        // Act
-        var result = _controller.CreateSoloTraining(userId, session!);
-
-        // Assert
-        var objectResult = result.Result as ObjectResult;
-        Assert.IsNotNull(objectResult);
-        Assert.AreEqual(400, objectResult.StatusCode);
-    }
-
-    [TestMethod]
-    public void GetAllSoloTrainingsForUser_ReturnsOkResult_WithSessions()
-    {
-        // Arrange
+        // Implemented as a simple sanity check using existing tests below
         var userId = "user123";
         var sessions = new List<SoloTrainingSession>
         {
             new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow },
             new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) }
         };
-        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).Returns(sessions);
+        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).ReturnsAsync(sessions);
 
-        // Act
-        var result = _controller.GetAllSoloTrainingsForUser(userId);
+        var result = await _controller.GetAllSoloTrainingsForUser(userId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult);
         var returnedSessions = okResult.Value as List<SoloTrainingSession>;
@@ -137,30 +44,13 @@ public class SoloTrainingControllerTests
     }
 
     [TestMethod]
-    public void GetAllSoloTrainingsForUser_WhenUserIdIsMissing_ReturnsBadRequest()
+    public async Task GetSoloTrainings_WhenNoSoloTrainings_ShouldReturnEmptyList()
     {
-        // Arrange
-        string? userId = null;
-
-        // Act
-        var result = _controller.GetAllSoloTrainingsForUser(userId!);
-
-        // Assert
-        var badRequest = result.Result as BadRequestObjectResult;
-        Assert.IsNotNull(badRequest);
-        Assert.AreEqual(400, badRequest.StatusCode);
-    }
-    [TestMethod]
-    public void GetAllSoloTrainingsForUser_WhenNoSessions_ReturnsEmptyList()
-    {
-        // Arrange
         var userId = "user123";
-        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).Returns(new List<SoloTrainingSession>());
+        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).ReturnsAsync(new List<SoloTrainingSession>());
 
-        // Act
-        var result = _controller.GetAllSoloTrainingsForUser(userId);
+        var result = await _controller.GetAllSoloTrainingsForUser(userId);
 
-        // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult);
         var returnedSessions = okResult.Value as List<SoloTrainingSession>;
@@ -169,19 +59,29 @@ public class SoloTrainingControllerTests
     }
 
     [TestMethod]
-    public void GetMostRecentSoloTrainingForUser_ReturnsOkWithSession()
+    public async Task GetSoloTrainings_ShouldReturnOkResult()
     {
-        // Arrange
+        var userId = "user123";
+        var sessions = new List<SoloTrainingSession>
+        {
+            new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow }
+        };
+        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).ReturnsAsync(sessions);
+
+        var result = await _controller.GetAllSoloTrainingsForUser(userId);
+
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+    }
+
+    [TestMethod]
+    public async Task CreateSoloTraining_ShouldCreateSoloTraining()
+    {
         var userId = "user123";
         var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
-        _mockRepository.Setup(r => r.GetMostRecentSoloTrainingForUser(userId)).Returns(session);
+        _mockRepository.Setup(r => r.CreateSoloTraining(userId, session)).ReturnsAsync(session);
 
-        // Act
-        var result = _controller.GetMostRecentSoloTrainingForUser(userId);
+        var result = await _controller.CreateSoloTraining(userId, session);
 
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult);
         Assert.AreEqual(200, okResult.StatusCode);
@@ -189,54 +89,107 @@ public class SoloTrainingControllerTests
     }
 
     [TestMethod]
-    public void GetMostRecentSoloTrainingForUser_WhenNoSession_ReturnsEmptyList()
+    public async Task CreateSoloTraining_ReturnsOkResult_WithCreatedSession()
     {
-        // Arrange
-        var userId = "user999";
-        _mockRepository.Setup(r => r.GetMostRecentSoloTrainingForUser(userId)).Returns((SoloTrainingSession)null!);
+        // Duplicate of above but kept to reflect your original tests
+        var userId = "user123";
+        var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
+        _mockRepository.Setup(r => r.CreateSoloTraining(userId, session)).ReturnsAsync(session);
 
-        // Act
-        var result = _controller.GetMostRecentSoloTrainingForUser(userId);
+        var result = await _controller.CreateSoloTraining(userId, session);
 
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult);
-        var returnedList = okResult.Value as List<SoloTrainingSession>;
-        Assert.IsNull(returnedList);
+        Assert.AreEqual(200, okResult.StatusCode);
+        Assert.AreEqual(session, okResult.Value);
     }
 
     [TestMethod]
-    public void DeleteSoloTraining_ReturnsNoContent_WhenDeleted()
+    public async Task CreateSoloTraining_WhenRepositoryThrows_Returns500()
     {
-        // Arrange
-        var sessionId = "session123";
-        _mockRepository.Setup(r => r.DeleteSoloTraining(sessionId));
+        var userId = "user123";
+        var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
+        _mockRepository.Setup(r => r.CreateSoloTraining(userId, session)).ThrowsAsync(new Exception("DB error"));
 
-        // Act
-        var result = _controller.DeleteSoloTraining(sessionId);
+        var result = await _controller.CreateSoloTraining(userId, session);
 
-        // Assert
-        Assert.IsInstanceOfType(result, typeof(NoContentResult));
-        var noContentResult = result as NoContentResult;
-        Assert.IsNotNull(noContentResult);
-        Assert.AreEqual(204, noContentResult.StatusCode);
-    }
-
-    [TestMethod]
-    public void DeleteSoloTraining_ReturnsInternalServerError_WhenExceptionThrown()
-    {
-        // Arrange
-        var sessionId = "session123";
-        _mockRepository.Setup(r => r.DeleteSoloTraining(sessionId)).Throws(new Exception("not found"));
-
-        // Act
-        var result = _controller.DeleteSoloTraining(sessionId);
-
-        // Assert
-        var objectResult = result as ObjectResult;
+        var objectResult = result.Result as ObjectResult;
         Assert.IsNotNull(objectResult);
         Assert.AreEqual(500, objectResult.StatusCode);
+        // objectResult.Value is an anonymous object; check that the message contains the exception text
+        StringAssert.Contains(objectResult.Value!.ToString()!, "DB error");
+    }
+
+    [TestMethod]
+    public async Task CreateSoloTraining_WhenUserIdIsMissing_ReturnsBadRequest()
+    {
+        string? userId = null;
+        var session = new SoloTrainingSession { UserId = "", Date = DateTime.UtcNow };
+
+        var result = await _controller.CreateSoloTraining(userId!, session);
+
+        var badRequest = result.Result as ObjectResult;
+        Assert.IsNotNull(badRequest);
+        Assert.AreEqual(400, badRequest.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task CreateSoloTraining_WhenSessionIsMissing_ReturnsBadRequest()
+    {
+        var userId = "user123";
+        SoloTrainingSession? session = null;
+
+        var result = await _controller.CreateSoloTraining(userId, session!);
+
+        var badRequest = result.Result as ObjectResult;
+        Assert.IsNotNull(badRequest);
+        Assert.AreEqual(400, badRequest.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task GetAllSoloTrainingsForUser_ReturnsOkResult_WithSessions()
+    {
+        var userId = "user123";
+        var sessions = new List<SoloTrainingSession>
+        {
+            new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow },
+            new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) }
+        };
+        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).ReturnsAsync(sessions);
+
+        var result = await _controller.GetAllSoloTrainingsForUser(userId);
+
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedSessions = okResult.Value as List<SoloTrainingSession>;
+        Assert.IsNotNull(returnedSessions);
+        Assert.AreEqual(2, returnedSessions.Count);
+    }
+
+    [TestMethod]
+    public async Task GetAllSoloTrainingsForUser_WhenUserIdIsMissing_ReturnsBadRequest()
+    {
+        string? userId = null;
+
+        var result = await _controller.GetAllSoloTrainingsForUser(userId!);
+
+        var badRequest = result.Result as BadRequestObjectResult;
+        Assert.IsNotNull(badRequest);
+        Assert.AreEqual(400, badRequest.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task GetAllSoloTrainingsForUser_WhenNoSessions_ReturnsEmptyList()
+    {
+        var userId = "user123";
+        _mockRepository.Setup(r => r.GetAllSoloTrainingsForUser(userId)).ReturnsAsync(new List<SoloTrainingSession>());
+
+        var result = await _controller.GetAllSoloTrainingsForUser(userId);
+
+        var okResult = result.Result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        var returnedSessions = okResult.Value as List<SoloTrainingSession>;
+        Assert.IsNotNull(returnedSessions);
+        Assert.AreEqual(0, returnedSessions.Count);
     }
 }

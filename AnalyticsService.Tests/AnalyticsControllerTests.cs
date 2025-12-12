@@ -41,11 +41,11 @@ namespace AnalyticsService.Tests
                 Date = date
             };
 
-            _mockRepository.Setup(r => r.GetClassesAnalytics(classId, userId, calories, category, duration, date))
+            _mockRepository.Setup(r => r.PostClassesAnalytics(classId, userId, calories, category, duration, date))
                 .ReturnsAsync(expectedResult);
 
             // Act
-            var result = await _controller.GetClassesAnalytics(classId, userId, calories, category, duration, date);
+            var result = await _controller.PostClassesAnalytics(classId, userId, calories, category, duration, date);
 
             // Assert
             var okResult = result as OkObjectResult;

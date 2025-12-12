@@ -1,49 +1,80 @@
 using FitnessApp.Shared.Models;
 using MongoDB.Driver;
 using MongoDB.Bson;
+using System.Threading.Tasks;
 
 public class SoloTrainingRepository : ISoloTrainingRepository
 {
-        private readonly IMongoCollection<SoloTrainingSession> _SolotrainingCollection;
+    private readonly IMongoCollection<SoloTrainingSession> _SolotrainingCollection;
+    private readonly HttpClient _httpClient;
 
-    public SoloTrainingRepository(IMongoDatabase database)
+    public SoloTrainingRepository(IMongoDatabase database, HttpClient httpClient)
     {
         _SolotrainingCollection = database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
+        _httpClient = httpClient;
     }
-    //TBA
-    public SoloTrainingSession CreateSoloTraining(string userId, SoloTrainingSession soloTraining)
+
+    public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining)
     {
-        soloTraining.UserId = userId.ToString();
-        _SolotrainingCollection.InsertOne(soloTraining);
+        soloTraining.UserId = userId;
+
+        await _SolotrainingCollection.InsertOneAsync(soloTraining);
+
+        try
+        {
+            var metric = new
+            {
+                UserId = soloTraining.UserId,
+                Date = soloTraining.Date,
+                Exercises = soloTraining.Exercises,
+                TrainingType = soloTraining.TrainingType.ToString(), // enum → string
+                DurationMinutes = soloTraining.DurationMinutes
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(
+                "http://analyticsservice:8080/api/Analytics/solotraining",
+                metric
+            );
+
+            Console.WriteLine($"Analytics response: {response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calling analytics service: {ex.Message}");
+        }
+
         return soloTraining;
     }
 
-    public void DeleteSoloTraining(string trainingId)
+    public async Task DeleteSoloTraining(string trainingId)
     {
         var filter = Builders<SoloTrainingSession>.Filter.Eq(s => s.Id, trainingId);
-        var sessionToDelete = _SolotrainingCollection.Find(filter).FirstOrDefault();
+
+        var sessionToDelete = await _SolotrainingCollection
+            .Find(filter)
+            .FirstOrDefaultAsync();
+
         if (sessionToDelete == null)
         {
             throw new Exception("Solo training session not found.");
         }
-        _SolotrainingCollection.DeleteOne(filter);
+
+        await _SolotrainingCollection.DeleteOneAsync(filter);
     }
 
-    public List<SoloTrainingSession> GetAllSoloTrainingsForUser(string userId)
+    public async Task<List<SoloTrainingSession>> GetAllSoloTrainingsForUser(string userId)
     {
         var filter = Builders<SoloTrainingSession>.Filter.Eq(s => s.UserId, userId);
-        var sessions = _SolotrainingCollection.Find(filter).ToList();
-        if (sessions == null)
-        {
-            return new List<SoloTrainingSession>();
-        }
-        return sessions;
+
+        var sessions = await _SolotrainingCollection.Find(filter).ToListAsync();
+
+        return sessions ?? new List<SoloTrainingSession>();
     }
 
-    public SoloTrainingSession GetMostRecentSoloTrainingForUser(string userId)
+    public async Task<SoloTrainingSession> GetMostRecentSoloTrainingForUser(string userId)
     {
-        return _SolotrainingCollection.Find(s => s.UserId == userId)
+        return await _SolotrainingCollection.Find(s => s.UserId == userId)
             .SortByDescending(s => s.Date)
-            .FirstOrDefault();
+            .FirstOrDefaultAsync();
     }
 }

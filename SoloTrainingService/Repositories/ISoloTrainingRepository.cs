@@ -1,10 +1,11 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using FitnessApp.Shared.Models;
 
 public interface ISoloTrainingRepository
 {
-    public SoloTrainingSession CreateSoloTraining(string userId, SoloTrainingSession soloTraining);
-    public List<SoloTrainingSession> GetAllSoloTrainingsForUser(string userId);
-    public SoloTrainingSession GetMostRecentSoloTrainingForUser(string userId);
-    public void DeleteSoloTraining(string trainingId);
-    //TBA
+    Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining);
+    Task DeleteSoloTraining(string trainingId);
+    Task<List<SoloTrainingSession>> GetAllSoloTrainingsForUser(string userId);
+    Task<SoloTrainingSession> GetMostRecentSoloTrainingForUser(string userId);
 }

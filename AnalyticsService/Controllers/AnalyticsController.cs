@@ -24,33 +24,62 @@ public class AnalyticsController : ControllerBase
     
     
     // Endpoint to receive class analytics data
-    [HttpPost("{classId}/{userId}/{totalcaloriesBurned}/{category}/{durationMin}/{date}")]
-    public async Task<IActionResult> GetClassesAnalytics(string classId, string userId, double totalcaloriesBurned, string category, int durationMin, DateTime date)
+    [HttpPost("{classId}/{userId}/{totalCaloriesBurned}/{category}/{durationMin}/{date}")]
+    public async Task<IActionResult> PostClassesAnalytics(string classId, string userId, double totalCaloriesBurned, string category, int durationMin, DateTime date)
     {
-        var classResult = await _analyticsRepository.GetClassesAnalytics(classId, userId, totalcaloriesBurned, category, durationMin, date);
+        var classResult = await _analyticsRepository.PostClassesAnalytics(classId, userId, totalCaloriesBurned, category, durationMin, date);
         return Ok(classResult);
     }
 
 
-    // Endpoint to recieve crowd data
+    // Endpoint to post entered users
     [HttpPost("entered/{userId}/{entryTime}")]
     public async Task<IActionResult> AddUserToCrowd(string userId, DateTime entryTime)
     {
         var PostedUser = await _analyticsRepository.PostEnteredUser(userId, entryTime, DateTime.MinValue);
         return Ok(PostedUser);
     }
-
+    
+    // Endpoint to edit status for entered users
     [HttpPut("Exited/{userId}/{exitTime}")]
     public async Task<IActionResult> UpdateUserExitTime(string userId, DateTime exitTime)
     {
         var UpdatedExitTime = await _analyticsRepository.UpdateUserExitTime(userId, exitTime);
         return Ok(UpdatedExitTime);
     }
+    
+    [HttpPost("")]
+    
+    
+    // Endpoint to get crowd
     [HttpGet("crowd")]
     public async Task<IActionResult> GetCrowdCount()
     {
         var crowdCount = await _analyticsRepository.GetCrowdCount();
         return Ok(crowdCount);
     }
-    
+
+    [HttpPost("solotraining")]
+    public async Task<IActionResult> PostSoloTrainingResult([FromBody] SoloTrainingResultsDTO dto)
+    {
+        if (dto == null)
+            return BadRequest("Payload required.");
+
+        // Optional: basic validation
+        if (string.IsNullOrWhiteSpace(dto.UserId))
+            return BadRequest("UserId required.");
+
+        // Pass through to repository
+        var result = await _analyticsRepository.PostSoloTrainingResult(
+            dto.UserId,
+            dto.Date,
+            dto.Exercises,
+            dto.TrainingType,
+            dto.DurationMinutes);
+
+        return Ok(result);
+    }
+
+
+
 }

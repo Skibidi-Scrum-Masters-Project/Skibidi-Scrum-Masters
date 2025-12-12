@@ -1,7 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using FitnessApp.Shared.Models;
 using Mongo2Go;
 using MongoDB.Driver;
-
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SoloTrainingService.Tests;
 
@@ -11,6 +15,7 @@ public class SoloTrainingRepositoryTests
     private MongoDbRunner _runner = null!;
     private IMongoDatabase _database = null!;
     private SoloTrainingRepository _repository = null!;
+    private HttpClient _httpClient = null!;
 
     [TestInitialize]
     public void Setup()
@@ -18,7 +23,10 @@ public class SoloTrainingRepositoryTests
         _runner = MongoDbRunner.Start();
         var client = new MongoClient(_runner.ConnectionString);
         _database = client.GetDatabase("TestSoloTrainingDb");
-        _repository = new SoloTrainingRepository(_database);
+
+        // If your SoloTrainingRepository actually requires an HttpClient in the constructor,
+        // replace the line below with: _repository = new SoloTrainingRepository(_database, new HttpClient());
+        _repository = new SoloTrainingRepository(_database, _httpClient);
     }
 
     [TestCleanup]
@@ -28,7 +36,7 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void CreateSoloTraining_ShouldAddSessionToDatabase()
+    public async Task CreateSoloTraining_ShouldAddSessionToDatabase()
     {
         // Arrange
         var userId = "user123";
@@ -42,7 +50,7 @@ public class SoloTrainingRepositoryTests
         };
 
         // Act
-        var result = _repository.CreateSoloTraining(userId, session);
+        var result = await _repository.CreateSoloTraining(userId, session);
 
         // Assert
         var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
@@ -53,14 +61,14 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void CreateSoloTraining_ShouldSetUserId()
+    public async Task CreateSoloTraining_ShouldSetUserId()
     {
         // Arrange
         var userId = "user456";
         var session = new SoloTrainingSession { Date = DateTime.UtcNow };
 
         // Act
-        var result = _repository.CreateSoloTraining(userId, session);
+        var result = await _repository.CreateSoloTraining(userId, session);
 
         // Assert
         Assert.AreEqual(userId, result.UserId);
@@ -81,7 +89,7 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void GetAllSoloTrainingsForUser_ReturnsSessionsForUser()
+    public async Task GetAllSoloTrainingsForUser_ReturnsSessionsForUser()
     {
         // Arrange
         var userId = "user123";
@@ -94,7 +102,7 @@ public class SoloTrainingRepositoryTests
         collection.InsertOne(otherSession);
 
         // Act
-        var result = _repository.GetAllSoloTrainingsForUser(userId);
+        var result = await _repository.GetAllSoloTrainingsForUser(userId);
 
         // Assert
         Assert.AreEqual(2, result.Count);
@@ -102,14 +110,14 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void GetAllSoloTrainingsForUser_WhenNoSessions_ReturnsEmptyList()
+    public async Task GetAllSoloTrainingsForUser_WhenNoSessions_ReturnsEmptyList()
     {
         // Arrange
         var userId = "user999";
         // No sessions inserted for this user
 
         // Act
-        var result = _repository.GetAllSoloTrainingsForUser(userId);
+        var result = await _repository.GetAllSoloTrainingsForUser(userId);
 
         // Assert
         Assert.IsNotNull(result);
@@ -117,7 +125,7 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void GetMostRecentSoloTrainingForUser_ReturnsLatestSession()
+    public async Task GetMostRecentSoloTrainingForUser_ReturnsLatestSession()
     {
         // Arrange
         var userId = "user123";
@@ -132,7 +140,7 @@ public class SoloTrainingRepositoryTests
         collection.InsertOne(otherUserSession);
 
         // Act
-        var result = _repository.GetMostRecentSoloTrainingForUser(userId);
+        var result = await _repository.GetMostRecentSoloTrainingForUser(userId);
 
         // Assert
         Assert.IsNotNull(result);
@@ -141,21 +149,21 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void GetMostRecentSoloTrainingForUser_WhenNoSessions_ReturnsNull()
+    public async Task GetMostRecentSoloTrainingForUser_WhenNoSessions_ReturnsNull()
     {
         // Arrange
         var userId = "user999";
         // No sessions inserted for this user
 
         // Act
-        var result = _repository.GetMostRecentSoloTrainingForUser(userId);
+        var result = await _repository.GetMostRecentSoloTrainingForUser(userId);
 
         // Assert
         Assert.IsNull(result);
     }
 
     [TestMethod]
-    public void DeleteSoloTraining_RemovesSession()
+    public async Task DeleteSoloTraining_RemovesSession()
     {
         // Arrange
         var userId = "user123";
@@ -164,7 +172,7 @@ public class SoloTrainingRepositoryTests
         collection.InsertOne(session);
 
         // Act
-        _repository.DeleteSoloTraining(session.Id!);
+        await _repository.DeleteSoloTraining(session.Id!);
 
         // Assert
         var found = collection.Find(s => s.Id == session.Id).FirstOrDefault();
@@ -172,12 +180,15 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void DeleteSoloTraining_WhenSessionDoesNotExist_ThrowsException()
+    public async Task DeleteSoloTraining_WhenSessionDoesNotExist_ThrowsException()
     {
         // Arrange
         string nonExistentId = "607f1f77bcf86cd799439011";
 
         // Act & Assert
-        Assert.ThrowsException<Exception>(() => _repository.DeleteSoloTraining(nonExistentId));
+        await Assert.ThrowsExceptionAsync<Exception>(async () =>
+        {
+            await _repository.DeleteSoloTraining(nonExistentId);
+        });
     }
 }

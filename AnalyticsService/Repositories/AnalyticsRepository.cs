@@ -7,20 +7,22 @@ public class AnalyticsRepository : IAnalyticsRepository
 
     private readonly IMongoCollection<ClassResultDTO>? _classesResultsCollection;
     private readonly IMongoCollection<CrowdResultDTO>? _crowdResultsCollection;
+    private readonly IMongoCollection<SoloTrainingResultsDTO>? _soloTrainingResultsCollection;
     
     public AnalyticsRepository(IMongoDatabase database, HttpClient httpClient)
     {
         _classesResultsCollection = database.GetCollection<ClassResultDTO>("ClassResults");
         _crowdResultsCollection = database.GetCollection<CrowdResultDTO>("CrowdResults");
+        _soloTrainingResultsCollection = database.GetCollection<SoloTrainingResultsDTO>("SoloTrainingResults");
         _httpClient = httpClient;
     }
-    public Task<ClassResultDTO> GetClassesAnalytics(string classId, string userId, double totalcaloriesBurned, string category, int durationMin, DateTime date)
+    public Task<ClassResultDTO> PostClassesAnalytics(string classId, string userId, double totalCaloriesBurned, string category, int durationMin, DateTime date)
     {
         ClassResultDTO classResult = new ClassResultDTO
         {
             ClassId = classId,
             UserId = userId,
-            TotalCaloriesBurned = totalcaloriesBurned,
+            TotalCaloriesBurned = totalCaloriesBurned,
             Category = category,
             DurationMin = durationMin,
             Date = date
@@ -90,5 +92,26 @@ public class AnalyticsRepository : IAnalyticsRepository
         var updatedCrowdResult = _crowdResultsCollection.FindOneAndUpdate(filter, update, options);
 
         return Task.FromResult("User exit time updated successfully");
+    }
+
+    public Task<string> PostSoloTrainingResult(string userId, DateTime date, List<Exercise> exercises, string trainingType, double durationMinutes)
+    {
+        if (userId == null) { throw new ArgumentNullException(nameof(userId)); }
+        if (exercises == null) { throw new ArgumentNullException(nameof(exercises)); }
+        if (trainingType == null) { throw new ArgumentNullException(nameof(trainingType)); }
+        if (durationMinutes == 0) { throw new ArgumentNullException(nameof(durationMinutes)); }
+
+        SoloTrainingResultsDTO soloTrainingResults = new SoloTrainingResultsDTO()
+        {
+            UserId = userId,
+            Date = date,
+            Exercises = exercises,
+            TrainingType = trainingType,
+            DurationMinutes = durationMinutes
+        };
+        
+        _soloTrainingResultsCollection!.InsertOne(soloTrainingResults);
+        return Task.FromResult("Solo training result added successfully");
+
     }
 }

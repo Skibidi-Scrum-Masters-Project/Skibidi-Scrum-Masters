@@ -14,6 +14,7 @@ namespace AnalyticsService.Tests
         private readonly Mock<IMongoDatabase> _mockDatabase;
         private readonly Mock<IMongoCollection<ClassResultDTO>> _mockClassCollection;
         private readonly Mock<IMongoCollection<CrowdResultDTO>> _mockCrowdCollection;
+        private readonly Mock<HttpClient> _mockHttpClient;
         private readonly AnalyticsRepository _repository;
 
         public AnalyticsRepositoryTests()
@@ -21,13 +22,12 @@ namespace AnalyticsService.Tests
             _mockDatabase = new Mock<IMongoDatabase>();
             _mockClassCollection = new Mock<IMongoCollection<ClassResultDTO>>();
             _mockCrowdCollection = new Mock<IMongoCollection<CrowdResultDTO>>();
-
+            _mockHttpClient = new Mock<HttpClient>();
             _mockDatabase.Setup(db => db.GetCollection<ClassResultDTO>("ClassResults", null))
                 .Returns(_mockClassCollection.Object);
             _mockDatabase.Setup(db => db.GetCollection<CrowdResultDTO>("CrowdResults", null))
                 .Returns(_mockCrowdCollection.Object);
-
-            _repository = new AnalyticsRepository(_mockDatabase.Object);
+            _repository = new AnalyticsRepository(_mockDatabase.Object, _mockHttpClient.Object);
         }
 
         [TestMethod]
@@ -42,7 +42,7 @@ namespace AnalyticsService.Tests
             var date = DateTime.Now;
 
             // Act
-            var result = await _repository.GetClassesAnalytics(classId, userId, calories, category, duration, date);
+            var result = await _repository.PostClassesAnalytics(classId, userId, calories, category, duration, date);
 
             // Assert
             Assert.IsNotNull(result);
