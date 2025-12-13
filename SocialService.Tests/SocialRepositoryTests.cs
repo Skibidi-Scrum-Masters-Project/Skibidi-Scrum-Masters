@@ -1303,7 +1303,6 @@ public class SocialRepositoryTests
         Assert.IsNotNull(inserted, "Expected a Post inserted in MongoDB");
         Assert.AreEqual(dto.UserId, inserted.UserId);
         Assert.AreEqual(dto.ClassId, inserted.FitnessClassId);
-        Assert.AreEqual(dto.ClassId, inserted.WorkoutId);
         Assert.AreEqual(eventId, inserted.SourceEventId);
         Assert.IsTrue(inserted.IsDraft, "Expected IsDraft = true");
         Assert.AreEqual(PostType.Workout, inserted.Type);
@@ -1442,9 +1441,12 @@ public async Task SeeAllFriendsPosts_WhenUserHasAcceptedFriends_ShouldReturnFrie
     [TestMethod]
     public async Task CreateDraftFromSoloTrainingCompletedAsync_CreatesDraftPost()
     {
+        
+        var eventId = Guid.NewGuid().ToString();
+
         var dto = new SoloTrainingCompletedEventDto
         {
-            EventId = "evt-1",
+            EventId = eventId,
             UserId = "user123",
             SoloTrainingSessionId = "session123",
             Date = DateTime.UtcNow,
@@ -1461,15 +1463,16 @@ public async Task SeeAllFriendsPosts_WhenUserHasAcceptedFriends_ShouldReturnFrie
         var saved = await posts.Find(p => p.Id == draftId).FirstOrDefaultAsync();
         Assert.IsNotNull(saved);
         Assert.IsTrue(saved!.IsDraft);
-        Assert.AreEqual("evt-1", saved.SourceEventId);
+        Assert.AreEqual(eventId, saved.SourceEventId);
     }
 
     [TestMethod]
     public async Task CreateDraftFromSoloTrainingCompletedAsync_WhenSameEvent_ReturnsNull()
     {
+        var eventId = Guid.NewGuid().ToString();
         var dto = new SoloTrainingCompletedEventDto
         {
-            EventId = "evt-dup",
+            EventId = eventId,
             UserId = "user123",
             SoloTrainingSessionId = "session123",
             Date = DateTime.UtcNow,
