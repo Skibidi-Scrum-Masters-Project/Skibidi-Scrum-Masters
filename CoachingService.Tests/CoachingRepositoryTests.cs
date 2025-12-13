@@ -38,26 +38,33 @@ namespace CoachingService.Tests
         // --- BookSession Tests 
 
         [TestMethod]
-        public void BookSession_ValidSession_UpdatesStatusAndUserId()
+        public void BookSession_ValidSession_UpdatesStatusUserIdAndBookingForm()
         {
             // Arrange
             const string userIdToBook = "user-abc";
-            
-            // 1. Create an available session first, as required by the repo logic
+
             var initialSession = new Session
             {
                 CoachId = "coach-1",
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow.AddHours(1),
-                CurrentStatus = Session.Status.Available // Must be available
+                CurrentStatus = Session.Status.Available
             };
             _sessionsCollection.InsertOne(initialSession);
 
-            // 2. Create the input session object used for the PUT request
+            var bookingForm = new BookingForm()
+            {
+                CreatedAt = DateTime.UtcNow,
+                Goals = "Test goals",
+                Notes = "Test notes",
+                Experience = Experience.Begynder
+            };
+
             var sessionToBook = new Session
             {
-                Id = initialSession.Id, // Use the existing ID
-                UserId = userIdToBook    // Provide the UserId
+                Id = initialSession.Id,
+                UserId = userIdToBook,
+                BookingForm = bookingForm
             };
 
             // Act
@@ -67,13 +74,16 @@ namespace CoachingService.Tests
             Assert.IsNotNull(result);
             Assert.AreEqual(Session.Status.Planned, result.CurrentStatus);
             Assert.AreEqual(userIdToBook, result.UserId);
+            Assert.IsNotNull(result.BookingForm);
+            Assert.AreEqual("Test goals", result.BookingForm.Goals);
 
-            // Verify update in database
-            var stored = _sessionsCollection.Find(s => s.Id == initialSession.Id).FirstOrDefault();
-            Assert.IsNotNull(stored);
+            // Verify DB
+            var stored = _sessionsCollection.Find(s => s.Id == initialSession.Id).First();
             Assert.AreEqual(Session.Status.Planned, stored.CurrentStatus);
             Assert.AreEqual(userIdToBook, stored.UserId);
+            Assert.IsNotNull(stored.BookingForm);
         }
+
 
         [TestMethod]
         [ExpectedException(typeof(InvalidOperationException))]
