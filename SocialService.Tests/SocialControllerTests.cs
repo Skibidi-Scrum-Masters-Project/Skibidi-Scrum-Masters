@@ -1377,5 +1377,43 @@ public class SocialControllerTests
 
         _mockRepository.Verify(r => r.SeeAllFriendsPosts(userId), Times.Once);
     }
+    
+    [TestMethod]
+    public async Task SoloTrainingCompleted_InvalidPayload_ReturnsBadRequest()
+    {
+        var dto = new SoloTrainingCompletedEventDto
+        {
+            UserId = "",
+            SoloTrainingSessionId = "",
+            TrainingType = "",
+            DurationMinutes = 0
+        };
+
+        var result = await _controller.SoloTrainingCompleted(dto);
+
+        Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+    }
+
+    [TestMethod]
+    public async Task SoloTrainingCompleted_Valid_ReturnsOk()
+    {
+        var dto = new SoloTrainingCompletedEventDto
+        {
+            EventId = null,
+            UserId = "user123",
+            SoloTrainingSessionId = "session123",
+            Date = DateTime.UtcNow,
+            TrainingType = "UpperBody",
+            DurationMinutes = 30,
+            ExerciseCount = 5
+        };
+
+        _mockRepository.Setup(r => r.CreateDraftFromSoloTrainingCompletedAsync(It.IsAny<SoloTrainingCompletedEventDto>()))
+            .ReturnsAsync("draft123");
+
+        var result = await _controller.SoloTrainingCompleted(dto);
+
+        Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+    }
 
 }

@@ -7,7 +7,6 @@ public class UserService
     public UserService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("http://localhost:4000");
     }
 
     public async Task<HttpResponseMessage> GetUserAsync(string userId)
@@ -23,5 +22,10 @@ public class UserService
     public async Task<HttpResponseMessage> GetAllUsersAsync()
     {
         return await _httpClient.GetAsync("/api/users");
+    }
+
+    public async Task<HttpResponseMessage> GetUserByIdAsync(string userId)
+    {
+        return await _httpClient.GetAsync($"/api/users/{userId}");
     }
 }

@@ -229,7 +229,7 @@ public class ClassRepository : IClassRepository
             };
 
             await _classResultsCollection.InsertOneAsync(metric);
-            
+
             try
             {
                 await NotifySocialService(metric);
@@ -240,7 +240,7 @@ public class ClassRepository : IClassRepository
                 Console.WriteLine($"NotifySocialService failed for user {attendant.UserId} in class {classId}: {ex.Message}");
             }
         }
-        
+
         finishedClass.IsActive = false;
         await _classesCollection.ReplaceOneAsync(c => c.Id == classId, finishedClass);
     }
@@ -259,7 +259,7 @@ public class ClassRepository : IClassRepository
         }
     }
 
-    
+
     public async Task<Double> CalculateWatt(Intensity intensity,
      Category category, int DurationMinutes)
     {
@@ -445,5 +445,31 @@ public class ClassRepository : IClassRepository
            c => c.Id == classId,
            Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, nextUserId)
        );
+    }
+    public async Task<IEnumerable<FitnessClass>> GetClassesByUserIdAsync(string userId)
+    {
+        //find classes where bookinglist or waitlist contains userId
+        var filter = Builders<FitnessClass>.Filter.Or(
+            Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId),
+            Builders<FitnessClass>.Filter.ElemMatch(c => c.WaitlistUserIds, id => id == userId)
+        );
+        var classes = _classesCollection.Find(filter).ToList();
+        return classes;
+    }
+
+    public Task<IEnumerable<FitnessClass>> GetAllAvailableClassesAsync(string userId)
+    {
+        var filter = Builders<FitnessClass>.Filter.And(
+            Builders<FitnessClass>.Filter.Eq(c => c.IsActive, true),
+            Builders<FitnessClass>.Filter.Not(
+                Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId)
+            ),
+            Builders<FitnessClass>.Filter.Not(
+                Builders<FitnessClass>.Filter.ElemMatch(c => c.WaitlistUserIds, id => id == userId)
+            )
+        );
+
+        var classes = _classesCollection.Find(filter).ToList();
+        return Task.FromResult(classes.AsEnumerable());
     }
 }

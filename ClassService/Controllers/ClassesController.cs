@@ -56,6 +56,12 @@ public class ClassesController : ControllerBase
         var classes = await _classRepository.GetAllActiveClassesAsync();
         return Ok(classes);
     }
+    [HttpGet("classes/available/{userId}")]
+    public async Task<ActionResult<IEnumerable<FitnessClass>>> GetAllAvailableClassesAsync(string userId)
+    {
+        var classes = await _classRepository.GetAllAvailableClassesAsync(userId);
+        return Ok(classes);
+    }
     [HttpPut("classes/{classId}/{userId}")]
     public async Task<ActionResult> BookClassForUser(string classId, string userId)
     {
@@ -229,5 +235,21 @@ public class ClassesController : ControllerBase
         {
             return BadRequest(new { error = "Finishing class failed", message = ex.Message });
         }
+    }
+    [HttpGet("classes/user/{userId}")]
+    public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByUserId(string userId)
+    {
+        var classes = await _classRepository.GetClassesByUserIdAsync(userId);
+        return Ok(classes);
+    }
+    [HttpGet("classes/{classId}")]
+    public async Task<ActionResult<FitnessClass>> GetClassById(string classId)
+    {
+        var fitnessClass = await _classRepository.GetClassByIdAsync(classId);
+        if (fitnessClass == null)
+        {
+            return NotFound(new { error = "Class not found", message = $"Class with ID '{classId}' does not exist." });
+        }
+        return Ok(fitnessClass);
     }
 }
