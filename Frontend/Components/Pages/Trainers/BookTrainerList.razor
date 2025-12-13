@@ -1,62 +1,160 @@
 @page "/trainer/book"
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Services
+@using FitLifeFitness.Models 
+@using System.Net.Http.Json 
+@using System.Collections.Generic
+@using System.Linq
 @layout EmptyLayout
+@inject CoachingService CoachingService
+@inject TokenService TokenService
+@inject NavigationManager Nav
+
 
 <div class="trainer-list-screen">
     <h2 class="trainer-title">Vælg træner</h2>
     <p class="trainer-subtitle">Vælg en træner der passer til dine mål.</p>
 
-    <div class="trainer-list">
-        @foreach (var trainer in Trainers)
-        {
-            <button class="trainer-card" @onclick="() => GoToBookingForm(trainer.Id)">
-                <div class="trainer-card-header">
-                    <div class="trainer-avatar">
-                        @trainer.Initials
-                    </div>
-                    <div class="trainer-name-area">
-                        <p class="trainer-name">@trainer.Name</p>
-                        <p class="trainer-speciality">@trainer.Speciality</p>
+    @if (_isLoading)
+    {
+        <p>Henter ledige trænere...</p>
+    }
+    else if (_errorOccurred)
+    {
+        <p class="text-danger">Kunne ikke hente trænere. Kontrollér venligst forbindelsen.</p>
+    }
+    else if (!Coaches.Any())
+    {
+        <p>Der er ingen ledige trænere lige nu. Prøv venligst senere.</p>
+    }
+    else
+    {
+        <div class="trainer-list">
+            @foreach (var Coach in Coaches)
+            {
+                <div class="trainer-card"
+                     style="background:white; border-radius:16px; padding:16px;
+                box-shadow:0 8px 24px rgba(0,0,0,0.06);
+                margin-bottom:16px;
+                pointer-events:none;">
+
+                    <div class="trainer-card-header"
+                         style="display:flex; align-items:center; justify-content:space-between;
+                    pointer-events:none;">
+
+                        <!-- Venstre side -->
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <div class="trainer-avatar"
+                                 style="width:48px; height:48px; border-radius:50%;
+                            background:#1f2937; color:white;
+                            display:flex; align-items:center; justify-content:center;
+                            font-weight:600;">
+                                @Coach.Initials
+                            </div>
+
+                            <div>
+                                <p style="margin:0; font-weight:600;">@Coach.Name</p>
+                                <p style="margin:4px 0 0 0; color:#6b7280;">
+                                    @Coach.Description
+                                </p>
+                            </div>
+                        </div>
+
+                        
+                        <button @onclick="() => GoToBookingForm(Coach.Id)"
+                                style="background:#22c55e; color:white;
+                           border:none; padding:10px 20px;
+                           border-radius:999px;
+                           font-weight:600; font-size:14px;
+                           cursor:pointer;
+                           white-space:nowrap;
+                           pointer-events:auto;
+                           outline:none;
+                           transform:none;">
+                            Vælg
+                        </button>
+
                     </div>
                 </div>
+            }
 
-                <p class="trainer-experience">@trainer.Experience</p>
 
-                <p class="trainer-tags">
-                    @trainer.FocusAreas
-                </p>
-            </button>
-        }
-    </div>
-</div>
-
-@code {
-    [Inject] private NavigationManager Nav { get; set; } = default!;
-
-    private List<TrainerModel> Trainers = new()
-    {
-        new() { Id = 1, Name = "Mikkel Andersen", Speciality = "Styrketræning", Experience = "5 års erfaring", FocusAreas = "Muskelopbygning, teknik" },
-        new() { Id = 2, Name = "Emma Larsen", Speciality = "Vægttab & kondition", Experience = "3 års erfaring", FocusAreas = "Fedttab, cardio" },
-        new() { Id = 3, Name = "Jonas Pedersen", Speciality = "Crossfit & HIIT", Experience = "4 års erfaring", FocusAreas = "Explosivitet, funktionel træning" },
-    };
-
-    private void GoToBookingForm(int id)
-    {
-        Nav.NavigateTo($"/trainer/book/{id}");
+        </div>
     }
+</div>
+@code {
+    private List<CoachModel> Coaches { get; set; } = new();
+    private bool _isLoading = true;
+    private bool _errorOccurred = false; 
+    private string? LoggedInUserId { get; set; }
 
-    public class TrainerModel
+    
+    public class CoachModel
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public string Speciality { get; set; } = "";
-        public string Experience { get; set; } = "";
-        public string FocusAreas { get; set; } = "";
+        public string Id { get; set; } = ""; 
+        public string Description { get; set; } = ""; 
+        
+        public string Name => Id; 
+        
+        // Robustly calculates initials by taking the first two characters of the ID.
+        public string Initials
+        {
+            get
+            {
+                var idUpper = Id.ToUpperInvariant();
+                // Safely slice the string: take 2 characters if the ID is 2 or longer, otherwise take what is available.
+                return idUpper.Length >= 2 ? idUpper[..2] : idUpper;
+            }
+        }
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        _errorOccurred = false;
 
-        public string Initials =>
-            string.Join("", Name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(x => x[0]))
-            .ToUpperInvariant();
+        try
+        {
+            LoggedInUserId = await TokenService.GetUserIdAsync();
+            
+            var sessionResponse = await CoachingService.GetAvailableSessionsAsync(); 
+            sessionResponse.EnsureSuccessStatusCode();
+
+            var sessions = await sessionResponse.Content.ReadFromJsonAsync<IEnumerable<CoachingSession.SessionDto>>()
+                           ?? Enumerable.Empty<CoachingSession.SessionDto>();
+
+          
+            Coaches = sessions
+                .Where(s => !string.IsNullOrWhiteSpace(s.CoachId)) 
+                .GroupBy(s => s.CoachId!)
+                .Select(g => 
+                {
+                    var coachId = g.Key;
+                    var firstSession = g.First();
+        
+                    return new CoachModel
+                    {
+                        Id = coachId,
+                        Description = firstSession.DescriptionForCoach ?? "Generel Træning",
+                    };
+                })
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching trainers: {ex.Message}");
+            _errorOccurred = true;
+            Coaches = new List<CoachModel>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+    
+    private void GoToBookingForm(string CoachId)
+    {
+        Nav.NavigateTo($"/trainer/session/book/{CoachId}"); 
     }
 }
