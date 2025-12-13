@@ -43,7 +43,7 @@
     </EditForm>
     <div class="login-links">
         <button type="button" class="link-btn">Glemt password?</button>
-        <button type="button" class="link-btn">Opret bruger</button>
+        <button type="button" class="link-btn" @onclick="GoToCreateUser">Opret bruger</button>
         <button type="button" class="primary-btn" @onclick="GoToDashboardNow">Fortsæt til dashboard</button>
     </div>
 </div>
@@ -127,6 +127,10 @@
         var uri = new Uri(Nav.Uri);
         var dashboardUrl = $"{uri.Scheme}://{uri.Authority}/dashboard";
         Nav.NavigateTo(dashboardUrl, forceLoad: true);
+    }
+    private void GoToCreateUser()
+    {
+        Nav.NavigateTo("/create-user");
     }
 
     public class LoginModel
