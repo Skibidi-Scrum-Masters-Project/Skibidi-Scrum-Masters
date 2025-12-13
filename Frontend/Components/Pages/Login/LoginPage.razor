@@ -71,7 +71,7 @@
                 if (result != null)
                 {
                     // Save token and ensure it's flushed to storage
-                    await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username);
+                    await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username, result.User.Role);
                     
                     // Try to flush any pending values before navigating
                     try

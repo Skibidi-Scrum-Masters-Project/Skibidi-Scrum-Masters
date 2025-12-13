@@ -20,11 +20,12 @@ namespace FitLifeFitness.Models
 
         public UserRole Role { get; set; } = UserRole.Member;
 
-        public enum UserRole
+        
+    }
+    public enum UserRole
         {
             Member,
             Coach,
             Admin
         }
-    }
 }

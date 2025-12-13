@@ -16,4 +16,5 @@ public interface IClassRepository
    public Task FinishClass(string classId);
    public Task<IEnumerable<FitnessClass>> GetClassesByUserIdAsync(string userId);
    public Task<IEnumerable<FitnessClass>> GetAllAvailableClassesAsync(string userId);
+   public Task<IEnumerable<FitnessClass>> GetClassesByCoachIdAsync(string coachId);
    }

@@ -472,4 +472,11 @@ public class ClassRepository : IClassRepository
         var classes = _classesCollection.Find(filter).ToList();
         return Task.FromResult(classes.AsEnumerable());
     }
+
+    public Task<IEnumerable<FitnessClass>> GetClassesByCoachIdAsync(string coachId)
+    {
+        var filter = Builders<FitnessClass>.Filter.Eq(c => c.InstructorId, coachId);
+        var classes = _classesCollection.Find(filter).ToList();
+        return Task.FromResult(classes.AsEnumerable());
+    }
 }

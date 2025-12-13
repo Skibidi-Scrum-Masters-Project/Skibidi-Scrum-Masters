@@ -36,9 +36,17 @@ public class ClassService
     {
         return await _httpClient.PostAsync($"/api/classes/classes/{classId}/finish", null);
     }
+    public async Task<HttpResponseMessage> DeleteClassAsync(string classId)
+    {
+        return await _httpClient.DeleteAsync($"/api/classes/classes/{classId}");
+    }
     public async Task<HttpResponseMessage> GetClassesByUserIdAsync(string userId)
     {
         return await _httpClient.GetAsync($"/api/classes/classes/user/{userId}");
+    }
+    public async Task<HttpResponseMessage> GetClassesByCoachIdAsync(string coachId)
+    {
+        return await _httpClient.GetAsync($"/api/classes/classes/coach/{coachId}");
     }
     public async Task<HttpResponseMessage> CancelClassBookingForUserAsync(string classId, string userId)
     {
