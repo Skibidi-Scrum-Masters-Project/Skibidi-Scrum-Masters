@@ -28,4 +28,10 @@ public class UserService
     {
         return await _httpClient.GetAsync($"/api/users/{userId}");
     }
+
+    public async Task<HttpResponseMessage> CreateUserAsync(object userData)
+    {
+        // Post to the trailing-slash path to avoid proxy redirects that can turn POST into GET
+        return await _httpClient.PostAsJsonAsync("/api/users/", userData);
+    }
 }

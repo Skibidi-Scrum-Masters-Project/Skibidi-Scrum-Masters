@@ -1,18 +1,27 @@
 using FitnessApp.Shared.Models;
 using MongoDB.Driver;
 using MongoDB.Bson;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 public class UserRepository : IUserRepository
 {
     private readonly IMongoCollection<User> _usersCollection;
+    private readonly ILogger<UserRepository> _logger;
 
-    public UserRepository(IMongoDatabase database)
+    public UserRepository(IMongoDatabase database, ILogger<UserRepository> logger)
     {
         _usersCollection = database.GetCollection<User>("Users");
+        _logger = logger;
+    }
+    public UserRepository(IMongoDatabase database)
+        : this(database, NullLogger<UserRepository>.Instance)
+    {
     }
    
     public User CreateUser(User user)
     {
+        _logger.LogInformation("Creating user with username: {Username} in the repo", user.Username);
         try
         {
             // Validate input

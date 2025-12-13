@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using FitnessApp.Shared.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace UserService.Controllers;
 
@@ -9,10 +11,12 @@ namespace UserService.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
+    private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IUserRepository userRepository)
+    public UsersController(IUserRepository userRepository, ILogger<UsersController>? logger = null)
     {
         _userRepository = userRepository;
+        _logger = logger ?? NullLogger<UsersController>.Instance;
     }
 
     [HttpGet]
@@ -32,6 +36,7 @@ public class UsersController : ControllerBase
     [HttpPost]
     public ActionResult<User> CreateUser(User user)
     {
+        _logger.LogInformation("Creating a new user with username: {Username}", user.Username);
         try
         {
             User createdUser = _userRepository.CreateUser(user);
