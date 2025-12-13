@@ -60,5 +60,9 @@ public class ClassService
     {
         return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}", null);
     }
+    public async Task<HttpResponseMessage> BookClassForUserWithFriendsAsync(string classId, string userId, List<string> friends)
+    {
+        return await _httpClient.PutAsJsonAsync($"/api/classes/classes/{classId}/{userId}/friends", friends);
+    }
 
 }
