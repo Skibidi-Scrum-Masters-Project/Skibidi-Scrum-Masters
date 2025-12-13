@@ -8,6 +8,7 @@
 @using System.ComponentModel.DataAnnotations
 @using FitLifeFitness.Components.Layout
 @using System.Net.Http.Json
+@using FitLifeFitness.Models
 @using FitlifeFitness.Models
 @using Microsoft.AspNetCore.Components
 <div class="classes-screen">
@@ -46,21 +47,31 @@
                         {
                             <span class="class-waitlist">På venteliste #@((waitIndex + 1)) af @waitCount</span>
                         }
-                        <button class="class-cancel" @onclick:stopPropagation @onclick="() => CancelClassBooking(c.Id)">Afbryd</button>
+                        <button class="class-cancel" @onclick:stopPropagation @onclick="() => CancelClassBooking(c.Id!)">Afbryd</button>
                     </div>
                 </div>
             }
         </div>
     }
 
-    <button class="primary-btn classes-cta" @onclick="GoToBook">
-        Book nyt hold
-    </button>
+    @if (userRole == UserRole.Coach)
+    {
+        <button class="primary-btn classes-cta" @onclick="GoToCreate">
+            Opret nyt hold
+        </button>
+    }
+    else
+    {
+        <button class="primary-btn classes-cta" @onclick="GoToBook">
+            Book nyt hold
+        </button>
+    }
 </div>
 
 @code {
     
     private string? userId;
+    private UserRole? userRole;
     private List<FitnessClass> MyClassesList = new();
     private bool isCancelling = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -81,7 +92,18 @@
             return;
         }
 
-        var response = await ClassService.GetClassesByUserIdAsync(userId);
+        userRole = await TokenService.GetUserRoleAsync();
+        HttpResponseMessage response;
+        if (userRole == UserRole.Coach)
+        {
+            response = await ClassService.GetClassesByCoachIdAsync(userId);
+        }
+        else
+        {
+            // Default/member behavior: load classes booked by the user
+            response = await ClassService.GetClassesByUserIdAsync(userId);
+        }
+
         if (response.IsSuccessStatusCode)
         {
             MyClassesList = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
@@ -90,14 +112,29 @@
     }
 
 
+    private void GoToCreate()
+    {
+        // Navigate to the class creation page (page not implemented yet)
+        Nav.NavigateTo("/classes/create");
+    }
+
     private void GoToBook()
     {
+        // Navigate to the general class booking page
         Nav.NavigateTo("/classes/book");
     }
 
     private void GoToBooking(FitnessClass c)
     {
         if (c == null || string.IsNullOrEmpty(c.Id)) return;
+
+        // Coaches should be taken to their coach view for the class
+        if (userRole == UserRole.Coach)
+        {
+            Nav.NavigateTo($"/classes/coach/{c.Id}");
+            return;
+        }
+
         if (c.SeatBookingEnabled)
         {
             Nav.NavigateTo($"/classes/seat/{c.Id}");
@@ -120,8 +157,17 @@
         var response = await ClassService.CancelClassBookingForUserAsync(classId, userId);
         if (response.IsSuccessStatusCode)
         {
-            // Refresh the list
-            var refreshed = await ClassService.GetClassesByUserIdAsync(userId);
+            // Refresh the list using the same role-based endpoint as on init
+            HttpResponseMessage refreshed;
+            var roleToUse = userRole ?? await TokenService.GetUserRoleAsync();
+            if (roleToUse == UserRole.Coach)
+            {
+                refreshed = await ClassService.GetClassesByCoachIdAsync(userId);
+            }
+            else
+            {
+                refreshed = await ClassService.GetClassesByUserIdAsync(userId);
+            }
             if (refreshed.IsSuccessStatusCode)
             {
                 MyClassesList = await refreshed.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
