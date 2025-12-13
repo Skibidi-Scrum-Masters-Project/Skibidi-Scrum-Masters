@@ -14,42 +14,35 @@ public class CoachingRepository : ICoachingRepository
 
     public Session BookSession(Session session)
     {
-        // Find existing session by id
         var existingSession = _sessionsCollection
             .Find(s => s.Id == session.Id)
             .FirstOrDefault();
 
         if (existingSession == null)
-        {
-            // Decide what you want here:
-            // throw, return null, or create a new session.
             throw new InvalidOperationException("Session not found.");
-        }
 
-        // Only allow booking when session is Available
         if (existingSession.CurrentStatus != Session.Status.Available)
-        {
             throw new InvalidOperationException("Session is not available to be booked.");
-        }
 
-        // Build the update: set status to Planned, and copy user id from input
+        if (session.BookingForm == null)
+            throw new InvalidOperationException("BookingForm is required.");
+
         var update = Builders<Session>.Update
-            .Set(s => s.CurrentStatus, Session.Status.Planned)
-            .Set(s => s.UserId, session.UserId);
+            .Set(s => s.CurrentStatus, Session.Status.Planned)   // 0 → 1
+            .Set(s => s.UserId, session.UserId)
+            .Set(s => s.BookingForm, session.BookingForm);
 
-        // Apply the update in MongoDB
         _sessionsCollection.UpdateOne(
             s => s.Id == existingSession.Id,
             update
         );
 
-        // Update the in memory object so the caller gets the new state
         existingSession.CurrentStatus = Session.Status.Planned;
         existingSession.UserId = session.UserId;
+        existingSession.BookingForm = session.BookingForm;
 
         return existingSession;
     }
-    
     public IEnumerable<Session> GetAllSessions()
     {
         return _sessionsCollection.Find(FilterDefinition<Session>.Empty).ToList();
