@@ -242,6 +242,12 @@ public class ClassesController : ControllerBase
         var classes = await _classRepository.GetClassesByUserIdAsync(userId);
         return Ok(classes);
     }
+    [HttpGet("classes/coach/{coachId}")]
+    public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByCoachId(string coachId)
+    {
+        var classes = await _classRepository.GetClassesByCoachIdAsync(coachId);
+        return Ok(classes);
+    }
     [HttpGet("classes/{classId}")]
     public async Task<ActionResult<FitnessClass>> GetClassById(string classId)
     {
