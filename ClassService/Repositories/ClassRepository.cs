@@ -448,10 +448,28 @@ public class ClassRepository : IClassRepository
     }
     public async Task<IEnumerable<FitnessClass>> GetClassesByUserIdAsync(string userId)
     {
-        var filter = Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId);
-        var classes = await _classesCollection.Find(filter).ToListAsync();
+        //find classes where bookinglist or waitlist contains userId
+        var filter = Builders<FitnessClass>.Filter.Or(
+            Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId),
+            Builders<FitnessClass>.Filter.ElemMatch(c => c.WaitlistUserIds, id => id == userId)
+        );
+        var classes = _classesCollection.Find(filter).ToList();
         return classes;
     }
 
+    public Task<IEnumerable<FitnessClass>> GetAllAvailableClassesAsync(string userId)
+    {
+        var filter = Builders<FitnessClass>.Filter.And(
+            Builders<FitnessClass>.Filter.Eq(c => c.IsActive, true),
+            Builders<FitnessClass>.Filter.Not(
+                Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId)
+            ),
+            Builders<FitnessClass>.Filter.Not(
+                Builders<FitnessClass>.Filter.ElemMatch(c => c.WaitlistUserIds, id => id == userId)
+            )
+        );
 
+        var classes = _classesCollection.Find(filter).ToList();
+        return Task.FromResult(classes.AsEnumerable());
+    }
 }
