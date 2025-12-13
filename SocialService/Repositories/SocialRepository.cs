@@ -407,8 +407,7 @@ public class SocialRepository : ISocialRepository
         {
             UserId = metric.UserId,
             FitnessClassId = metric.ClassId,
-            WorkoutId = metric.ClassId,
-            PostDate = DateTime.UtcNow,
+            PostDate = metric.Date,
             PostTitle = "Class completed",
             PostContent = $"Duration: {metric.DurationMin} min. Calories: {metric.CaloriesBurned:0}. Watt: {metric.Watt:0}",
             Type = PostType.Workout,
@@ -422,6 +421,33 @@ public class SocialRepository : ISocialRepository
         };
 
         await _postCollection.InsertOneAsync(draft);
+        return draft.Id;
+    }
+
+
+    public async Task<string?> CreateDraftFromSoloTrainingCompletedAsync(SoloTrainingCompletedEventDto metric)
+    {
+        var already = await _postCollection.Find(p => p.SourceEventId == metric.EventId).AnyAsync();
+        if (already) return null;
+
+        var draft = new Post
+        {
+            UserId = metric.UserId!,
+            WorkoutId = metric.SoloTrainingSessionId!,
+            PostDate = metric.Date,
+            PostTitle = "SoloTraining completed",
+            PostContent =
+                $"Just Finished a {metric.TrainingType} Duration: {metric.DurationMinutes} min Exercises: {metric.ExerciseCount}",
+            Type = PostType.Workout,
+            IsDraft = true,
+            SourceEventId = metric.EventId,
+            WorkoutStats = new WorkoutStatsSnapshot
+            {
+                DurationSeconds = metric.DurationMinutes * 60
+            }
+        };
+        
+        await  _postCollection.InsertOneAsync(draft);
         return draft.Id;
     }
 
