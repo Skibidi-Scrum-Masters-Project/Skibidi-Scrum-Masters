@@ -13,7 +13,7 @@
         <button class="menu-card">
             <span>Workout</span>
         </button>
-        <button class="menu-card">
+        <button class="menu-card" @onclick="GoToClasses">
             <span>Holdtræning</span>
         </button>
         <button class="menu-card">
@@ -49,4 +49,11 @@
 @code {
     // Midlertidig hardcoded – senere kan den hentes fra backend
     private string Username { get; set; } = "Bruger";
+
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private void GoToClasses()
+    {
+        Nav.NavigateTo("/classes");
+    }
 }

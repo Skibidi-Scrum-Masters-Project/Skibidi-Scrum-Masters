@@ -50,16 +50,37 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public List<User> GetAllUsers()
-    {
-        return _usersCollection.Find(new BsonDocument()).ToList();
-    }
-
-    public User? GetUserById(string id)
+    public List<UserDTO> GetAllUsers()
     {
         try
         {
-            return _usersCollection.Find(u => u.Id == id).FirstOrDefault();
+            return _usersCollection.Find(_ => true).Project<UserDTO>(Builders<User>.Projection
+                .Include(u => u.Id)
+                .Include(u => u.Username)
+                .Include(u => u.FirstName)
+                .Include(u => u.LastName)
+                .Include(u => u.Email)
+                .Include(u => u.Role)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving all users: {ex.Message}");
+            return new List<UserDTO>();
+        }
+
+    }
+
+    public UserDTO? GetUserById(string id)
+    {
+        try
+        {
+            return _usersCollection.Find(u => u.Id == id).Project<UserDTO>(Builders<User>.Projection
+                .Include(u => u.Id)
+                .Include(u => u.Username)
+                .Include(u => u.FirstName)
+                .Include(u => u.LastName)
+                .Include(u => u.Email)
+                .Include(u => u.Role)).FirstOrDefault();
         }
         catch (Exception ex)
         {
@@ -68,7 +89,25 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public User? GetUserByUsername(string username)
+    public UserDTO? GetUserByUsername(string username)
+    {
+        try
+        {
+        return _usersCollection.Find(u => u.Username == username).Project<UserDTO>(Builders<User>.Projection
+                .Include(u => u.Id)
+                .Include(u => u.Username)
+                .Include(u => u.FirstName)
+                .Include(u => u.LastName)
+                .Include(u => u.Email)
+                .Include(u => u.Role)).FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error retrieving user by username {username}: {ex.Message}");
+            return null;
+        }
+    }
+        public User? GetUserByUsernameSecure(string username)
     {
         try
         {
@@ -90,7 +129,7 @@ public class UserRepository : IUserRepository
         user.HashedPassword = hashedPassword;
         return user;
     }
-    public User UpdateUser(User updatedUser)
+    public UserDTO UpdateUser(User updatedUser)
     {
         var userInDb = GetUserById(updatedUser.Id!);
         if (userInDb == null)
@@ -111,9 +150,17 @@ public class UserRepository : IUserRepository
         _usersCollection.DeleteOne(u => u.Id == id);
         return true;
     }
-    public List<User> GetUsersByRole(Role role)
+    public List<UserDTO> GetUsersByRole(Role role)
     {
-        var users = _usersCollection.Find(u => u.Role == role).ToList();
+        var users = _usersCollection.Find(u => u.Role == role).Project<UserDTO>(Builders<User>.Projection
+                .Include(u => u.Id)
+                .Include(u => u.Username)
+                .Include(u => u.FirstName)
+                .Include(u => u.LastName)
+                .Include(u => u.Email)
+                .Include(u => u.Role)).ToList();
         return users;
     }
+
+
 }

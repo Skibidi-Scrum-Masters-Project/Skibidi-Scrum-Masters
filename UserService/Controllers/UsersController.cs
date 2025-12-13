@@ -16,12 +16,12 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Coach")]
-    public ActionResult<IEnumerable<User>> GetUsers()
+    // [Authorize(Roles = "Admin,Coach")]
+    public ActionResult<IEnumerable<UserDTO>> GetUsers()
     {
         try
         {
-            List<User> users = _userRepository.GetAllUsers();
+            List<UserDTO> users = _userRepository.GetAllUsers();
             return Ok(users);
         }
         catch (Exception ex)
@@ -30,7 +30,6 @@ public class UsersController : ControllerBase
         }
     }
     [HttpPost]
-    [Authorize]
     public ActionResult<User> CreateUser(User user)
     {
         try
@@ -56,7 +55,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpGet("username/{username}")]
-    public ActionResult<User> GetUserByUsername(string username)
+    public ActionResult<UserDTO> GetUserByUsername(string username)
     {
         try
         {
@@ -72,8 +71,25 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
+        [HttpGet("username/{username}/secure")]
+    public ActionResult<User> GetUserByUsernameSecure(string username)
+    {
+        try
+        {
+            var user = _userRepository.GetUserByUsernameSecure(username);
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found", message = $"User with username '{username}' does not exist" });
+            }
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
     [HttpGet("{id}")]
-    public ActionResult<User> GetUserById(string id)
+    public ActionResult<UserDTO> GetUserById(string id)
     {
         try
         {
@@ -107,7 +123,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpPut("{id}")]
-    public ActionResult<User> UpdateUser(User updatedUser)
+    public ActionResult<UserDTO> UpdateUser(User updatedUser)
     {
         try
         {
@@ -117,7 +133,7 @@ public class UsersController : ControllerBase
                 return NotFound(new { error = "User not found", message = $"User with ID '{updatedUser.Id}' does not exist" });
             }
 
-            User user = _userRepository.UpdateUser(updatedUser);
+            UserDTO user = _userRepository.UpdateUser(updatedUser);
             return Ok(user);
         }
         catch (ArgumentException ex)
@@ -130,7 +146,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpGet("role/{role}")]
-    public ActionResult<List<User>> GetUsersByRole(Role role)
+    public ActionResult<List<UserDTO>> GetUsersByRole(Role role)
     {
         try
         {

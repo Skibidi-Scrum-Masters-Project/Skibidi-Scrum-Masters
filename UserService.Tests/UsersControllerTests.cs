@@ -22,23 +22,23 @@ public class UsersControllerTests
     public void GetUsers_ShouldReturnAllUsers()
     {
         // Arrange
-        var users = new List<User>
+        var users = new List<UserDTO>
         {
-            new User
+            new UserDTO
             {
                 Id = "1",
                 Username = "user1",
                 Email = "user1@example.com",
                 Role = 0
             },
-            new User
+            new UserDTO 
             {
                 Id = "2",
                 Username = "user2",
                 Email = "user2@example.com",
                 Role = 0
             },
-            new User
+            new UserDTO
             {
                 Id = "3",
                 Username = "coach1",
@@ -57,7 +57,7 @@ public class UsersControllerTests
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode);
 
-        var returnedUsers = okResult.Value as IEnumerable<User>;
+        var returnedUsers = okResult.Value as IEnumerable<UserDTO>;
         Assert.IsNotNull(returnedUsers, "Expected list of users");
         Assert.AreEqual(3, returnedUsers.Count(), "Expected 3 users");
 
@@ -68,7 +68,7 @@ public class UsersControllerTests
     public void GetUsers_WhenNoUsers_ShouldReturnEmptyList()
     {
         // Arrange
-        var emptyUsers = new List<User>();
+        var emptyUsers = new List<UserDTO>();
         _mockRepository.Setup(repo => repo.GetAllUsers()).Returns(emptyUsers);
 
         // Act
@@ -79,7 +79,7 @@ public class UsersControllerTests
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode);
 
-        var returnedUsers = okResult.Value as IEnumerable<User>;
+        var returnedUsers = okResult.Value as IEnumerable<UserDTO>;
         Assert.IsNotNull(returnedUsers, "Expected empty list of users");
         Assert.AreEqual(0, returnedUsers.Count(), "Expected 0 users");
 
@@ -90,9 +90,9 @@ public class UsersControllerTests
     public void GetUsers_ShouldReturnOkResult()
     {
         // Arrange
-        var users = new List<User>
+        var users = new List<UserDTO>
         {
-            new User
+            new UserDTO
             {
                 Id = "1",
                 Username = "testuser",
@@ -118,7 +118,7 @@ public class UsersControllerTests
     {
         // Arrange
         var username = "testuser";
-        var user = new User
+        var user = new UserDTO
         {
             Id = "1",
             Username = username,
@@ -132,7 +132,7 @@ public class UsersControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode, "Expected status code 200");
-        var returnedUser = okResult.Value as User;
+        var returnedUser = okResult.Value as UserDTO;
         Assert.IsNotNull(returnedUser, "Expected a user object");
         Assert.AreEqual(username, returnedUser.Username, "Usernames should match");
         _mockRepository.Verify(repo => repo.GetUserByUsername(username), Times.Once);
@@ -142,7 +142,7 @@ public class UsersControllerTests
     {
         // Arrange
         var username = "nonexistentuser";
-        _mockRepository.Setup(repo => repo.GetUserByUsername(username)).Returns((User?)null);
+        _mockRepository.Setup(repo => repo.GetUserByUsername(username)).Returns((UserDTO?)null);
         // Act
         var result = _controller.GetUserByUsername(username);
         // Assert
@@ -280,7 +280,7 @@ public class UsersControllerTests
     {
         // Arrange
         var userId = "nonexistentid";
-        _mockRepository.Setup(repo => repo.GetUserById(userId)).Returns((User?)null);
+        _mockRepository.Setup(repo => repo.GetUserById(userId)).Returns((UserDTO?)null);
         // Act
         var result = _controller.GetUserById(userId);
         // Assert
@@ -294,7 +294,7 @@ public class UsersControllerTests
     {
         // Arrange
         var userId = "1";
-        var user = new User
+        var user = new UserDTO
         {
             Id = userId,
             Username = "testuser",
@@ -307,7 +307,7 @@ public class UsersControllerTests
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode, "Expected status code 200");
-        var returnedUser = okResult.Value as User;
+        var returnedUser = okResult.Value as UserDTO;
         Assert.IsNotNull(returnedUser, "Expected a user object");
         Assert.AreEqual(userId, returnedUser.Id, "User IDs should match");
         _mockRepository.Verify(repo => repo.GetUserById(userId), Times.Once);
@@ -344,7 +344,7 @@ public class UsersControllerTests
     {
         // Arrange
         var userId = "1";
-        var existingUser = new User
+        var existingUser = new UserDTO
         {
             Id = userId,
             Username = "olduser",
@@ -356,15 +356,21 @@ public class UsersControllerTests
             Username = "updateduser",
             Email = "updateduser@example.com"
         };
+        var updatedUserDTO = new UserDTO
+        {
+            Id = userId,
+            Username = "updateduser",
+            Email = "updateduser@example.com"
+        };
         _mockRepository.Setup(repo => repo.GetUserById(userId)).Returns(existingUser);
-        _mockRepository.Setup(repo => repo.UpdateUser(updatedUser)).Returns(updatedUser);
+        _mockRepository.Setup(repo => repo.UpdateUser(updatedUser)).Returns(updatedUserDTO);
         // Act
         var result = _controller.UpdateUser(updatedUser);
         // Assert
         var okResult = result.Result as OkObjectResult;
         Assert.IsNotNull(okResult, "Expected OkObjectResult");
         Assert.AreEqual(200, okResult.StatusCode, "Expected status code 200");
-        var returnedUser = okResult.Value as User;
+        var returnedUser = okResult.Value as UserDTO;
         Assert.IsNotNull(returnedUser, "Expected a user object");
         Assert.AreEqual(updatedUser.Username, returnedUser.Username, "Usernames should match");
         _mockRepository.Verify(repo => repo.UpdateUser(updatedUser), Times.Once);

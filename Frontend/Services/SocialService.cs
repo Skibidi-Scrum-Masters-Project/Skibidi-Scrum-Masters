@@ -12,12 +12,12 @@ public class SocialService
 
     public async Task<HttpResponseMessage> GetFriendsAsync(string userId)
     {
-        return await _httpClient.GetAsync($"/api/social/friends/{userId}");
+        return await _httpClient.GetAsync($"/api/social/{userId}/friends");
     }
 
     public async Task<HttpResponseMessage> AddFriendAsync(string userId, string friendId)
     {
-        return await _httpClient.PostAsync($"/api/social/friends/{userId}/{friendId}", null);
+        return await _httpClient.PostAsync($"/api/social/{userId}/friends/{friendId}", null);
     }
 
     public async Task<HttpResponseMessage> GetPostsAsync()
