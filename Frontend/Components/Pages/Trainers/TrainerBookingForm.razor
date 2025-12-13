@@ -1,7 +1,12 @@
-@page "/trainer/book/{Id:int}"
+@page "/trainer/session/book/"
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
 @using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Services
+@inject CoachingService CoachingService
+@inject NavigationManager Nav
+@inject TokenService TokenService
+
 @layout EmptyLayout
 <div class="booking-screen">
     @if (Trainer is null)
@@ -55,7 +60,7 @@
 </div>
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [Parameter] public string CoachId { get; set; } = "";
 
     private TrainerModel? Trainer { get; set; }
     private BookingModel Booking { get; set; } = new()
@@ -74,8 +79,6 @@
             new() { Id = 2, Name = "Emma Larsen", Speciality = "Vægttab & kondition", Experience = "3 års erfaring", FocusAreas = "Fedttab, cardio" },
             new() { Id = 3, Name = "Jonas Pedersen", Speciality = "Crossfit & HIIT", Experience = "4 års erfaring", FocusAreas = "Explosivitet, funktionel træning" },
         };
-
-        Trainer = data.FirstOrDefault(t => t.Id == Id);
     }
 
     private void ConfirmBooking()
