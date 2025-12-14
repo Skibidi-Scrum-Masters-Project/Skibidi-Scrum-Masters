@@ -1,0 +1,172 @@
+@page "/classes/create"
+@layout PhoneLayout
+@inject FitLifeFitness.Services.ClassService ClassService
+@inject FitLifeFitness.Services.TokenService TokenService
+@inject NavigationManager Nav
+@using System.Net.Http.Json
+@using FitLifeFitness.Components.Layout
+
+@using FitlifeFitness.Models
+@using Microsoft.AspNetCore.Components
+@using System
+@using System.Linq
+
+<div class="create-class-container">
+    <div class="create-class-screen">
+    <button class="secondary-btn classes-back" @onclick="GoToClasses">Tilbage</button>
+    <h2>Opret nyt hold</h2>
+
+    @if (errorMessage != null)
+    {
+        <p class="error">@errorMessage</p>
+    }
+
+    <EditForm Model="newClassModel" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-row">
+            <label>Navn</label>
+            <InputText class="input" @bind-Value="newClassModel.Name" />
+        </div>
+
+        <div class="form-row">
+            <label>Beskrivelse</label>
+            <InputTextArea class="input textarea" @bind-Value="newClassModel.Description" />
+        </div>
+
+        <div class="form-row two-col">
+            <div>
+                <label>Start (dato & tid)</label>
+                <input class="input" type="datetime-local" @bind="newClassModel.StartTime" />
+            </div>
+            <div>
+                <label>Varighed (min)</label>
+                <InputNumber class="input" @bind-Value="newClassModel.Duration" />
+            </div>
+        </div>
+
+        <div class="form-row two-col">
+            <div>
+                <label>Kategori</label>
+                <InputSelect class="input" @bind-Value="newClassModel.Category">
+                    @foreach (Category c in Enum.GetValues(typeof(Category)).Cast<Category>())
+                    {
+                        <option value="@c">@c</option>
+                    }
+                </InputSelect>
+            </div>
+            <div>
+                <label>Intensitet</label>
+                <InputSelect class="input" @bind-Value="newClassModel.Intensity">
+                    @foreach (Intensity i in Enum.GetValues(typeof(Intensity)).Cast<Intensity>())
+                    {
+                        <option value="@i">@i</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label>Max deltagere</label>
+            <InputNumber class="input" @bind-Value="newClassModel.MaxCapacity" />
+        </div>
+
+        <div class="form-row two-col">
+            <div>
+                <label>Aktiv</label>
+                <InputCheckbox class="checkbox" @bind-Value="newClassModel.IsActive" />
+            </div>
+            <div>
+                <label>Sædebooking</label>
+                <InputCheckbox class="checkbox" @bind-Value="newClassModel.SeatBookingEnabled" />
+            </div>
+        </div>
+
+        <div class="form-row instructor-row">
+            <label>Instruktør (du)</label>
+            <InputText class="input" @bind-Value="newClassModel.InstructorId" readonly />
+        </div>
+
+        <div class="form-actions">
+            <button class="primary-btn" type="submit">Opret hold</button>
+            <button class="secondary-btn" type="button" @onclick="GoToClasses">Annuller</button>
+        </div>
+    </EditForm>
+
+    <style>
+        .create-class-container{max-height:calc(100vh - 80px);overflow:auto;padding:12px}
+        .create-class-screen{max-width:820px;margin:24px auto;padding:20px;background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
+        .create-class-screen h2{margin-bottom:12px}
+        .form-row{margin-bottom:12px;display:flex;flex-direction:column}
+        .two-col{display:flex;gap:12px}
+        .two-col > div{flex:1}
+        label{font-weight:600;margin-bottom:6px;color:#333}
+        .input{width:100%;padding:8px;border:1px solid #e1e1e1;border-radius:6px}
+        .textarea{min-height:100px}
+        .checkbox{width:18px;height:18px}
+        .form-actions{display:flex;gap:8px;margin-top:16px}
+        .primary-btn{background:#0078d4;color:#fff;border:none;padding:10px 14px;border-radius:6px}
+        .secondary-btn{background:transparent;border:1px solid #d1d1d1;padding:8px 12px;border-radius:6px}
+        .classes-back{margin-bottom:12px}
+        .instructor-row .input[readonly]{background:#f5f5f5}
+        @@media (max-width:600px) { .two-col { flex-direction: column; } }
+    </style>
+    </div>
+</div>
+
+@code {
+    private FitnessClass newClassModel = new FitnessClass()
+    {
+        Name = string.Empty,
+        Description = string.Empty,
+        StartTime = DateTime.Now,
+        Duration = 60,
+        MaxCapacity = 10,
+        CenterId = "1",
+        Category = Category.Yoga,
+        Intensity = Intensity.Medium
+    };
+
+    private string? errorMessage;
+
+    private void GoToClasses() => Nav.NavigateTo("/classes");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = await TokenService.GetUserIdAsync();
+        if (!string.IsNullOrEmpty(userId))
+        {
+            newClassModel.InstructorId = userId;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            var response = await ClassService.CreateClassAsync(newClassModel);
+            if (response.IsSuccessStatusCode)
+            {
+                // Navigate to coach view for the new class if API returns id, otherwise go to classes
+                var created = await response.Content.ReadFromJsonAsync<FitnessClass>();
+                if (created != null && !string.IsNullOrEmpty(created.Id))
+                {
+                    Nav.NavigateTo($"/classes/coach/{created.Id}");
+                }
+                else
+                {
+                    Nav.NavigateTo("/classes");
+                }
+            }
+            else
+            {
+                errorMessage = "Kunne ikke oprette holdet.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}

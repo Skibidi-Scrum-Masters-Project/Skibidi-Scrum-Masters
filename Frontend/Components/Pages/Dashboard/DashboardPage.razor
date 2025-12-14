@@ -1,6 +1,5 @@
-@* Dashboard.razor *@
 @page "/dashboard"
-@layout EmptyLayout
+@layout PhoneLayout
 @using FitLifeFitness.Services
 @using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
@@ -8,20 +7,9 @@
 @using FitLifeFitness.Components.Layout
 @inject SocialService SocialService
 @inject TokenService TokenService
+@inject NavigationManager Nav
 
 <div class="dashboard">
-
-    <header class="topbar">
-        <div class="topbar-left">
-            <h1 class="brand">FitLife Fitness</h1>
-            <p class="welcome">Velkommen tilbage, @Username</p>
-        </div>
-
-        <div class="topbar-right">
-            <div class="avatar" role="button" tabindex="0" @onclick="GoToProfile">@UserInitial</div>
-        </div>
-    </header>
-
     <main class="dashboard-body">
         <section class="welcome-card">
             <div class="welcome-top">
@@ -108,7 +96,6 @@
                         @onclick='() => SwitchTab("ready")' type="button">
                     Klar til deling
                 </button>
-                
             </div>
 
             @if (isFeedLoading)
@@ -160,39 +147,9 @@
             }
         </section>
     </main>
-
-    <nav class="bottom-nav" aria-label="Bund navigation">
-        <button class="bn-item active" @onclick="GoToDashboard" aria-label="Hjem" type="button">
-            <span class="bn-ico">⌂</span>
-            <span class="bn-lbl">Hjem</span>
-        </button>
-
-        <button class="bn-item" @onclick="GoToTrainingPrograms" aria-label="Træning" type="button">
-            <span class="bn-ico">💪</span>
-            <span class="bn-lbl">Træning</span>
-        </button>
-
-        <button class="bn-item" @onclick="GoToClasses" aria-label="Hold" type="button">
-            <span class="bn-ico">🗓️</span>
-            <span class="bn-lbl">Hold</span>
-        </button>
-
-        <button class="bn-item" @onclick="GoToFeed" aria-label="Fællesskab" type="button">
-            <span class="bn-ico">👥</span>
-            <span class="bn-lbl">Fællesskab</span>
-        </button>
-
-        <button class="bn-item" aria-label="Skab" type="button">
-            <span class="bn-ico">🚪</span>
-            <span class="bn-lbl">Adgang</span>
-        </button>
-    </nav>
-
 </div>
 
 @code {
-    [Inject] NavigationManager Nav { get; set; } = default!;
-
     private string? LoggedInUserId { get; set; }
     private string? Username { get; set; }
     private string UserInitial => GetInitial(Username);
@@ -254,12 +211,12 @@
             isFeedLoading = false;
         }
     }
-    
+
     private static string GetDisplayName(Post post)
     {
         if (!string.IsNullOrWhiteSpace(post.UserName))
             return post.UserName.Trim();
-        
+
         return "Bruger";
     }
 

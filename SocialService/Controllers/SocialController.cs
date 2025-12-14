@@ -193,12 +193,18 @@ public class SocialController : ControllerBase
         }
     }
 
-    [HttpPut("{userId}/cancel/{receiverId}")]
-    public async Task<ActionResult<Friendship>> CancelFriendRequest(string userId, string receiverId)
+    [HttpDelete("{userId}/cancel/{receiverId}")]
+    public async Task<IActionResult> CancelFriendRequest(string userId, string receiverId)
     {
-        var friendRequestCanceled = await _socialRepository.CancelFriendRequest(userId, receiverId);
-        
-        return Ok(friendRequestCanceled);
+        try
+        {
+            await _socialRepository.CancelFriendRequest(userId, receiverId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 
     [HttpGet("friendrequests/outgoing/{userId}")]

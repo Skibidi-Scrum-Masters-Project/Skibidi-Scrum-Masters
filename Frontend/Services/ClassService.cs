@@ -1,3 +1,5 @@
+using FitlifeFitness.Models;
+
 namespace FitLifeFitness.Services;
 
 public class ClassService
@@ -34,22 +36,41 @@ public class ClassService
     {
         return await _httpClient.PostAsync($"/api/classes/classes/{classId}/finish", null);
     }
+    public async Task<HttpResponseMessage> DeleteClassAsync(string classId)
+    {
+        return await _httpClient.DeleteAsync($"/api/classes/classes/{classId}");
+    }
     public async Task<HttpResponseMessage> GetClassesByUserIdAsync(string userId)
     {
         return await _httpClient.GetAsync($"/api/classes/classes/user/{userId}");
+    }
+    public async Task<HttpResponseMessage> GetClassesByCoachIdAsync(string coachId)
+    {
+        return await _httpClient.GetAsync($"/api/classes/classes/coach/{coachId}");
     }
     public async Task<HttpResponseMessage> CancelClassBookingForUserAsync(string classId, string userId)
     {
         return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}/cancel", null);
     }
-    public async Task<HttpResponseMessage> GetAllAvailableClassesAsync()
+    public async Task<HttpResponseMessage> GetAllAvailableClassesAsync(string userId)
     {
-        return await _httpClient.GetAsync("/api/classes/classes");
+        return await _httpClient.GetAsync($"/api/classes/classes/available/{userId}");
     }
     public async Task<HttpResponseMessage> BookSeatForClassAsync(string classId,string userId, int seatNumber)
     {
         return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}/{seatNumber}", null);
     }
-
+    public async Task<HttpResponseMessage> BookSeatForClassWithFriendsAsync(string classId, string userId, BookClassWithFriendsRequestDTO request)
+    {
+        return await _httpClient.PutAsJsonAsync($"/api/classes/classes/{classId}/{userId}/friends/seats", request);
+    }
+    public async Task<HttpResponseMessage> BookClassForUser(string classId, string userId)
+    {
+        return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}", null);
+    }
+    public async Task<HttpResponseMessage> BookClassForUserWithFriendsAsync(string classId, string userId, List<string> friends)
+    {
+        return await _httpClient.PutAsJsonAsync($"/api/classes/classes/{classId}/{userId}/friends", friends);
+    }
 
 }

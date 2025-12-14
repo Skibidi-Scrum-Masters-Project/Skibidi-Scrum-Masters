@@ -1,6 +1,6 @@
 @page "/"
 @page "/login"
-@layout EmptyLayout
+@layout PhoneLayoutWithoutNav
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
 @inject NavigationManager Nav
@@ -40,13 +40,20 @@
             <ValidationSummary />
 
             <button type="submit" class="primary-btn" disabled="@isLoading">
-                @(isLoading ? "Logger ind..." : "Log ind")
+                @if (isLoading)
+                {
+                    <span>Logger ind...</span>
+                }
+                else
+                {
+                    <span>Log ind</span>
+                }
             </button>
         </EditForm>
 
         <div class="login-actions">
             <button type="button" class="ghost-btn">Glemt password?</button>
-            <button type="button" class="ghost-btn">Opret bruger</button>
+            <button type="button" class="ghost-btn" @onclick="GoToCreateUser">Opret bruger</button>
         </div>
 
         <button type="button" class="secondary-btn" @onclick="GoToDashboardNow">
@@ -78,7 +85,8 @@
 
                 if (result != null)
                 {
-                    await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username);
+                    // Gem token inkl. Role
+                    await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username, result.User.Role);
 
                     try
                     {
@@ -105,7 +113,7 @@
         }
         catch (NavigationException)
         {
-            throw;
+            throw; // Blazor håndterer navigation
         }
         catch (HttpRequestException ex)
         {
@@ -128,6 +136,11 @@
         var uri = new Uri(Nav.Uri);
         var dashboardUrl = $"{uri.Scheme}://{uri.Authority}/dashboard";
         Nav.NavigateTo(dashboardUrl, forceLoad: true);
+    }
+
+    private void GoToCreateUser()
+    {
+        Nav.NavigateTo("/create-user");
     }
 
     public class LoginModel

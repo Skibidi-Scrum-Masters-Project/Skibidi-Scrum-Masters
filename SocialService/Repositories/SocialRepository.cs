@@ -119,32 +119,15 @@ public class SocialRepository : ISocialRepository
 
     public async Task<Friendship> CancelFriendRequest(string userId, string receiverId)
     {
-        var existingFriendshipRequest = await _friendshipCollection
-            .Find(f => f.SenderId == userId 
-                       && f.ReceiverId == receiverId 
-                       && f.FriendShipStatus == FriendshipStatus.Pending)
-            .FirstOrDefaultAsync();
-        
-        if (existingFriendshipRequest == null)
-        {
-            throw new InvalidOperationException("There is no pending friendship request between these users.");
-        }
-        
+        var deleted = await _friendshipCollection.FindOneAndDeleteAsync(f =>
+            f.SenderId == userId &&
+            f.ReceiverId == receiverId &&
+            f.FriendShipStatus == FriendshipStatus.Pending);
 
-        var newStatus = FriendshipStatus.None;
+        if (deleted == null)
+            throw new KeyNotFoundException("Pending friend request not found");
 
-        var updateStatus = Builders<Friendship>.Update
-            .Set(f => f.FriendShipStatus, newStatus);
-
-        await _friendshipCollection.UpdateOneAsync(
-            friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
-            updateStatus
-        );
-
-       
-        existingFriendshipRequest.FriendShipStatus = newStatus;
-
-        return existingFriendshipRequest;
+        return deleted;
     }
 
     public async Task<IEnumerable<Friendship>?> GetOutgoingFriendRequestsAsync(string userId)

@@ -56,6 +56,12 @@ public class ClassesController : ControllerBase
         var classes = await _classRepository.GetAllActiveClassesAsync();
         return Ok(classes);
     }
+    [HttpGet("classes/available/{userId}")]
+    public async Task<ActionResult<IEnumerable<FitnessClass>>> GetAllAvailableClassesAsync(string userId)
+    {
+        var classes = await _classRepository.GetAllAvailableClassesAsync(userId);
+        return Ok(classes);
+    }
     [HttpPut("classes/{classId}/{userId}")]
     public async Task<ActionResult> BookClassForUser(string classId, string userId)
     {
@@ -234,6 +240,12 @@ public class ClassesController : ControllerBase
     public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByUserId(string userId)
     {
         var classes = await _classRepository.GetClassesByUserIdAsync(userId);
+        return Ok(classes);
+    }
+    [HttpGet("classes/coach/{coachId}")]
+    public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByCoachId(string coachId)
+    {
+        var classes = await _classRepository.GetClassesByCoachIdAsync(coachId);
         return Ok(classes);
     }
     [HttpGet("classes/{classId}")]

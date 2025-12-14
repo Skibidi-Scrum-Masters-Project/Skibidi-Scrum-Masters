@@ -622,47 +622,67 @@ public class SocialControllerTests
 
     // CancelFriendRequest
 
-    [TestMethod]
-    public async Task CancelFriendRequest_ShouldReturnOkWithFriendship_WhenSuccessful()
+[TestMethod]
+public async Task CancelFriendRequest_ShouldReturnOkWithFriendship_WhenSuccessful()
+{
+    var userId = "user-1";
+    var receiverId = "user-2";
+
+    var deletedFriendship = new Friendship
     {
-        var userId = "user-1";
-        var receiverId = "user-2";
+        SenderId = userId,
+        ReceiverId = receiverId,
+        FriendShipStatus = FriendshipStatus.Pending
+    };
 
-        var friendship = new Friendship
-        {
-            SenderId = userId,
-            ReceiverId = receiverId,
-            FriendShipStatus = FriendshipStatus.None
-        };
+    _mockRepository
+        .Setup(r => r.CancelFriendRequest(userId, receiverId))
+        .ReturnsAsync(deletedFriendship);
 
-        _mockRepository
-            .Setup(r => r.CancelFriendRequest(userId, receiverId))
-            .ReturnsAsync(friendship);
+    var result = await _controller.CancelFriendRequest(userId, receiverId);
 
-        var result = await _controller.CancelFriendRequest(userId, receiverId);
+    var okResult = result as OkObjectResult;
+    Assert.IsNotNull(okResult, "Expected OkObjectResult");
+    Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
 
-        var okResult = result.Result as OkObjectResult;
-        Assert.IsNotNull(okResult, "Expected OkObjectResult");
-        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
+    var resultFriend = okResult.Value as Friendship;
+    Assert.IsNotNull(resultFriend);
+    Assert.AreEqual(userId, resultFriend.SenderId);
+    Assert.AreEqual(receiverId, resultFriend.ReceiverId);
+    Assert.AreEqual(FriendshipStatus.Pending, resultFriend.FriendShipStatus);
+}
 
-        var resultFriend = okResult.Value as Friendship;
-        Assert.IsNotNull(resultFriend);
-        Assert.AreEqual(FriendshipStatus.None, resultFriend.FriendShipStatus);
-    }
+[TestMethod]
+public async Task CancelFriendRequest_ShouldReturnNotFound_WhenRequestDoesNotExist()
+{
+    var userId = "user-1";
+    var receiverId = "user-2";
 
-    [TestMethod]
-    public async Task CancelFriendRequest_ShouldBubbleException_WhenRepositoryThrows()
-    {
-        var userId = "user-1";
-        var receiverId = "user-2";
+    _mockRepository
+        .Setup(r => r.CancelFriendRequest(userId, receiverId))
+        .ThrowsAsync(new KeyNotFoundException("Pending friend request not found"));
 
-        _mockRepository
-            .Setup(r => r.CancelFriendRequest(userId, receiverId))
-            .ThrowsAsync(new InvalidOperationException("No pending request"));
+    var result = await _controller.CancelFriendRequest(userId, receiverId);
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
-            async () => await _controller.CancelFriendRequest(userId, receiverId));
-    }
+    var notFound = result as NotFoundObjectResult;
+    Assert.IsNotNull(notFound, "Expected NotFoundObjectResult");
+    Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
+}
+
+[TestMethod]
+public async Task CancelFriendRequest_ShouldBubbleException_WhenRepositoryThrowsUnexpected()
+{
+    var userId = "user-1";
+    var receiverId = "user-2";
+
+    _mockRepository
+        .Setup(r => r.CancelFriendRequest(userId, receiverId))
+        .ThrowsAsync(new InvalidOperationException("Unexpected failure"));
+
+    await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+        async () => await _controller.CancelFriendRequest(userId, receiverId));
+}
+
 
     // GetOutgoingFriendRequests
 

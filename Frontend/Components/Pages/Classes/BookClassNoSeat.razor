@@ -1,4 +1,4 @@
-@page "/classes/seat/{Id}"
+@page "/classes/book/{Id}"
 @layout PhoneLayout
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
@@ -31,7 +31,9 @@
                 @foreach (var friend in SearchResults)
                 {
                     <li>
-                        <button type="button" @onclick="() => ToggleFriendSelection(friend)" style="background:none;border:none;cursor:pointer;" disabled="@(IsUserBooked || (!SelectedFriends.Any(f => f.Id == friend.Id) && !CanAddMoreFriends))">
+                        <button type="button" @onclick="() => ToggleFriendSelection(friend)"
+                            style="background:none;border:none;cursor:pointer;"
+                            disabled="@(IsUserBooked || (!SelectedFriends.Any(f => f.Id == friend.Id) && !CanAddMoreFriends))">
                             @friend.FirstName @(SelectedFriends.Any(f => f.Id == friend.Id) ? "(Valgt)" : "")
                         </button>
                     </li>
@@ -57,55 +59,11 @@
             </ul>
         </div>
     }
-    
+
 
     <h2 class="seat-title">@ClassName</h2>
     <p class="seat-subtitle">@ClassDescription</p>
     <p class="seat-subtitle">@Intensity</p>
-
-    <p class="seat-class-name"></p>
-
-    <div class="seat-legend">
-        <span class="legend-box available"></span> Ledig
-        <span class="legend-box selected"></span> Valgt
-        <span class="legend-box taken"></span> Optaget
-    </div>
-
-    <div class="seat-grid">
-        @foreach (SeatRow row in SeatRows)
-        {
-            <div class="seat-row">
-                        @foreach (Seat seat in row.Seats)
-                        {
-                            var isUserSeat = (UserBookedSeatNumber.HasValue && UserBookedSeatNumber.Value == seat.Number);
-                            string seatClass;
-                            if (isUserSeat)
-                            {
-                                seatClass = "selected-green";
-                            }
-                            else if (seat.IsTaken)
-                            {
-                                seatClass = "taken";
-                            }
-                            else if (SelectedSeats.Contains(seat.Number))
-                            {
-                                seatClass = "selected-green";
-                            }
-                            else
-                            {
-                                seatClass = "available";
-                            }
-
-                            <button
-                                class="seat-box @seatClass"
-                                @onclick="() => SelectSeat(seat)" disabled="@(IsUserBooked || (seat.IsTaken && !isUserSeat))">
-                                @seat.Number
-                            </button>
-                        }
-                    </div>
-        }
-    </div>
-
 
     @if (IsUserBooked)
     {
@@ -115,7 +73,7 @@
     {
         <button class="primary-btn seat-confirm" @onclick="ConfirmSeat" disabled="@(!CanConfirmBooking)"
             style="@(CanConfirmBooking ? "" : "background:#bdbdbd;cursor:not-allowed;")">
-            Bekræft Booking
+            Bekræft booking
         </button>
     }
 
@@ -130,56 +88,6 @@
     }
 
     <style>
-        .seat-grid {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 24px 0;
-        }
-
-        .seat-row {
-            display: flex;
-            flex-direction: row;
-            margin-bottom: 8px;
-        }
-
-        .seat-box {
-            width: 48px;
-            height: 48px;
-            margin: 0 8px;
-            border-radius: 8px;
-            border: 2px solid #ccc;
-            background: #f5f5f5;
-            color: #222;
-            font-size: 1.2rem;
-            font-weight: 500;
-            transition: background 0.2s, border 0.2s;
-            cursor: pointer;
-        }
-
-        .seat-box.available {
-            background: #f5f5f5;
-            border-color: #ccc;
-        }
-
-        .seat-box.selected-green {
-            background: #4caf50;
-            border-color: #388e3c;
-            color: #fff;
-        }
-
-        .seat-box.taken {
-            background: #ff1100;
-            border-color: #b71c1c;
-            color: #fff;
-            cursor: not-allowed;
-        }
-
-        .seat-box:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
         .seat-friends-toggle {
             margin-bottom: 16px;
             padding: 8px 18px;
@@ -319,10 +227,8 @@
     [Parameter] public string? Id { get; set; }
     private FitnessClass? SelectedClass { get; set; }
     private string ClassName { get; set; } = "Indlæser...";
-    private string ClassDescription { get; set; } = "Indlæser...";   
+    private string ClassDescription { get; set; } = "Indlæser...";
     private Intensity Intensity { get; set; } = Intensity.Medium;
-    private List<SeatRow> SeatRows { get; set; } = new List<SeatRow>();
-    public int? SelectedSeat { get; set; } = null;
     public string? userId { get; set; }
     private string BookingMessage { get; set; } = string.Empty;
     private bool ShowFriendsMenu { get; set; } = false;
@@ -330,13 +236,11 @@
     private List<Friendship> FriendIds { get; set; } = new List<Friendship>();
     private List<UserDto> FriendList { get; set; } = new List<UserDto>();
 
-    // For group booking: allow selecting multiple seats
-    public List<int> SelectedSeats { get; set; } = new List<int>();
     private List<UserDto> SelectedFriends { get; set; } = new List<UserDto>(); // Actual selected friends
     private bool HasSelectedFriends => SelectedFriends.Count > 0;
     private int RemainingSpots => SelectedClass == null ? 0 : SelectedClass.MaxCapacity - (SelectedClass.BookingList?.Count ?? 0);
     private int TotalBookingCount => SelectedFriends.Count + 1; // +1 for the user
-    private bool CanConfirmBooking => SelectedSeats.Count == TotalBookingCount;
+    private bool CanConfirmBooking => TotalBookingCount > 0 && TotalBookingCount <= RemainingSpots;
     private bool CanAddMoreFriends => TotalBookingCount < RemainingSpots;
     private string FriendSearchTerm { get; set; } = string.Empty;
     private List<UserDto> SearchResults { get; set; } = new List<UserDto>();
@@ -349,9 +253,6 @@
         ? SelectedClass.WaitlistUserIds.IndexOf(userId) + 1
         : 0;
 
-    private int? UserBookedSeatNumber => SelectedClass != null && !string.IsNullOrEmpty(userId) && SelectedClass.BookingList != null
-        ? SelectedClass.BookingList.FirstOrDefault(b => b.UserId == userId)?.SeatNumber
-        : null;
     protected override async Task OnInitializedAsync()
     {
         userId = await TokenService.GetUserIdAsync();
@@ -386,8 +287,6 @@
             if (SelectedClass == null)
             {
                 ClassName = "Ukendt hold intet hold";
-                ClassDescription = "Ukendt hold beskrivelse";
-                Intensity = Intensity.Medium;
                 return;
             }
             ClassName = SelectedClass.Name ?? "Ukendt hold";
@@ -398,77 +297,10 @@
                 ClassName = "Ukendt hold";
                 return;
             }
-            SeatRows = GenerateSeats(SelectedClass);
         }
         else
         {
             ClassName = "Ukendt hold";
-        }
-    }
-
-    private List<SeatRow> GenerateSeats(FitnessClass selectedClass)
-    {
-        int seatsPerRow = 4;
-        if (selectedClass.MaxCapacity <= 0 || selectedClass.SeatMap == null || selectedClass.SeatMap.Length < selectedClass.MaxCapacity)
-        {
-            return new List<SeatRow>();
-        }
-        int numberOfRows = (int)Math.Ceiling((double)selectedClass.MaxCapacity / seatsPerRow);
-        int lastRowSeats = selectedClass.MaxCapacity % seatsPerRow;
-        if (lastRowSeats == 0) lastRowSeats = seatsPerRow;
-        bool[] BookedSeats = selectedClass.SeatMap;
-        List<SeatRow> seatRows = new List<SeatRow>();
-        for (int i = 0; i < numberOfRows; i++)
-        {
-            var seatRow = new SeatRow();
-            if (i == numberOfRows - 1)
-            {
-                for (int j = 0; j < lastRowSeats; j++)
-                {
-                    int seatIndex = i * seatsPerRow + j;
-                    if (seatIndex >= selectedClass.MaxCapacity) break;
-                    Seat seat = new Seat
-                    {
-                        Number = seatIndex,
-                        IsTaken = BookedSeats[seatIndex]
-                    };
-                    seatRow.Seats.Add(seat);
-                }
-            }
-            else
-            {
-                for (int j = 0; j < seatsPerRow; j++)
-                {
-                    int seatIndex = i * seatsPerRow + j;
-                    if (seatIndex >= selectedClass.MaxCapacity) break;
-                    Seat seat = new Seat
-                    {
-                        Number = seatIndex,
-                        IsTaken = BookedSeats[seatIndex]
-                    };
-                    seatRow.Seats.Add(seat);
-                }
-            }
-            seatRows.Add(seatRow);
-        }
-        return seatRows;
-    }
-
-    private void SelectSeat(Seat seat)
-    {
-        if (IsUserBooked) return;
-        if (seat.IsTaken) return;
-
-        if (SelectedSeats.Contains(seat.Number))
-        {
-            SelectedSeats.Remove(seat.Number);
-        }
-        else
-        {
-            if (SelectedSeats.Count < TotalBookingCount)
-            {
-                SelectedSeats.Add(seat.Number);
-            }
         }
     }
 
@@ -477,39 +309,33 @@
         if (!CanConfirmBooking || SelectedClass == null) return;
         if (!HasSelectedFriends)
         {
-            // Single booking
-            var classResponse = await ClassService.BookSeatForClassAsync(SelectedClass.Id!.ToString(), userId!, SelectedSeats[0]);
+            var classResponse = await ClassService.BookClassForUser(SelectedClass.Id!.ToString(), userId!);
             if (classResponse.IsSuccessStatusCode)
             {
-                BookingMessage = $"Din plads {SelectedSeats[0]} er nu booket! Du sendes tilbage til oversigten.";
+                BookingMessage = "Din booking er nu registreret! Du sendes tilbage til oversigten.";
                 StateHasChanged();
-                await Task.Delay(1800);
+                await Task.Delay(1400);
                 Nav.NavigateTo("/classes");
             }
             else
             {
-                BookingMessage = "Der opstod en fejl ved booking af pladsen.";
+                BookingMessage = "Der opstod en fejl ved booking af holdet.";
             }
             return;
         }
-        // Group booking
-        // Only send friends (not userId) in Friends list, backend will add userId
-        var request = new BookClassWithFriendsRequestDTO
-        {
-            Friends = SelectedFriends.Select(f => f.Id!).ToList(),
-            Seats = new List<int>(SelectedSeats)
-        };
-        var response = await ClassService.BookSeatForClassWithFriendsAsync(SelectedClass.Id!.ToString(), userId!, request);
+
+        var friends = SelectedFriends.Select(f => f.Id!).ToList();
+        var response = await ClassService.BookClassForUserWithFriendsAsync(SelectedClass.Id!.ToString(), userId!, friends);
         if (response.IsSuccessStatusCode)
         {
-            BookingMessage = "Pladserne er nu booket! Du sendes tilbage til oversigten.";
+            BookingMessage = "Booking for gruppen er nu registreret! Du sendes tilbage til oversigten.";
             StateHasChanged();
-            await Task.Delay(1800);
+            await Task.Delay(1400);
             Nav.NavigateTo("/classes");
         }
         else
         {
-            BookingMessage = "Der opstod en fejl ved booking af pladserne.";
+            BookingMessage = "Der opstod en fejl ved booking af gruppen.";
         }
     }
 
@@ -520,12 +346,11 @@
         if (resp.IsSuccessStatusCode)
         {
             BookingMessage = "Din booking er annulleret.";
-            // refresh class info and seat map
+            // refresh class info
             var fresh = await ClassService.GetClassByIdAsync(Id);
             if (fresh.IsSuccessStatusCode)
             {
                 SelectedClass = await fresh.Content.ReadFromJsonAsync<FitnessClass>();
-                SeatRows = GenerateSeats(SelectedClass);
             }
             StateHasChanged();
             await Task.Delay(1200);
@@ -537,15 +362,6 @@
         }
     }
 
-    public class Seat
-    {
-        public int Number { get; set; }
-        public bool IsTaken { get; set; }
-    }
-    public class SeatRow
-    {
-        public List<Seat> Seats { get; set; } = new List<Seat>();
-    }
     private async Task GoBack()
     {
         await JS.InvokeVoidAsync("eval", "if(history.length>1) history.back(); else window.location.href='/dashboard';");
@@ -587,7 +403,7 @@
             return;
         }
 
-        // Clear previous messages
+        // Clear any previous message
         BookingMessage = string.Empty;
 
         // Prevent selecting friends who are already booked or on the waitlist
@@ -619,8 +435,6 @@
             FriendSearchTerm = string.Empty;
             SearchResults = new List<UserDto>();
         }
-        // Reset seat selection if group size changes
-        SelectedSeats.Clear();
     }
 
     private async Task OnFriendSearchKeyDown(KeyboardEventArgs e)
@@ -636,9 +450,7 @@
     private void RemoveFriend(UserDto friend)
     {
         SelectedFriends.RemoveAll(f => f.Id == friend.Id);
-        SelectedSeats.Clear();
         BookingMessage = string.Empty;
     }
 
-    // (Old friend logic removed, new logic is above)
 }

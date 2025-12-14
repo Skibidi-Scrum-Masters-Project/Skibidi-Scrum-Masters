@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-
+using FitLifeFitness.Models;
 namespace FitLifeFitness.Services;
 
 public class TokenService
@@ -8,24 +8,28 @@ public class TokenService
     private const string TokenKey = "authToken";
     private const string UserIdKey = "userId";
     private const string UsernameKey = "username";
+    private const string UserRoleKey = "userRole";
 
     public TokenService(ProtectedLocalStorage localStorage)
     {
         _localStorage = localStorage;
     }
 
-    public async Task SaveTokenAsync(string token, string userId, string username)
+    public async Task SaveTokenAsync(string token, string userId, string username, UserRole  role)
     {
         try
         {
             await _localStorage.SetAsync(TokenKey, token);
             await _localStorage.SetAsync(UserIdKey, userId);
             await _localStorage.SetAsync(UsernameKey, username);
+            await _localStorage.SetAsync(UserRoleKey, role.ToString());
+
 
             // Clear any pending in-memory values on success
             _pendingToken = null;
             _pendingUserId = null;
             _pendingUsername = null;
+            _pendingUserRole = null;
         }
         catch (InvalidOperationException)
         {
@@ -33,6 +37,7 @@ public class TokenService
             _pendingToken = token;
             _pendingUserId = userId;
             _pendingUsername = username;
+            _pendingUserRole = role;
         }
     }
 
@@ -66,6 +71,23 @@ public class TokenService
             return null;
         }
     }
+    public async Task<UserRole?> GetUserRoleAsync()
+    {
+        if (_pendingUserRole != null) return _pendingUserRole;
+        try
+        {
+            var result = await _localStorage.GetAsync<string>(UserRoleKey);
+            if (result.Success && Enum.TryParse<UserRole>(result.Value, out var role))
+            {
+                return role;
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     public async Task<string?> GetUsernameAsync()
     {
@@ -80,7 +102,6 @@ public class TokenService
             return null;
         }
     }
-
     public async Task ClearAsync()
     {
         try
@@ -88,6 +109,7 @@ public class TokenService
             await _localStorage.DeleteAsync(TokenKey);
             await _localStorage.DeleteAsync(UserIdKey);
             await _localStorage.DeleteAsync(UsernameKey);
+            await _localStorage.DeleteAsync(UserRoleKey);
         }
         catch (InvalidOperationException)
         {
@@ -97,17 +119,19 @@ public class TokenService
         _pendingToken = null;
         _pendingUserId = null;
         _pendingUsername = null;
+        _pendingUserRole = null;
     }
 
     // In-memory buffer for values that couldn't be persisted because JS interop is not available.
     private string? _pendingToken;
     private string? _pendingUserId;
     private string? _pendingUsername;
+    private UserRole? _pendingUserRole;
 
     // Attempt to persist any pending values to ProtectedLocalStorage.
     public async Task FlushPendingAsync()
     {
-        if (_pendingToken == null && _pendingUserId == null && _pendingUsername == null)
+        if (_pendingToken == null && _pendingUserId == null && _pendingUsername == null && _pendingUserRole == null)
             return;
 
         try
@@ -115,10 +139,12 @@ public class TokenService
             if (_pendingToken != null) await _localStorage.SetAsync(TokenKey, _pendingToken);
             if (_pendingUserId != null) await _localStorage.SetAsync(UserIdKey, _pendingUserId);
             if (_pendingUsername != null) await _localStorage.SetAsync(UsernameKey, _pendingUsername);
+            if (_pendingUserRole != null) await _localStorage.SetAsync(UserRoleKey, _pendingUserRole.ToString());
 
             _pendingToken = null;
             _pendingUserId = null;
             _pendingUsername = null;
+            _pendingUserRole = null;
         }
         catch (InvalidOperationException)
         {
