@@ -108,11 +108,7 @@
                         @onclick='() => SwitchTab("ready")' type="button">
                     Klar til deling
                 </button>
-
-                @if (activeFeedTab != "ready")
-                {
-                    <span class="add-post-icon" role="button" tabindex="0">+</span>
-                }
+                
             </div>
 
             @if (isFeedLoading)

@@ -117,8 +117,7 @@
                                 <div class="row-text">@item.PostContent</div>
 
                                 <div class="row-actions">
-                                    <button class="row-primary" type="button" @onclick:stopPropagation="true">Del</button>
-                                    <button class="row-secondary" type="button" @onclick:stopPropagation="true">Gem</button>
+                                    <button class="row-primary" type="button" @onclick:stopPropagation="true" @onclick="() => ShareWorkout(item)">Del</button>
                                 </div>
                             </article>
                         }
@@ -147,10 +146,6 @@
                                 }
 
                                 <div class="post-text">@item.PostContent</div>
-
-                                <div class="post-actions">
-                                    <button class="action" type="button" @onclick:stopPropagation="true">Kommenter</button>
-                                </div>
                             </article>
                         }
                     }
@@ -403,6 +398,22 @@
         {
             isCreating = false;
         }
+    }
+
+    private async Task ShareWorkout(Post post)
+    {
+        
+        if(string.IsNullOrWhiteSpace(post.Id)) return;
+        
+        var res = await SocialService.ChangeDraftStatusForPostAsync(post.Id);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            feedError = $"Kunne ikke oprette opslag: {(int)res.StatusCode} {res.ReasonPhrase}";
+        }
+        
+        await LoadFeedAsync();
+
     }
 
     private static string GetInitial(string? name)
