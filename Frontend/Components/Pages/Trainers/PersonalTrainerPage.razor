@@ -1,38 +1,292 @@
 @page "/trainer"
-@using Microsoft.AspNetCore.Components
+
+@using System.Net.Http.Json
 @using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Models
+@using FitLifeFitness.Services
+
+@inject CoachingService CoachingService
+@inject TokenService TokenService
+@inject UserService UserService
+
 @layout EmptyLayout
+
 <div class="trainer-screen">
-    <h2 class="trainer-title">Personlig træner</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <h2 class="trainer-title">Mine sessioner</h2>
+            <p class="trainer-subtitle">Overblik over dine tider som personlig træner</p>
+        </div>
 
-    <div class="trainer-intro-card">
-        <p class="trainer-intro-text">
-            Få et skræddersyet træningsprogram og hjælp til at nå dine mål hurtigere.
-        </p>
-
-        <ul class="trainer-benefits">
-            <li>Tilpassede programmer</li>
-            <li>Teknikvejledning</li>
-            <li>Løbende opfølgning</li>
-        </ul>
+        
+        <button @onclick="OpenCreateSession"
+                style="
+            width:44px;
+            height:44px;
+            border-radius:50%;
+            background:#16a34a;
+            color:white;
+            border:none;
+            cursor:pointer;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size:28px;
+            font-weight:600;">
+            +
+        </button>
     </div>
 
-    <div class="trainer-current-card">
-        <h3>Din nuværende træner</h3>
-        <p><strong>Ingen træner tilknyttet endnu</strong></p>
-        <p class="trainer-current-note">Book en træner for at komme i gang.</p>
-    </div>
+    @if (_isLoading)
+    {
+        <p>Indlæser dine sessioner...</p>
+    }
+    else
+    {
+        <h3 style="margin-top:24px;">🟢 Ledige tider</h3>
 
-    <button class="primary-btn trainer-cta" @onclick="GoToBookingList">
-        Book personlig træner
-    </button>
+        @if (!_available.Any())
+        {
+            <p>Ingen ledige tider.</p>
+        }
+        else
+        {
+            @foreach (var s in _available)
+            {
+                @SessionCard(s, false)
+            }
+        }
+
+        <h3 style="margin-top:32px;">🔵 Planlagte sessioner</h3>
+
+        @if (!_planned.Any())
+        {
+            <p>Ingen planlagte sessioner.</p>
+        }
+        else
+        {
+            @foreach (var s in _planned)
+            {
+                @SessionCard(s, true)
+            }
+        }
+    }
 </div>
 
-@code {
-    [Inject] private NavigationManager Nav { get; set; } = default!;
+<!-- CREATE SESSION MODAL -->
+@if (_showCreateModal)
+{
+    <div style="
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.4);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        z-index:60;">
 
-    private void GoToBookingList()
+        <div style="
+            background:white;
+            border-radius:16px;
+            padding:20px;
+            width:90%;
+            max-width:420px;">
+
+            <h3>Tilføj ny session</h3>
+
+            <div style="margin-top:12px;">
+                <label>Start tidspunkt</label>
+                <input type="datetime-local"
+                       style="width:100%; padding:8px;"
+                       @bind="_newStartTime" />
+            </div>
+
+            <div style="margin-top:12px;">
+                <label>Slut tidspunkt</label>
+                <input type="datetime-local"
+                       style="width:100%; padding:8px;"
+                       @bind="_newEndTime" />
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button @onclick="CloseCreateSession"
+                        style="
+                            flex:1;
+                            background:#e5e7eb;
+                            border:none;
+                            padding:10px;
+                            border-radius:999px;">
+                    Annuller
+                </button>
+                <button @onclick="CreateSession"
+                        style="
+                            flex:1;
+                            background:#16a34a;
+                            color:white;
+                            border:none;
+                            padding:10px;
+                            border-radius:999px;
+                            font-weight:600;">
+                    Tilføj
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+
+    private List<CoachingSession.SessionDto> _available = new();
+    private List<CoachingSession.SessionDto> _planned = new();
+    private Dictionary<string, UserDto> _users = new();
+
+    private CoachingSession.SessionDto? _selectedSession;
+    private string _selectedCustomerName = "Ukendt kunde";
+
+    private bool _showCreateModal = false;
+    private DateTime _newStartTime;
+    private DateTime _newEndTime;
+
+    protected override async Task OnInitializedAsync()
     {
-        Nav.NavigateTo("/trainer/book");
+        await LoadSessions();
     }
+
+    async Task LoadSessions()
+    {
+        _isLoading = true;
+
+        var coachId = await TokenService.GetUserIdAsync();
+        if (string.IsNullOrEmpty(coachId))
+            return;
+
+        var response = await CoachingService.GetAllSessionsByCoachIdAsync(coachId);
+        response.EnsureSuccessStatusCode();
+
+        var sessions =
+            await response.Content.ReadFromJsonAsync<List<CoachingSession.SessionDto>>()
+            ?? new();
+
+        _available = sessions
+            .Where(s => s.CurrentStatus == CoachingSession.Status.Available)
+            .OrderBy(s => s.StartTime)
+            .ToList();
+
+        _planned = sessions
+            .Where(s => s.CurrentStatus == CoachingSession.Status.Planned)
+            .OrderBy(s => s.StartTime)
+            .ToList();
+
+        _users.Clear();
+
+        var userIds = _planned
+            .Where(s => !string.IsNullOrEmpty(s.UserId))
+            .Select(s => s.UserId!)
+            .Distinct();
+
+        foreach (var id in userIds)
+        {
+            var userResponse = await UserService.GetUserByIdAsync(id);
+            if (userResponse.IsSuccessStatusCode)
+            {
+                var user = await userResponse.Content.ReadFromJsonAsync<UserDto>();
+                if (user != null)
+                    _users[id] = user;
+            }
+        }
+
+        _isLoading = false;
+    }
+
+    void OpenCreateSession()
+    {
+        _newStartTime = DateTime.Now;
+        _newEndTime = DateTime.Now.AddHours(1);
+        _showCreateModal = true;
+    }
+
+    void CloseCreateSession()
+    {
+        _showCreateModal = false;
+    }
+
+    async Task CreateSession()
+    {
+        var coachId = await TokenService.GetUserIdAsync();
+        if (string.IsNullOrEmpty(coachId))
+            return;
+
+        var payload = new
+        {
+            coachId = coachId,
+            startTime = _newStartTime.ToUniversalTime(),
+            endTime = _newEndTime.ToUniversalTime()
+        };
+
+        var response = await CoachingService.CreateSessionAsCoachAsync(payload);
+        response.EnsureSuccessStatusCode();
+
+        _showCreateModal = false;
+        await LoadSessions();
+    }
+
+    void ShowDetails(CoachingSession.SessionDto session)
+    {
+        _selectedSession = session;
+
+        if (!string.IsNullOrEmpty(session.UserId) &&
+            _users.TryGetValue(session.UserId, out var user))
+        {
+            _selectedCustomerName = user.Username;
+        }
+        else
+        {
+            _selectedCustomerName = "Ukendt kunde";
+        }
+    }
+
+    RenderFragment SessionCard(CoachingSession.SessionDto session, bool showCustomer) => @<div style="
+        background:white;
+        border-radius:14px;
+        padding:14px;
+        margin-bottom:12px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+
+        <p style="margin:0; font-weight:600;">
+            @session.StartTime.ToLocalTime().ToString("dd/MM")
+        </p>
+
+        <p style="margin:4px 0 0 0; color:#6b7280;">
+            @session.StartTime.ToLocalTime().ToString("HH:mm")
+            –
+            @session.EndTime.ToLocalTime().ToString("HH:mm")
+        </p>
+
+        @if (showCustomer)
+        {
+            <p style="margin-top:6px; font-size:13px;">
+                <strong>Kunde:</strong>
+                @(
+                    !string.IsNullOrEmpty(session.UserId) &&
+                    _users.TryGetValue(session.UserId, out var user)
+                        ? user.Username
+                        : "Ukendt kunde"
+                )
+            </p>
+
+            <button @onclick="() => ShowDetails(session)"
+                    style="
+                        margin-top:10px;
+                        background:#2563eb;
+                        color:white;
+                        border:none;
+                        padding:8px 14px;
+                        border-radius:999px;
+                        font-size:13px;
+                        font-weight:600;">
+                Se detaljer
+            </button>
+        }
+    </div>;
 }
