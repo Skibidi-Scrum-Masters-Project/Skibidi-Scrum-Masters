@@ -95,8 +95,6 @@
                                         <div class="pill">Klar til deling</div>
                                         <div class="row-sub">@FormatWhen(item.PostDate)</div>
                                     </div>
-
-                                    <button class="menu-btn" type="button" @onclick:stopPropagation="true" aria-label="Menu">⋯</button>
                                 </div>
 
                                 <div class="row-title">@item.PostTitle</div>
@@ -117,7 +115,13 @@
                                 <div class="row-text">@item.PostContent</div>
 
                                 <div class="row-actions">
-                                    <button class="row-primary" type="button" @onclick:stopPropagation="true" @onclick="() => ShareWorkout(item)">Del</button>
+                                    <button class="row-primary"
+                                            type="button"
+                                            @onclick:stopPropagation="true"
+                                            @onclick="() => ShareWorkout(item)"
+                                            disabled="@isSharing">
+                                        @(isSharing && sharingPostId == item.Id ? "Deler..." : "Del")
+                                    </button>
                                 </div>
                             </article>
                         }
@@ -136,8 +140,6 @@
                                             <div class="post-sub">@FormatWhen(item.PostDate)</div>
                                         </div>
                                     </div>
-
-                                    <button class="menu-btn" type="button" @onclick:stopPropagation="true" aria-label="Menu">⋯</button>
                                 </div>
 
                                 @if (!string.IsNullOrWhiteSpace(item.PostTitle))
@@ -256,6 +258,9 @@
 
     private string createError = string.Empty;
     private bool isCreating;
+
+    private bool isSharing;
+    private string? sharingPostId;
 
     private bool IsCreateDisabled =>
         isCreating ||
@@ -402,18 +407,28 @@
 
     private async Task ShareWorkout(Post post)
     {
-        
-        if(string.IsNullOrWhiteSpace(post.Id)) return;
-        
-        var res = await SocialService.ChangeDraftStatusForPostAsync(post.Id);
+        if (string.IsNullOrWhiteSpace(post.Id)) return;
 
-        if (!res.IsSuccessStatusCode)
+        isSharing = true;
+        sharingPostId = post.Id;
+
+        try
         {
-            feedError = $"Kunne ikke oprette opslag: {(int)res.StatusCode} {res.ReasonPhrase}";
-        }
-        
-        await LoadFeedAsync();
+            var res = await SocialService.ChangeDraftStatusForPostAsync(post.Id);
 
+            if (!res.IsSuccessStatusCode)
+            {
+                feedError = $"Kunne ikke dele træning: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            await LoadFeedAsync();
+        }
+        finally
+        {
+            isSharing = false;
+            sharingPostId = null;
+        }
     }
 
     private static string GetInitial(string? name)

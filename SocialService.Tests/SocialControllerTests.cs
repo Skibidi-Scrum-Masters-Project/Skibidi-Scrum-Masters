@@ -939,134 +939,87 @@ public class SocialControllerTests
         _mockRepository.Verify(r => r.RemoveAPost(postId), Times.Once);
     }
 
-    // EditAPost
+// EditAPost
 
-    [TestMethod]
-    public async Task EditAPost_ShouldReturnUnauthorized_WhenNoUserIdClaim()
+[TestMethod]
+public async Task EditAPost_ShouldReturnOkWithEditedPost_WhenSuccessful()
+{
+    var inputPost = new Post
     {
-        SetUserOnController(null);
+        Id = "post-1",
+        UserId = "user-42",
+        PostTitle = "Old title",
+        PostContent = "Old content",
+        FitnessClassId = "1",
+        WorkoutId = "2"
+    };
 
-        var post = new Post
-        {
-            Id = "post-1",
-            PostTitle = "Title",
-            PostContent = "Content"
-        };
-
-        var result = await _controller.EditAPost(post);
-
-        var unauthorized = result.Result as UnauthorizedResult;
-        Assert.IsNotNull(unauthorized, "Expected UnauthorizedResult");
-        Assert.AreEqual(StatusCodes.Status401Unauthorized, unauthorized.StatusCode);
-
-        _mockRepository.Verify(
-            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<string>()),
-            Times.Never);
-    }
-
-    [TestMethod]
-    public async Task EditAPost_ShouldReturnUnauthorized_WhenUserIdClaimIsWhitespace()
+    var editedPostFromRepo = new Post
     {
-        SetUserOnController("   ");
+        Id = "post-1",
+        UserId = "user-42",
+        PostTitle = "New title",
+        PostContent = "New content",
+        FitnessClassId = "3",
+        WorkoutId = "4"
+    };
 
-        var post = new Post
-        {
-            Id = "post-1",
-            PostTitle = "Title",
-            PostContent = "Content"
-        };
+    _mockRepository
+        .Setup(r => r.EditAPost(It.IsAny<Post>()))
+        .ReturnsAsync(editedPostFromRepo);
 
-        var result = await _controller.EditAPost(post);
+    var result = await _controller.EditAPost(inputPost);
 
-        var unauthorized = result.Result as UnauthorizedResult;
-        Assert.IsNotNull(unauthorized, "Expected UnauthorizedResult");
-        Assert.AreEqual(StatusCodes.Status401Unauthorized, unauthorized.StatusCode);
+    var okResult = result.Result as OkObjectResult;
+    Assert.IsNotNull(okResult, "Expected OkObjectResult");
+    Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
 
-        _mockRepository.Verify(
-            r => r.EditAPost(It.IsAny<Post>(), It.IsAny<string>()),
-            Times.Never);
-    }
+    var returnedPost = okResult.Value as Post;
+    Assert.IsNotNull(returnedPost, "Expected Post as value");
 
-    [TestMethod]
-    public async Task EditAPost_ShouldCallRepositoryWithCurrentUserId_AndReturnOkWithEditedPost()
+    Assert.AreEqual(editedPostFromRepo.Id, returnedPost.Id);
+    Assert.AreEqual(editedPostFromRepo.UserId, returnedPost.UserId);
+    Assert.AreEqual(editedPostFromRepo.PostTitle, returnedPost.PostTitle);
+    Assert.AreEqual(editedPostFromRepo.PostContent, returnedPost.PostContent);
+    Assert.AreEqual(editedPostFromRepo.FitnessClassId, returnedPost.FitnessClassId);
+    Assert.AreEqual(editedPostFromRepo.WorkoutId, returnedPost.WorkoutId);
+
+    _mockRepository.Verify(
+        r => r.EditAPost(It.Is<Post>(p =>
+            p.Id == inputPost.Id &&
+            p.UserId == inputPost.UserId &&
+            p.PostTitle == inputPost.PostTitle &&
+            p.PostContent == inputPost.PostContent &&
+            p.FitnessClassId == inputPost.FitnessClassId &&
+            p.WorkoutId == inputPost.WorkoutId
+        )),
+        Times.Once);
+}
+
+[TestMethod]
+public async Task EditAPost_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
+{
+    var inputPost = new Post
     {
-        var userId = "user-42";
-        SetUserOnController(userId);
+        Id = "post-1",
+        UserId = "user-42",
+        PostTitle = "Title",
+        PostContent = "Content"
+    };
 
-        var inputPost = new Post
-        {
-            Id = "post-1",
-            UserId = "user-999",
-            PostTitle = "Old title",
-            PostContent = "Old content",
-            FitnessClassId = "1",
-            WorkoutId = "2"
-        };
+    _mockRepository
+        .Setup(r => r.EditAPost(It.IsAny<Post>()))
+        .ThrowsAsync(new KeyNotFoundException("Post not found or access denied"));
 
-        var editedPostFromRepo = new Post
-        {
-            Id = "post-1",
-            UserId = userId,
-            PostTitle = "New title",
-            PostContent = "New content",
-            FitnessClassId = "3",
-            WorkoutId = "4"
-        };
+    var result = await _controller.EditAPost(inputPost);
 
-        _mockRepository
-            .Setup(r => r.EditAPost(It.IsAny<Post>(), userId))
-            .ReturnsAsync(editedPostFromRepo);
+    var notFound = result.Result as NotFoundResult;
+    Assert.IsNotNull(notFound, "Expected NotFoundResult");
+    Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
 
-        var result = await _controller.EditAPost(inputPost);
+    _mockRepository.Verify(r => r.EditAPost(It.IsAny<Post>()), Times.Once);
+}
 
-        var okResult = result.Result as OkObjectResult;
-        Assert.IsNotNull(okResult, "Expected OkObjectResult");
-        Assert.AreEqual(StatusCodes.Status200OK, okResult.StatusCode);
-
-        var post = okResult.Value as Post;
-        Assert.IsNotNull(post, "Expected Post as value");
-
-        Assert.AreEqual(editedPostFromRepo.Id, post.Id);
-        Assert.AreEqual(editedPostFromRepo.UserId, post.UserId);
-        Assert.AreEqual(editedPostFromRepo.PostTitle, post.PostTitle);
-        Assert.AreEqual(editedPostFromRepo.PostContent, post.PostContent);
-        Assert.AreEqual(editedPostFromRepo.FitnessClassId, post.FitnessClassId);
-        Assert.AreEqual(editedPostFromRepo.WorkoutId, post.WorkoutId);
-
-        _mockRepository.Verify(
-            r => r.EditAPost(
-                It.Is<Post>(p =>
-                    p.Id == inputPost.Id &&
-                    p.UserId == userId &&
-                    p.PostTitle == inputPost.PostTitle &&
-                    p.PostContent == inputPost.PostContent),
-                userId),
-            Times.Once);
-    }
-
-    [TestMethod]
-    public async Task EditAPost_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFoundException()
-    {
-        var userId = "user-42";
-        SetUserOnController(userId);
-
-        var inputPost = new Post
-        {
-            Id = "post-1",
-            PostTitle = "Title",
-            PostContent = "Content"
-        };
-
-        _mockRepository
-            .Setup(r => r.EditAPost(It.IsAny<Post>(), userId))
-            .ThrowsAsync(new KeyNotFoundException("Post not found or access denied"));
-
-        var result = await _controller.EditAPost(inputPost);
-
-        var notFound = result.Result as NotFoundResult;
-        Assert.IsNotNull(notFound, "Expected NotFoundResult");
-        Assert.AreEqual(StatusCodes.Status404NotFound, notFound.StatusCode);
-    }
 
     // Comment tests
 

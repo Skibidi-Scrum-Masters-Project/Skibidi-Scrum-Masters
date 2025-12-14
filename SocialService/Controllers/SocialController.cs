@@ -276,22 +276,12 @@ public class SocialController : ControllerBase
     }
 
     
-    [Authorize]
     [HttpPut("EditAPost")]
     public async Task<ActionResult<Post>> EditAPost([FromBody] Post post)
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-        {
-            return Unauthorized();
-        }
-
-        // Ignorér hvad klienten sender og sæt ejer ud fra JWT
-        post.UserId = currentUserId;
-
         try
         {
-            var editedPost = await _socialRepository.EditAPost(post, currentUserId);
+            var editedPost = await _socialRepository.EditAPost(post);
             return Ok(editedPost);
         }
         catch (KeyNotFoundException)

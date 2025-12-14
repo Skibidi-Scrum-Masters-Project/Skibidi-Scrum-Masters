@@ -263,11 +263,11 @@ public class SocialRepository : ISocialRepository
     }
 
 
-    public async Task<Post> EditAPost(Post post, string currentUserId)
+    public async Task<Post> EditAPost(Post post)
     {
         var filter = Builders<Post>.Filter.And(
             Builders<Post>.Filter.Eq(p => p.Id, post.Id),
-            Builders<Post>.Filter.Eq(p => p.UserId, currentUserId)
+            Builders<Post>.Filter.Eq(p => p.UserId, post.UserId)
         );
 
         var updateDefinition = Builders<Post>.Update

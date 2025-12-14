@@ -46,7 +46,7 @@ public interface ISocialRepository
     Task<Post> RemoveAPost(string postId);
     
     //Metode til at redigere et post
-    Task<Post> EditAPost(Post post, string currentUserId);
+    Task<Post> EditAPost(Post post);
     
     //Metode til at tilføje Comment til et post
     Task<Post> AddCommentToPost(string postId, Comment comment);

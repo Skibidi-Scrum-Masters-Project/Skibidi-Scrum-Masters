@@ -467,23 +467,50 @@
     {
         if (post == null) return;
 
-        var payload = new
+        if (string.IsNullOrWhiteSpace(LoggedInUserId))
+        {
+            error = "Du er ikke logget ind, så posten kan ikke gemmes.";
+            return;
+        }
+
+        error = string.Empty;
+
+        var payload = new Post
         {
             Id = post.Id,
+            UserId = LoggedInUserId,                 
             PostTitle = editPostTitle.Trim(),
-            PostContent = editPostText.Trim()
+            PostContent = editPostText.Trim(),
+            FitnessClassId = post.FitnessClassId,
+            WorkoutId = post.WorkoutId               
         };
 
-        var res = await SocialService.EditAPostAsync(payload);
-
-        if (res.IsSuccessStatusCode)
+        try
         {
+            var res = await SocialService.EditAPostAsync(payload);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                error = $"Kunne ikke gemme post: {(int)res.StatusCode} {res.ReasonPhrase}. {body}";
+                return;
+            }
+
             post = await res.Content.ReadFromJsonAsync<Post>();
+
             isEditingPost = false;
             editPostTitle = string.Empty;
             editPostText = string.Empty;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            error = $"Kunne ikke gemme post: {ex.Message}";
         }
     }
+
+    
     
     private void ConfirmDeletePost()
     {
