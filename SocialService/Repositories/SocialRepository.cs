@@ -298,6 +298,7 @@ public class SocialRepository : ISocialRepository
 
     public async Task<Post> AddCommentToPost(string postId, Comment comment)
     {
+        comment.Id ??= ObjectId.GenerateNewId().ToString();
         comment.CommentDate = DateTime.UtcNow;
 
         var update = Builders<Post>.Update.Push(p => p.Comments, comment);

@@ -75,11 +75,11 @@ public class SocialService
         return await _http.PutAsJsonAsync($"/api/social/AddACommentToPost/{postId}", sessionData);
     }
 
-    public async Task<HttpResponseMessage> RemoveACommentFromPostAsync(string postId, string commentId)
+    public async Task<HttpResponseMessage> RemoveACommentFromPost(string postId, string commentId)
     {
         return await _http.DeleteAsync($"/api/social/RemoveACommentFromPost/{postId}/{commentId}");
     }
-
+    
     public async Task<HttpResponseMessage> EditCommentAsync(string postId, object sessionData)
     {
         return await _http.PutAsJsonAsync($"/api/social/EditComment/{postId}", sessionData);

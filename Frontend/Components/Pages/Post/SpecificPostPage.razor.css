@@ -250,6 +250,20 @@
     letter-spacing:-0.01em;
 }
 
+.postpage .post-title-edit{
+    width:100%;
+    border:none;
+    outline:none;
+    background:transparent;
+
+    font-size:1.35rem;
+    font-weight:900;
+    color:var(--text-primary);
+    letter-spacing:-0.01em;
+
+    padding:0;
+}
+
 /* NEW: Stats Grid (4 kolonner) */
 .postpage .stats-grid{
     display:grid;
@@ -595,6 +609,232 @@
     opacity:0.55;
     cursor:not-allowed;
     box-shadow:none;
+}
+
+/* Comment Menu Styles - Tilføj disse til din PostPage.css */
+
+/* Comment menu button */
+.postpage .comment-menu-btn{
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    background:transparent;
+    border:none;
+    color:var(--text-secondary);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.2rem;
+    transition:all 0.2s ease;
+    position:relative;
+}
+
+.postpage .comment-menu-btn:hover{
+    background:rgba(255,255,255,0.08);
+    color:var(--text-primary);
+}
+
+.postpage .comment-menu-btn:active{
+    transform:scale(0.95);
+}
+
+/* Dropdown menu */
+.postpage .comment-menu-dropdown{
+    position:absolute;
+    top:100%;
+    right:0;
+    margin-top:4px;
+
+    background:rgba(20,25,30,0.95);
+    backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:12px;
+    box-shadow:0 12px 32px rgba(0,0,0,0.5);
+
+    min-width:140px;
+    z-index:100;
+
+    overflow:hidden;
+}
+
+.postpage .menu-item{
+    width:100%;
+    padding:10px 14px;
+    background:transparent;
+    border:none;
+    color:var(--text-primary);
+    text-align:left;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:0.9rem;
+    font-weight:700;
+    transition:background 0.15s ease;
+}
+
+.postpage .menu-item:hover{
+    background:rgba(255,255,255,0.1);
+}
+
+.postpage .menu-item:active{
+    background:rgba(255,255,255,0.15);
+}
+
+.postpage .menu-item.delete{
+    color:#ff6b6b;
+}
+
+.postpage .menu-item.delete:hover{
+    background:rgba(255,107,107,0.15);
+}
+
+.postpage .menu-icon{
+    font-size:1rem;
+}
+
+/* Edit mode */
+.postpage .comment-edit-form{
+    width:100%;
+}
+
+.postpage .comment-edit-input{
+    width:100%;
+    padding:10px 12px;
+    background:rgba(0,0,0,0.2);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px;
+    color:var(--text-primary);
+    font-size:0.9rem;
+    line-height:1.4;
+    resize:vertical;
+    min-height:60px;
+    font-family:inherit;
+    outline:none;
+}
+
+.postpage .comment-edit-input:focus{
+    border-color:var(--green-light);
+    background:rgba(0,0,0,0.3);
+}
+
+.postpage .comment-edit-actions{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+    justify-content:flex-end;
+}
+
+.postpage .edit-btn{
+    padding:6px 12px;
+    border:none;
+    border-radius:8px;
+    font-size:0.85rem;
+    font-weight:800;
+    cursor:pointer;
+    transition:all 0.2s ease;
+}
+
+.postpage .edit-btn-save{
+    background:var(--green-light);
+    color:var(--bg-dark);
+}
+
+.postpage .edit-btn-save:hover{
+    background:var(--green);
+    transform:translateY(-1px);
+}
+
+.postpage .edit-btn-cancel{
+    background:rgba(255,255,255,0.08);
+    color:var(--text-secondary);
+}
+
+.postpage .edit-btn-cancel:hover{
+    background:rgba(255,255,255,0.12);
+    color:var(--text-primary);
+}
+
+.postpage .edit-btn:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+}
+
+/* Confirmation dialog overlay */
+.postpage .delete-confirm-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(4px);
+    z-index:200;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+}
+
+.postpage .delete-confirm-dialog{
+    background:rgba(30,38,42,0.98);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:20px;
+    padding:24px;
+    max-width:320px;
+    width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.7);
+}
+
+.postpage .delete-confirm-title{
+    font-size:1.1rem;
+    font-weight:900;
+    color:var(--text-primary);
+    margin-bottom:8px;
+}
+
+.postpage .delete-confirm-text{
+    font-size:0.9rem;
+    color:var(--text-secondary);
+    line-height:1.4;
+    margin-bottom:20px;
+}
+
+.postpage .delete-confirm-actions{
+    display:flex;
+    gap:10px;
+}
+
+.postpage .delete-confirm-btn{
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    font-size:0.9rem;
+    font-weight:900;
+    cursor:pointer;
+    transition:all 0.2s ease;
+}
+
+.postpage .delete-confirm-btn.cancel{
+    background:rgba(255,255,255,0.08);
+    color:var(--text-primary);
+}
+
+.postpage .delete-confirm-btn.cancel:hover{
+    background:rgba(255,255,255,0.12);
+}
+
+.postpage .delete-confirm-btn.delete{
+    background:#ff6b6b;
+    color:white;
+}
+
+.postpage .delete-confirm-btn.delete:hover{
+    background:#ff5252;
+    transform:translateY(-1px);
+}
+
+.postpage .delete-confirm-btn:active{
+    transform:scale(0.98);
 }
 
 /* Bottom nav */

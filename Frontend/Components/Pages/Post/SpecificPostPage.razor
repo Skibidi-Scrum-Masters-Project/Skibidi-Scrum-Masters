@@ -22,9 +22,35 @@
             </div>
         </div>
 
-        <div class="topbar-right">
-            <button class="icon-btn" type="button" aria-label="Menu">⋯</button>
-        </div>
+        
+        @if (post != null && IsPostOwner(post))
+        {
+            <div class="topbar-right" style="position:relative;">
+                <button class="icon-btn"
+                        type="button"
+                        aria-label="Menu"
+                        @onclick="TogglePostMenu">
+                    ⋯
+                </button>
+
+                @if (openPostMenu)
+                {
+                    <div class="comment-menu-dropdown" style="right:0;">
+                        <button class="menu-item"
+                                type="button"
+                                @onclick="StartEditPost">
+                            ✏️ Rediger post
+                        </button>
+                        <button class="menu-item delete"
+                                type="button"
+                                @onclick="ConfirmDeletePost">
+                            🗑️ Slet post
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+
     </header>
 
     <main class="postpage-body">
@@ -60,13 +86,12 @@
         {
             <section class="post-edge">
                 <div class="post-hero @(post.Type == PostType.Workout ? "workout" : "")">
-                    
-                    @* Workout type indicator bar (kun for workout posts) *@
+
                     @if (post.Type == PostType.Workout)
                     {
                         <div class="workout-type-bar"></div>
                     }
-                    
+
                     <div class="post-hero-inner">
                         <div class="post-head">
                             <div class="post-avatar">@GetInitial(post.UserName ?? post.UserId)</div>
@@ -81,11 +106,21 @@
                             </span>
                         </div>
 
-                        <h2 class="post-title">@post.PostTitle</h2>
+                        @if (isEditingPost)
+                        {
+                            <input class="post-title post-title-edit"
+                                   @bind="editPostTitle"
+                                   @ref="titleInputRef"
+                                   placeholder="Titel"
+                                   maxlength="120" />
+                        }
+                        else
+                        {
+                            <h2 class="post-title">@post.PostTitle</h2>
+                        }
 
                         @if (post.Type == PostType.Workout)
                         {
-                            @* Stats Grid med 3 kolonner *@
                             <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
                                 <div class="stat-card">
                                     <span class="stat-icon">💪</span>
@@ -104,11 +139,10 @@
                                 </div>
                             </div>
 
-                            @* Intensity bar *@
                             <div class="intensity-section">
                                 <div class="intensity-label">Intensitet</div>
                                 <div class="intensity-bar">
-                                    <div class="intensity-fill" style="width: @GetIntensityPercent(post)%"></div>
+                                    <div class="intensity-fill" style="width:@GetIntensityPercent(post)%"></div>
                                 </div>
                             </div>
 
@@ -119,21 +153,43 @@
                                 </div>
                             }
                         }
-                        else
+                        else if (post.IsDraft)
                         {
-                            @* Generic post - kun chips *@
                             <div class="post-chips">
-                                @if (post.IsDraft)
-                                {
-                                    <span class="chip chip-warn">Draft</span>
-                                }
+                                <span class="chip chip-warn">Draft</span>
                             </div>
                         }
                     </div>
                 </div>
 
                 <div class="post-body">
-                    <p class="post-text">@post.PostContent</p>
+                    @if (isEditingPost)
+                    {
+                        <textarea class="comment-edit-input"
+                  @bind="editPostText"
+                  rows="5"></textarea>
+
+                        <div class="comment-edit-actions">
+                            <button class="edit-btn edit-btn-cancel"
+                                    type="button"
+                                    @onclick="CancelEditPost">
+                                Annuller
+                            </button>
+
+                            <button class="edit-btn edit-btn-save"
+                                    type="button"
+                                    @onclick="SaveEditPost"
+                                    disabled="@(
+                                              string.IsNullOrWhiteSpace(editPostTitle) ||
+                                              string.IsNullOrWhiteSpace(editPostText))">
+                                Gem
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="post-text">@post.PostContent</p>
+                    }
                 </div>
             </section>
 
@@ -141,7 +197,7 @@
                 <div class="comments-head">
                     <h2>Comments</h2>
                     <div class="comments-meta">
-                        <span class="comments-count">@((post.Comments?.Count ?? 0).ToString())</span>
+                        <span class="comments-count">@((post.Comments?.Count ?? 0))</span>
                     </div>
                 </div>
 
@@ -159,12 +215,66 @@
                         {
                             <article class="comment-card">
                                 <div class="comment-avatar">@GetInitial(c.AuthorName)</div>
+
                                 <div class="comment-body">
                                     <div class="comment-top">
                                         <div class="comment-name">@GetCommentDisplayName(c)</div>
                                         <div class="comment-time">@FormatWhen(c.CommentDate)</div>
+
+                                        @if (IsCommentOwner(c) && !string.IsNullOrWhiteSpace(c.Id))
+                                        {
+                                            <div style="position:relative;">
+                                                <button class="comment-menu-btn"
+                                                        type="button"
+                                                        @onclick="() => ToggleCommentMenu(c.Id!)">
+                                                    ⋮
+                                                </button>
+
+                                                @if (!string.IsNullOrEmpty(openMenuCommentId) && openMenuCommentId == c.Id)
+                                                {
+                                                    <div class="comment-menu-dropdown">
+                                                        <button class="menu-item"
+                                                                type="button"
+                                                                @onclick="() => StartEditComment(c)">
+                                                            ✏️ Rediger
+                                                        </button>
+                                                        <button class="menu-item delete"
+                                                                type="button"
+                                                                @onclick="() => ConfirmDeleteComment(c.Id!)">
+                                                            🗑️ Slet
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
                                     </div>
-                                    <div class="comment-text">@c.CommentText</div>
+
+                                    @if (!string.IsNullOrEmpty(editingCommentId) && editingCommentId == c.Id)
+                                    {
+                                        <div class="comment-edit-form">
+                                            <textarea class="comment-edit-input"
+                                                      @bind="editCommentText"
+                                                      rows="3"></textarea>
+
+                                            <div class="comment-edit-actions">
+                                                <button class="edit-btn edit-btn-cancel"
+                                                        type="button"
+                                                        @onclick="CancelEdit">
+                                                    Annuller
+                                                </button>
+                                                <button class="edit-btn edit-btn-save"
+                                                        type="button"
+                                                        @onclick="SaveEditComment"
+                                                        disabled="@string.IsNullOrWhiteSpace(editCommentText)">
+                                                    Gem
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="comment-text">@c.CommentText</div>
+                                    }
                                 </div>
                             </article>
                         }
@@ -177,15 +287,12 @@
 
     @if (post != null)
     {
-        <div class="comment-composer" role="region" aria-label="Skriv comment">
+        <div class="comment-composer">
             <div class="composer-inner">
                 <div class="composer-avatar">@GetInitial(Username)</div>
-
                 <input class="composer-input"
                        placeholder="Skriv en comment..."
-                       @bind="newCommentText"
-                       maxlength="220" />
-
+                       @bind="newCommentText" />
                 <button class="composer-send"
                         type="button"
                         @onclick="SendComment"
@@ -196,49 +303,94 @@
         </div>
     }
 
-    <nav class="bottom-nav" aria-label="Bund navigation">
-        <button class="bn-item" @onclick="GoToDashboard" aria-label="Hjem" type="button">
-            <span class="bn-ico">⌂</span>
-            <span class="bn-lbl">Hjem</span>
-        </button>
-
-        <button class="bn-item" @onclick="GoToTrainingPrograms" aria-label="Træning" type="button">
-            <span class="bn-ico">💪</span>
-            <span class="bn-lbl">Træning</span>
-        </button>
-
-        <button class="bn-item" @onclick="GoToClasses" aria-label="Hold" type="button">
-            <span class="bn-ico">🗓️</span>
-            <span class="bn-lbl">Hold</span>
-        </button>
-
-        <button class="bn-item active" @onclick="GoToFeed" aria-label="Fællesskab" type="button">
-            <span class="bn-ico">👥</span>
-            <span class="bn-lbl">Fællesskab</span>
-        </button>
-
-        <button class="bn-item" aria-label="Skab" type="button">
-            <span class="bn-ico">🚪</span>
-            <span class="bn-lbl">Adgang</span>
-        </button>
+    <nav class="bottom-nav">
+        <button class="bn-item" @onclick="GoToDashboard" type="button">⌂ Hjem</button>
+        <button class="bn-item" @onclick="GoToTrainingPrograms" type="button">💪 Træning</button>
+        <button class="bn-item" @onclick="GoToClasses" type="button">🗓️ Hold</button>
+        <button class="bn-item active" @onclick="GoToFeed" type="button">👥 Fællesskab</button>
+        <button class="bn-item" type="button">🚪 Adgang</button>
     </nav>
+
+    @if (showDeleteConfirm)
+    {
+        <div class="delete-confirm-overlay" @onclick="CancelDelete">
+            <div class="delete-confirm-dialog" @onclick:stopPropagation="true">
+                <h3 class="delete-confirm-title">Slet kommentar?</h3>
+                <p class="delete-confirm-text">
+                    Er du sikker på at du vil slette denne kommentar? Dette kan ikke fortrydes.
+                </p>
+                <div class="delete-confirm-actions">
+                    <button class="delete-confirm-btn cancel"
+                            type="button"
+                            @onclick="CancelDelete">
+                        Annuller
+                    </button>
+                    <button class="delete-confirm-btn delete"
+                            type="button"
+                            @onclick="ExecuteDeleteComment">
+                        Slet
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+    
+    @if (showDeletePostConfirm)
+    {
+        <div class="delete-confirm-overlay" @onclick="CancelDeletePost">
+            <div class="delete-confirm-dialog" @onclick:stopPropagation="true">
+                <h3 class="delete-confirm-title">Slet post?</h3>
+                <p class="delete-confirm-text">
+                    Er du sikker på at du vil slette dette post? Dette kan ikke fortrydes.
+                </p>
+                <div class="delete-confirm-actions">
+                    <button class="delete-confirm-btn cancel"
+                            type="button"
+                            @onclick="CancelDeletePost">
+                        Annuller
+                    </button>
+                    <button class="delete-confirm-btn delete"
+                            type="button"
+                            @onclick="ExecuteDeletePost">
+                        Slet
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 
 </div>
 
 @code {
     [Parameter] public string? PostId { get; set; }
     [Inject] private NavigationManager Nav { get; set; } = default!;
+    private ElementReference titleInputRef;
 
     private string? LoggedInUserId;
     private string? Username;
 
     private bool isLoading;
     private string error = string.Empty;
-
     private Post? post;
+    
+    private bool openPostMenu = false;
+    private bool isEditingPost = false;
+    private string editPostTitle = string.Empty;
+    private string editPostText = string.Empty;
+
 
     private string newCommentText = string.Empty;
 
+    private string? openMenuCommentId;
+    private string? editingCommentId;
+    private string editCommentText = string.Empty;
+    
+
+    private bool showDeleteConfirm;
+    private bool showDeletePostConfirm;
+    
+    private string? deleteCommentId;
+    
     private bool IsSendDisabled =>
         string.IsNullOrWhiteSpace(newCommentText) || newCommentText.Trim().Length < 2;
 
@@ -246,16 +398,12 @@
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
-
         await LoadPostAsync();
     }
 
     private async Task LoadPostAsync()
     {
         isLoading = true;
-        error = string.Empty;
-        post = null;
-
         try
         {
             if (string.IsNullOrWhiteSpace(PostId))
@@ -265,10 +413,9 @@
             }
 
             var res = await SocialService.SeeSpecficPostByPostId(PostId);
-
             if (!res.IsSuccessStatusCode)
             {
-                error = $"Kunne ikke hente post: {(int)res.StatusCode} {res.ReasonPhrase}";
+                error = "Kunne ikke hente post.";
                 return;
             }
 
@@ -276,12 +423,172 @@
         }
         catch (Exception ex)
         {
-            error = $"Der skete en fejl: {ex.Message}";
+            error = ex.Message;
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private bool IsPostOwner(Post p) =>
+        string.Equals(p.UserId, LoggedInUserId, StringComparison.OrdinalIgnoreCase);
+    
+    private bool IsCommentOwner(Comment c) =>
+        string.Equals(c.AuthorId, LoggedInUserId, StringComparison.OrdinalIgnoreCase);
+    
+    
+    private void TogglePostMenu()
+    {
+        openPostMenu = !openPostMenu;
+    }
+    
+    private async Task StartEditPost()
+    {
+        if (post == null) return;
+
+        isEditingPost = true;
+        editPostTitle = post.PostTitle;
+        editPostText = post.PostContent ?? string.Empty;
+        openPostMenu = false;
+
+        await Task.Yield(); // giver UI tid til at rendere input
+        await titleInputRef.FocusAsync();
+    }
+    
+    private void CancelEditPost()
+    {
+        isEditingPost = false;
+        editPostTitle = string.Empty;
+        editPostText = string.Empty;
+    }
+    
+    private async Task SaveEditPost()
+    {
+        if (post == null) return;
+
+        var payload = new
+        {
+            Id = post.Id,
+            PostTitle = editPostTitle.Trim(),
+            PostContent = editPostText.Trim()
+        };
+
+        var res = await SocialService.EditAPostAsync(payload);
+
+        if (res.IsSuccessStatusCode)
+        {
+            post = await res.Content.ReadFromJsonAsync<Post>();
+            isEditingPost = false;
+            editPostTitle = string.Empty;
+            editPostText = string.Empty;
+        }
+    }
+    
+    private void ConfirmDeletePost()
+    {
+        showDeletePostConfirm = true;
+        openPostMenu  = false;
+    }
+    
+    private void CancelDeletePost()
+    {
+        showDeletePostConfirm = false;
+    }
+    
+    private async Task ExecuteDeletePost()
+    {
+        if (string.IsNullOrWhiteSpace(PostId)) return;
+
+        var res = await SocialService.RemoveAPostAsync(PostId);
+
+        if (res.IsSuccessStatusCode)
+        {
+            showDeletePostConfirm = false;
+            Nav.NavigateTo("/feedpage");
+            return;
+        }
+
+        showDeletePostConfirm = false;
+        error = $"Kunne ikke slette post: {(int)res.StatusCode} {res.ReasonPhrase}";
+    }
+
+    private void ToggleCommentMenu(string id) =>
+        openMenuCommentId = openMenuCommentId == id ? null : id;
+
+    private void StartEditComment(Comment c)
+    {
+        editingCommentId = c.Id;
+        editCommentText = c.CommentText ?? "";
+        openMenuCommentId = null;
+    }
+
+    private void CancelEdit()
+    {
+        editingCommentId = null;
+        editCommentText = "";
+    }
+
+    private async Task SaveEditComment()
+    {
+        if (PostId is null || editingCommentId is null) return;
+
+        var payload = new
+        {
+            Id = editingCommentId,
+            AuthorId = LoggedInUserId,
+            AuthorName = Username,
+            CommentText = editCommentText.Trim()
+        };
+
+        var res = await SocialService.EditCommentAsync(PostId, payload);
+        if (res.IsSuccessStatusCode)
+            post = await res.Content.ReadFromJsonAsync<Post>();
+
+        editingCommentId = null;
+    }
+
+    private void ConfirmDeleteComment(string id)
+    {
+        deleteCommentId = id;
+        showDeleteConfirm = true;
+        openMenuCommentId = null;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirm = false;
+        deleteCommentId = null;
+    }
+
+    private async Task ExecuteDeleteComment()
+    {
+        if (PostId is null || deleteCommentId is null) return;
+
+        var res = await SocialService.RemoveACommentFromPost(PostId, deleteCommentId);
+        if (res.IsSuccessStatusCode)
+            post = await res.Content.ReadFromJsonAsync<Post>();
+
+        showDeleteConfirm = false;
+        deleteCommentId = null;
+    }
+
+    private async Task SendComment()
+    {
+        if (PostId is null || IsSendDisabled) return;
+
+        var payload = new
+        {
+            AuthorId = LoggedInUserId,
+            AuthorName = Username,
+            CommentText = newCommentText.Trim()
+        };
+
+        var res = await SocialService.AddACommentToPostAsync(PostId, payload);
+        if (res.IsSuccessStatusCode)
+            post = await res.Content.ReadFromJsonAsync<Post>();
+
+        newCommentText = "";
     }
 
     private void GoBack() => Nav.NavigateTo("/feedpage");
@@ -290,115 +597,30 @@
     private void GoToClasses() => Nav.NavigateTo("/classes");
     private void GoToFeed() => Nav.NavigateTo("/feedpage");
 
-    private static string GetInitial(string? text)
+    private static string GetInitial(string? t) =>
+        string.IsNullOrWhiteSpace(t) ? "?" : t.Trim()[0].ToString().ToUpper();
+
+    private static string GetDisplayName(Post p) =>
+        !string.IsNullOrWhiteSpace(p.UserName) ? p.UserName : "Bruger";
+
+    private static string GetCommentDisplayName(Comment c) =>
+        !string.IsNullOrWhiteSpace(c.AuthorName) ? c.AuthorName : "Bruger";
+
+    private static string GetTypeLabel(PostType t) =>
+        t == PostType.Workout ? "💪 Workout" : "📝 Generic";
+
+    private static int GetExercises(Post p) => p.WorkoutStats?.ExerciseCount ?? 0;
+    private static int GetDurationMinutes(Post p) =>
+        (int)Math.Round((p.WorkoutStats?.DurationSeconds ?? 0) / 60.0);
+    private static int GetCalories(Post p) => p.WorkoutStats?.Calories ?? 0;
+
+    private static int GetIntensityPercent(Post p)
     {
-        if (string.IsNullOrWhiteSpace(text)) return "?";
-        return text.Trim().Substring(0, 1).ToUpperInvariant();
+        var mins = GetDurationMinutes(p);
+        if (mins == 0) return 50;
+        return (int)Math.Clamp((GetCalories(p) / (double)mins / 15.0) * 100, 30, 100);
     }
 
-    private static string GetDisplayName(Post post)
-    {
-        if (!string.IsNullOrWhiteSpace(post.UserName))
-            return post.UserName.Trim();
-
-        if (!string.IsNullOrWhiteSpace(post.UserName))
-            return $"Bruger {post.UserId[..Math.Min(6, post.UserName.Length)]}";
-
-        return "Bruger";
-    }
-
-    private static string GetCommentDisplayName(Comment c)
-    {
-        if (!string.IsNullOrWhiteSpace(c.AuthorName))
-            return c.AuthorId.Trim();
-        
-        if (!string.IsNullOrWhiteSpace(c.AuthorName))
-            return $"Bruger {c.AuthorId[..Math.Min(6, c.AuthorName.Length)]}";
-
-        return "Bruger";
-    }
-
-    private static string GetTypeLabel(PostType type)
-    {
-        return type == PostType.Workout ? "💪 Workout" : "📝 Generic";
-    }
-
-    // ====== WORKOUT STATS HELPERS - BRUGER REAL DATA ======
-
-    private static int GetExercises(Post post)
-    {
-        return post.WorkoutStats?.ExerciseCount ?? 0;
-    }
-
-    private static int GetDurationMinutes(Post post)
-    {
-        var seconds = post.WorkoutStats?.DurationSeconds ?? 0;
-        if (seconds <= 0) return 0;
-        return (int)Math.Round(seconds / 60.0);
-    }
-
-    private static int GetCalories(Post post)
-    {
-        return post.WorkoutStats?.Calories ?? 0;
-    }
-
-    private static int GetIntensityPercent(Post post)
-    {
-        var cals = post.WorkoutStats?.Calories ?? 0;
-        var mins = GetDurationMinutes(post);
-
-        if (mins == 0 || cals == 0) return 50; // Default hvis ingen data
-
-        // Beregn calories per minut
-        // Typisk range: 5-15 cal/min = 50-100% intensity
-        var calPerMin = cals / (double)mins;
-        var intensity = (calPerMin / 15.0) * 100;
-
-        // Clamp mellem 30-100%
-        return (int)Math.Clamp(intensity, 30, 100);
-    }
-
-
-    private static string FormatWhen(DateTime dt)
-    {
-        if (dt == default) return "";
-        return dt.ToString("dd-MM-yyyy HH:mm");
-    }
-    
-    
-
-    private async Task SendComment()
-    {
-        if (string.IsNullOrWhiteSpace(PostId)) return;
-        if (IsSendDisabled) return;
-
-        error = string.Empty;
-
-        var payload = new Comment
-        {
-            AuthorId = LoggedInUserId,
-            AuthorName = Username,
-            CommentText = newCommentText.Trim(),
-        };
-
-        var res = await SocialService.AddACommentToPostAsync(PostId, payload);
-
-        if (!res.IsSuccessStatusCode)
-        {
-            error = $"Kunne ikke oprette comment: {(int)res.StatusCode} {res.ReasonPhrase}";
-            return;
-        }
-
-        var updatedPost = await res.Content.ReadFromJsonAsync<Post>();
-        if (updatedPost != null)
-        {
-            post = updatedPost;
-        }
-
-        newCommentText = string.Empty;
-    }
-    
-    
-
+    private static string FormatWhen(DateTime dt) =>
+        dt == default ? "" : dt.ToString("dd-MM-yyyy HH:mm");
 }
-
