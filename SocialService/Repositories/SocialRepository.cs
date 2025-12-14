@@ -213,6 +213,7 @@ public class SocialRepository : ISocialRepository
     {
         var newPost = new Post
         {
+            UserName = post.UserName,
             UserId = post.UserId,
             FitnessClassId = post.FitnessClassId,
             WorkoutId = post.WorkoutId,
@@ -227,6 +228,20 @@ public class SocialRepository : ISocialRepository
         
         return newPost;
         
+    }
+
+    public Task<Post> SeeSpecficPostByPostId(string postId)
+    {
+        var findPostForId = _postCollection
+            .Find(p => p.Id == postId)
+            .FirstOrDefaultAsync();
+        
+        if (findPostForId == null)
+        {
+            throw new KeyNotFoundException("Post not found");
+        }
+        
+        return findPostForId;
     }
 
     
@@ -283,20 +298,19 @@ public class SocialRepository : ISocialRepository
 
     public async Task<Post> AddCommentToPost(string postId, Comment comment)
     {
-        var existingPost = await _postCollection
-            .Find(p => p.Id == postId)
-            .FirstOrDefaultAsync();
+        comment.CommentDate = DateTime.UtcNow;
 
-        if (existingPost == null)
-        {
-            throw new  KeyNotFoundException("Post not found");
-        }
-        
-        existingPost.Comments.Add(comment);
-        
-        await _postCollection.ReplaceOneAsync(p=> p.Id == postId, existingPost);
+        var update = Builders<Post>.Update.Push(p => p.Comments, comment);
+        var options = new FindOneAndUpdateOptions<Post> { ReturnDocument = ReturnDocument.After };
 
-        return existingPost;
+        var updatedPost = await _postCollection.FindOneAndUpdateAsync(
+            p => p.Id == postId,
+            update,
+            options);
+
+        if (updatedPost == null) throw new KeyNotFoundException("Post not found");
+        return updatedPost;
+
     }
     
     
@@ -405,6 +419,7 @@ public class SocialRepository : ISocialRepository
 
         var draft = new Post
         {
+            UserName = metric.UserName,
             UserId = metric.UserId,
             FitnessClassId = metric.ClassId,
             PostDate = metric.Date,
@@ -432,6 +447,7 @@ public class SocialRepository : ISocialRepository
 
         var draft = new Post
         {
+            UserName = metric.UserName,
             UserId = metric.UserId!,
             WorkoutId = metric.SoloTrainingSessionId!,
             PostDate = metric.Date,

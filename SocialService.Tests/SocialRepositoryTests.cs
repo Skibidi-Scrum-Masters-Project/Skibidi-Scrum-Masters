@@ -1287,6 +1287,7 @@ public class SocialRepositoryTests
             EventId: eventId,
             ClassId: "class-1",
             UserId: "user-1",
+            UserName: "Kent",
             CaloriesBurned: 123.4,
             Watt: 250.0,
             DurationMin: 60,

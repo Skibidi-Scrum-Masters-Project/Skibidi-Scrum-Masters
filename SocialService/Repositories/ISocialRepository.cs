@@ -63,6 +63,9 @@ public interface ISocialRepository
     //Metode til at se alle post for user
     Task<IEnumerable<Post>> SeeAllPostsForUser(string userId);
     
+    //Metode til at se et spefikt post
+    Task<Post> SeeSpecficPostByPostId(string postId);
+    
     //Event handler der subscriber til ClassService.FinishClass
     Task<string?> CreateDraftFromClassWorkoutCompletedAsync(ClassResultEventDto metric);
 

@@ -1,0 +1,404 @@
+@page "/post/{PostId}"
+@layout EmptyLayout
+@using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Services
+@using FitLifeFitness.Models
+@using Microsoft.AspNetCore.Components
+@using System.Net.Http.Json
+@inject TokenService TokenService
+@inject SocialService SocialService
+
+<div class="postpage">
+
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="back-btn" type="button" @onclick="GoBack" aria-label="Tilbage">
+                <span class="back-ico">←</span>
+            </button>
+
+            <div class="topbar-text">
+                <h1 class="brand">Post</h1>
+                <p class="welcome">Detaljer</p>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <button class="icon-btn" type="button" aria-label="Menu">⋯</button>
+        </div>
+    </header>
+
+    <main class="postpage-body">
+
+        @if (isLoading)
+        {
+            <section class="state-wrap">
+                <div class="state-card">
+                    <div class="state-title">Loader post</div>
+                    <div class="state-sub">Et øjeblik</div>
+                </div>
+            </section>
+        }
+        else if (!string.IsNullOrWhiteSpace(error))
+        {
+            <section class="state-wrap">
+                <div class="state-card error">
+                    <div class="state-title">Noget gik galt</div>
+                    <div class="state-sub">@error</div>
+                </div>
+            </section>
+        }
+        else if (post == null)
+        {
+            <section class="state-wrap">
+                <div class="state-card">
+                    <div class="state-title">Post ikke fundet</div>
+                    <div class="state-sub">Det post findes ikke længere</div>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="post-edge">
+                <div class="post-hero @(post.Type == PostType.Workout ? "workout" : "")">
+                    
+                    @* Workout type indicator bar (kun for workout posts) *@
+                    @if (post.Type == PostType.Workout)
+                    {
+                        <div class="workout-type-bar"></div>
+                    }
+                    
+                    <div class="post-hero-inner">
+                        <div class="post-head">
+                            <div class="post-avatar">@GetInitial(post.UserName ?? post.UserId)</div>
+
+                            <div class="post-meta">
+                                <div class="post-name">@GetDisplayName(post)</div>
+                                <div class="post-sub">@FormatWhen(post.PostDate)</div>
+                            </div>
+
+                            <span class="post-pill @(post.Type == PostType.Workout ? "workout" : "")">
+                                @GetTypeLabel(post.Type)
+                            </span>
+                        </div>
+
+                        <h2 class="post-title">@post.PostTitle</h2>
+
+                        @if (post.Type == PostType.Workout)
+                        {
+                            @* Stats Grid med 3 kolonner *@
+                            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                                <div class="stat-card">
+                                    <span class="stat-icon">💪</span>
+                                    <span class="stat-value">@GetExercises(post)</span>
+                                    <span class="stat-label">Øvelser</span>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-icon">⏱</span>
+                                    <span class="stat-value">@GetDurationMinutes(post)</span>
+                                    <span class="stat-label">Min</span>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-icon">🔥</span>
+                                    <span class="stat-value">@GetCalories(post)</span>
+                                    <span class="stat-label">Cal</span>
+                                </div>
+                            </div>
+
+                            @* Intensity bar *@
+                            <div class="intensity-section">
+                                <div class="intensity-label">Intensitet</div>
+                                <div class="intensity-bar">
+                                    <div class="intensity-fill" style="width: @GetIntensityPercent(post)%"></div>
+                                </div>
+                            </div>
+
+                            @if (post.IsDraft)
+                            {
+                                <div class="post-chips">
+                                    <span class="chip chip-warn">Draft</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            @* Generic post - kun chips *@
+                            <div class="post-chips">
+                                @if (post.IsDraft)
+                                {
+                                    <span class="chip chip-warn">Draft</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="post-body">
+                    <p class="post-text">@post.PostContent</p>
+                </div>
+            </section>
+
+            <section class="comments-edge">
+                <div class="comments-head">
+                    <h2>Comments</h2>
+                    <div class="comments-meta">
+                        <span class="comments-count">@((post.Comments?.Count ?? 0).ToString())</span>
+                    </div>
+                </div>
+
+                @if (post.Comments is null || post.Comments.Count == 0)
+                {
+                    <div class="comments-empty">
+                        <div class="state-title">Ingen comments endnu</div>
+                        <div class="state-sub">Vær den første til at skrive noget</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="comment-list">
+                        @foreach (var c in post.Comments)
+                        {
+                            <article class="comment-card">
+                                <div class="comment-avatar">@GetInitial(c.AuthorName)</div>
+                                <div class="comment-body">
+                                    <div class="comment-top">
+                                        <div class="comment-name">@GetCommentDisplayName(c)</div>
+                                        <div class="comment-time">@FormatWhen(c.CommentDate)</div>
+                                    </div>
+                                    <div class="comment-text">@c.CommentText</div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        }
+
+    </main>
+
+    @if (post != null)
+    {
+        <div class="comment-composer" role="region" aria-label="Skriv comment">
+            <div class="composer-inner">
+                <div class="composer-avatar">@GetInitial(Username)</div>
+
+                <input class="composer-input"
+                       placeholder="Skriv en comment..."
+                       @bind="newCommentText"
+                       maxlength="220" />
+
+                <button class="composer-send"
+                        type="button"
+                        @onclick="SendComment"
+                        disabled="@IsSendDisabled">
+                    Send
+                </button>
+            </div>
+        </div>
+    }
+
+    <nav class="bottom-nav" aria-label="Bund navigation">
+        <button class="bn-item" @onclick="GoToDashboard" aria-label="Hjem" type="button">
+            <span class="bn-ico">⌂</span>
+            <span class="bn-lbl">Hjem</span>
+        </button>
+
+        <button class="bn-item" @onclick="GoToTrainingPrograms" aria-label="Træning" type="button">
+            <span class="bn-ico">💪</span>
+            <span class="bn-lbl">Træning</span>
+        </button>
+
+        <button class="bn-item" @onclick="GoToClasses" aria-label="Hold" type="button">
+            <span class="bn-ico">🗓️</span>
+            <span class="bn-lbl">Hold</span>
+        </button>
+
+        <button class="bn-item active" @onclick="GoToFeed" aria-label="Fællesskab" type="button">
+            <span class="bn-ico">👥</span>
+            <span class="bn-lbl">Fællesskab</span>
+        </button>
+
+        <button class="bn-item" aria-label="Skab" type="button">
+            <span class="bn-ico">🚪</span>
+            <span class="bn-lbl">Adgang</span>
+        </button>
+    </nav>
+
+</div>
+
+@code {
+    [Parameter] public string? PostId { get; set; }
+    [Inject] private NavigationManager Nav { get; set; } = default!;
+
+    private string? LoggedInUserId;
+    private string? Username;
+
+    private bool isLoading;
+    private string error = string.Empty;
+
+    private Post? post;
+
+    private string newCommentText = string.Empty;
+
+    private bool IsSendDisabled =>
+        string.IsNullOrWhiteSpace(newCommentText) || newCommentText.Trim().Length < 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoggedInUserId = await TokenService.GetUserIdAsync();
+        Username = await TokenService.GetUsernameAsync();
+
+        await LoadPostAsync();
+    }
+
+    private async Task LoadPostAsync()
+    {
+        isLoading = true;
+        error = string.Empty;
+        post = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(PostId))
+            {
+                error = "Mangler post id.";
+                return;
+            }
+
+            var res = await SocialService.SeeSpecficPostByPostId(PostId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                error = $"Kunne ikke hente post: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            post = await res.Content.ReadFromJsonAsync<Post>();
+        }
+        catch (Exception ex)
+        {
+            error = $"Der skete en fejl: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/feedpage");
+    private void GoToDashboard() => Nav.NavigateTo("/dashboard");
+    private void GoToTrainingPrograms() => Nav.NavigateTo("/training");
+    private void GoToClasses() => Nav.NavigateTo("/classes");
+    private void GoToFeed() => Nav.NavigateTo("/feedpage");
+
+    private static string GetInitial(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "?";
+        return text.Trim().Substring(0, 1).ToUpperInvariant();
+    }
+
+    private static string GetDisplayName(Post post)
+    {
+        if (!string.IsNullOrWhiteSpace(post.UserName))
+            return post.UserName.Trim();
+
+        if (!string.IsNullOrWhiteSpace(post.UserName))
+            return $"Bruger {post.UserId[..Math.Min(6, post.UserName.Length)]}";
+
+        return "Bruger";
+    }
+
+    private static string GetCommentDisplayName(Comment c)
+    {
+        if (!string.IsNullOrWhiteSpace(c.AuthorName))
+            return c.AuthorId.Trim();
+        
+        if (!string.IsNullOrWhiteSpace(c.AuthorName))
+            return $"Bruger {c.AuthorId[..Math.Min(6, c.AuthorName.Length)]}";
+
+        return "Bruger";
+    }
+
+    private static string GetTypeLabel(PostType type)
+    {
+        return type == PostType.Workout ? "💪 Workout" : "📝 Generic";
+    }
+
+    // ====== WORKOUT STATS HELPERS - BRUGER REAL DATA ======
+
+    private static int GetExercises(Post post)
+    {
+        return post.WorkoutStats?.ExerciseCount ?? 0;
+    }
+
+    private static int GetDurationMinutes(Post post)
+    {
+        var seconds = post.WorkoutStats?.DurationSeconds ?? 0;
+        if (seconds <= 0) return 0;
+        return (int)Math.Round(seconds / 60.0);
+    }
+
+    private static int GetCalories(Post post)
+    {
+        return post.WorkoutStats?.Calories ?? 0;
+    }
+
+    private static int GetIntensityPercent(Post post)
+    {
+        var cals = post.WorkoutStats?.Calories ?? 0;
+        var mins = GetDurationMinutes(post);
+
+        if (mins == 0 || cals == 0) return 50; // Default hvis ingen data
+
+        // Beregn calories per minut
+        // Typisk range: 5-15 cal/min = 50-100% intensity
+        var calPerMin = cals / (double)mins;
+        var intensity = (calPerMin / 15.0) * 100;
+
+        // Clamp mellem 30-100%
+        return (int)Math.Clamp(intensity, 30, 100);
+    }
+
+
+    private static string FormatWhen(DateTime dt)
+    {
+        if (dt == default) return "";
+        return dt.ToString("dd-MM-yyyy HH:mm");
+    }
+    
+    
+
+    private async Task SendComment()
+    {
+        if (string.IsNullOrWhiteSpace(PostId)) return;
+        if (IsSendDisabled) return;
+
+        error = string.Empty;
+
+        var payload = new Comment
+        {
+            AuthorId = LoggedInUserId,
+            AuthorName = Username,
+            CommentText = newCommentText.Trim(),
+        };
+
+        var res = await SocialService.AddACommentToPostAsync(PostId, payload);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            error = $"Kunne ikke oprette comment: {(int)res.StatusCode} {res.ReasonPhrase}";
+            return;
+        }
+
+        var updatedPost = await res.Content.ReadFromJsonAsync<Post>();
+        if (updatedPost != null)
+        {
+            post = updatedPost;
+        }
+
+        newCommentText = string.Empty;
+    }
+    
+    
+
+}
+

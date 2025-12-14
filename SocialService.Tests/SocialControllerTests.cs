@@ -55,6 +55,7 @@ public class SocialControllerTests
         var dto = new ClassResultEventDto(
             EventId: "",
             ClassId: "class-1",
+            UserName: "Kent", 
             UserId: "user-1",
             CaloriesBurned: 100,
             Watt: 200,
@@ -80,6 +81,7 @@ public class SocialControllerTests
             EventId: Guid.NewGuid().ToString(),
             ClassId: "class-1",
             UserId: "user-1",
+            UserName: "Kent",
             CaloriesBurned: 123.4,
             Watt: 250.0,
             DurationMin: 60,
@@ -107,6 +109,7 @@ public class SocialControllerTests
         var dto = new ClassResultEventDto(
             EventId: Guid.NewGuid().ToString(),
             ClassId: "class-1",
+            UserName: "Kent",
             UserId: "user-1",
             CaloriesBurned: 100,
             Watt: 200,

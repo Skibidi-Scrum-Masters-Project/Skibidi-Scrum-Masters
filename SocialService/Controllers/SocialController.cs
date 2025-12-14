@@ -306,9 +306,9 @@ public class SocialController : ControllerBase
     {
         try
         {
-            var addedComment = await _socialRepository.AddCommentToPost(postId, comment);
+            var updatedPost  = await _socialRepository.AddCommentToPost(postId, comment);
         
-            return Ok(addedComment);
+            return Ok(updatedPost );
         }
 
         catch (KeyNotFoundException ex)
@@ -395,6 +395,12 @@ public class SocialController : ControllerBase
         return posts;
     }
 
+    [HttpGet("SeeSpecficPostByPostId/{postId}")]
+    public async Task<Post> SeeSpecficPostForPostId(string postId)
+    {
+        var post =  await _socialRepository.SeeSpecficPostByPostId(postId);
+        return post;
+    }
 
 
 }
