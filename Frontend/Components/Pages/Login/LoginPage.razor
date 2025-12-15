@@ -1,6 +1,6 @@
 @page "/"
 @page "/login"
-@layout EmptyLayout
+@layout PhoneLayoutWithoutNav
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
 @inject NavigationManager Nav
@@ -10,42 +10,57 @@
 @using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
 
-<div class="login-card">
-    <h1 class="app-title">FitLife Fitness</h1>
+<div class="login-page">
 
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="error-message">@errorMessage</div>
-    }
+    <header class="login-top">
+        <h1 class="login-brand">FitLife Fitness</h1>
+        <p class="login-lead">Log ind for at se din status, dine hold og dit skab.</p>
+    </header>
 
-    <EditForm Model="@loginModel" OnValidSubmit="OnLoginClicked" FormName="LoginForm">
-        <DataAnnotationsValidator />
-        <div class="form-group">
-            <label for="username">Brugernavn</label>
-            <InputText id="username" @bind-Value="loginModel.Username" class="input-field" disabled="@isLoading" />
+    <main class="login-main">
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="login-alert">@errorMessage</div>
+        }
+
+        <EditForm Model="@loginModel" OnValidSubmit="OnLoginClicked" FormName="LoginForm" class="login-form">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label for="username">Brugernavn</label>
+                <InputText id="username" @bind-Value="loginModel.Username" class="input-field" disabled="@isLoading" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <InputText id="password" type="password" @bind-Value="loginModel.Password" class="input-field" disabled="@isLoading" />
+            </div>
+
+            <ValidationSummary />
+
+            <button type="submit" class="primary-btn" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>Logger ind...</span>
+                }
+                else
+                {
+                    <span>Log ind</span>
+                }
+            </button>
+        </EditForm>
+
+        <div class="login-actions">
+            <button type="button" class="ghost-btn">Glemt password?</button>
+            <button type="button" class="ghost-btn" @onclick="GoToCreateUser">Opret bruger</button>
         </div>
-        <div class="form-group">
-            <label for="password">Password</label>
-            <InputText id="password" type="password" @bind-Value="loginModel.Password" class="input-field"
-                disabled="@isLoading" />
-        </div>
-        <ValidationSummary />
-        <button type="submit" class="primary-btn" disabled="@isLoading">
-            @if (isLoading)
-            {
-                <span>Logger ind...</span>
-            }
-            else
-            {
-                <span>Log ind</span>
-            }
+
+        <button type="button" class="secondary-btn" @onclick="GoToDashboardNow">
+            Fortsæt til dashboard
         </button>
-    </EditForm>
-    <div class="login-links">
-        <button type="button" class="link-btn">Glemt password?</button>
-        <button type="button" class="link-btn" @onclick="GoToCreateUser">Opret bruger</button>
-        <button type="button" class="primary-btn" @onclick="GoToDashboardNow">Fortsæt til dashboard</button>
-    </div>
+
+    </main>
 </div>
 
 @code {
@@ -70,19 +85,16 @@
 
                 if (result != null)
                 {
-                    // Save token and ensure it's flushed to storage
+                    // Gem token inkl. Role
                     await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username, result.User.Role);
-                    
-                    // Try to flush any pending values before navigating
+
                     try
                     {
                         await TokenService.FlushPendingAsync();
-                        // Small delay to ensure storage write completes
                         await Task.Delay(50);
                     }
                     catch { }
-                    
-                    // Navigate WITHOUT force reload to preserve state
+
                     Nav.NavigateTo("/dashboard", forceLoad: false);
                     return;
                 }
@@ -101,9 +113,7 @@
         }
         catch (NavigationException)
         {
-            // This is EXPECTED - it means navigation is working!
-            // Blazor throws this to stop execution and navigate
-            throw; // Re-throw to let Blazor handle the navigation
+            throw; // Blazor håndterer navigation
         }
         catch (HttpRequestException ex)
         {
@@ -123,11 +133,11 @@
 
     private void GoToDashboardNow()
     {
-        // Use the current browser location to preserve the port
         var uri = new Uri(Nav.Uri);
         var dashboardUrl = $"{uri.Scheme}://{uri.Authority}/dashboard";
         Nav.NavigateTo(dashboardUrl, forceLoad: true);
     }
+
     private void GoToCreateUser()
     {
         Nav.NavigateTo("/create-user");

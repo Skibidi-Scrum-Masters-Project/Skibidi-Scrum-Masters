@@ -364,11 +364,11 @@ public class SocialRepositoryTests
         Assert.IsNull(result);
     }
 
-    // CancelFriendRequest
+    // CancelFriendRequest (DELETE)
 
     [TestMethod]
     [DoNotParallelize]
-    public async Task CancelFriendRequest_WhenPendingExists_ShouldUpdateStatusToNone()
+    public async Task CancelFriendRequest_WhenPendingExists_ShouldDeleteFriendship()
     {
         var userId = "user-1";
         var receiverId = "user-2";
@@ -385,24 +385,25 @@ public class SocialRepositoryTests
         var result = await _repository.CancelFriendRequest(userId, receiverId);
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(FriendshipStatus.None, result.FriendShipStatus);
+        Assert.AreEqual(userId, result.SenderId);
+        Assert.AreEqual(receiverId, result.ReceiverId);
+        Assert.AreEqual(FriendshipStatus.Pending, result.FriendShipStatus);
 
         var stored = await _friendships
             .Find(f => f.SenderId == userId && f.ReceiverId == receiverId)
             .SingleOrDefaultAsync();
 
-        Assert.IsNotNull(stored);
-        Assert.AreEqual(FriendshipStatus.None, stored.FriendShipStatus);
+        Assert.IsNull(stored, "Friendship should be deleted from DB");
     }
 
     [TestMethod]
     [DoNotParallelize]
-    public async Task CancelFriendRequest_WhenNoPendingExists_ShouldThrowInvalidOperationException()
+    public async Task CancelFriendRequest_WhenNoPendingExists_ShouldThrowKeyNotFoundException()
     {
         var userId = "user-1";
         var receiverId = "user-2";
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
             async () => await _repository.CancelFriendRequest(userId, receiverId));
     }
 
@@ -422,9 +423,11 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(accepted);
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
             async () => await _repository.CancelFriendRequest(userId, receiverId));
     }
+
+
 
     // GetOutgoingFriendRequestsAsync
 
@@ -778,129 +781,134 @@ public class SocialRepositoryTests
             async () => await _repository.RemoveAPost(nonExistingPostId));
     }
 
-    // EditAPost
+// EditAPost
 
-    [TestMethod]
-    [DoNotParallelize]
-    public async Task EditAPost_WhenPostExistsAndBelongsToUser_ShouldUpdateAndReturnUpdatedPost()
+[TestMethod]
+[DoNotParallelize]
+public async Task EditAPost_WhenPostExistsAndBelongsToUser_ShouldUpdateAndReturnUpdatedPost()
+{
+    var postId = ObjectId.GenerateNewId().ToString();
+    var userId = "user-42";
+
+    var existingPost = new Post
     {
-        var postId = ObjectId.GenerateNewId().ToString();
-        var userId = "user-42";
+        Id = postId,
+        UserId = userId,
+        FitnessClassId = "class-1",
+        WorkoutId = "workout-2",
+        PostTitle = "Old title",
+        PostContent = "Old content",
+        PostDate = new DateTime(2020, 1, 1),
+        Comments = new List<Comment>()
+    };
 
-        var existingPost = new Post
-        {
-            Id = postId,
-            UserId = userId,
-            FitnessClassId = "class-1",
-            WorkoutId = "workout-2",
-            PostTitle = "Old title",
-            PostContent = "Old content",
-            PostDate = new DateTime(2020, 1, 1),
-            Comments = new List<Comment>()
-        };
+    await _posts.InsertOneAsync(existingPost);
 
-        await _posts.InsertOneAsync(existingPost);
-
-        var updatedInput = new Post
-        {
-            Id = postId,
-            UserId = "user-999",
-            FitnessClassId = "class-10",
-            WorkoutId = "workout-20",
-            PostTitle = "New title",
-            PostContent = "New content"
-        };
-
-        var result = await _repository.EditAPost(updatedInput, userId);
-
-        Assert.IsNotNull(result);
-        Assert.AreEqual(postId, result.Id);
-        Assert.AreEqual(userId, result.UserId);
-        Assert.AreEqual(updatedInput.FitnessClassId, result.FitnessClassId);
-        Assert.AreEqual(updatedInput.WorkoutId, result.WorkoutId);
-        Assert.AreEqual(updatedInput.PostTitle, result.PostTitle);
-        Assert.AreEqual(updatedInput.PostContent, result.PostContent);
-
-        var stored = await _posts
-            .Find(p => p.Id == postId)
-            .SingleOrDefaultAsync();
-
-        Assert.IsNotNull(stored);
-        Assert.AreEqual(userId, stored.UserId);
-        Assert.AreEqual(updatedInput.FitnessClassId, stored.FitnessClassId);
-        Assert.AreEqual(updatedInput.WorkoutId, stored.WorkoutId);
-        Assert.AreEqual(updatedInput.PostTitle, stored.PostTitle);
-        Assert.AreEqual(updatedInput.PostContent, stored.PostContent);
-    }
-
-    [TestMethod]
-    [DoNotParallelize]
-    public async Task EditAPost_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
+    var updatedInput = new Post
     {
-        var nonExistingPostId = ObjectId.GenerateNewId().ToString();
-        var userId = "user-42";
+        Id = postId,
+        UserId = userId, // vigtigt: skal matche ejeren pga filteret i EditAPost
+        FitnessClassId = "class-10",
+        WorkoutId = "workout-20",
+        PostTitle = "New title",
+        PostContent = "New content"
+    };
 
-        var input = new Post
-        {
-            Id = nonExistingPostId,
-            PostTitle = "Does not matter",
-            PostContent = "Does not matter"
-        };
+    var result = await _repository.EditAPost(updatedInput);
 
-        var existing = await _posts
-            .Find(p => p.Id == nonExistingPostId)
-            .SingleOrDefaultAsync();
-        Assert.IsNull(existing, "Der må ikke eksistere en post med dette id i testen");
+    Assert.IsNotNull(result);
+    Assert.AreEqual(postId, result.Id);
+    Assert.AreEqual(userId, result.UserId); // UserId ændres ikke, men skal stadig være ejeren
 
-        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
-            async () => await _repository.EditAPost(input, userId));
-    }
+    Assert.AreEqual(updatedInput.FitnessClassId, result.FitnessClassId);
+    Assert.AreEqual(updatedInput.WorkoutId, result.WorkoutId);
+    Assert.AreEqual(updatedInput.PostTitle, result.PostTitle);
+    Assert.AreEqual(updatedInput.PostContent, result.PostContent);
 
-    [TestMethod]
-    [DoNotParallelize]
-    public async Task EditAPost_WhenPostBelongsToOtherUser_ShouldThrowKeyNotFoundException_AndNotChangePost()
+    var stored = await _posts
+        .Find(p => p.Id == postId)
+        .SingleOrDefaultAsync();
+
+    Assert.IsNotNull(stored);
+    Assert.AreEqual(userId, stored.UserId);
+    Assert.AreEqual(updatedInput.FitnessClassId, stored.FitnessClassId);
+    Assert.AreEqual(updatedInput.WorkoutId, stored.WorkoutId);
+    Assert.AreEqual(updatedInput.PostTitle, stored.PostTitle);
+    Assert.AreEqual(updatedInput.PostContent, stored.PostContent);
+}
+
+[TestMethod]
+[DoNotParallelize]
+public async Task EditAPost_WhenPostDoesNotExist_ShouldThrowKeyNotFoundException()
+{
+    var nonExistingPostId = ObjectId.GenerateNewId().ToString();
+    var userId = "user-42";
+
+    var input = new Post
     {
-        var postId = ObjectId.GenerateNewId().ToString();
-        var ownerUserId = "user-1";
-        var otherUserId = "user-2";
+        Id = nonExistingPostId,
+        UserId = userId, // filter bruger også UserId
+        PostTitle = "Does not matter",
+        PostContent = "Does not matter",
+        FitnessClassId = "x",
+        WorkoutId = "y"
+    };
 
-        var existingPost = new Post
-        {
-            Id = postId,
-            UserId = ownerUserId,
-            FitnessClassId = "class-1",
-            WorkoutId = "workout-2",
-            PostTitle = "Original title",
-            PostContent = "Original content",
-            PostDate = new DateTime(2020, 1, 1)
-        };
+    var existing = await _posts
+        .Find(p => p.Id == nonExistingPostId)
+        .SingleOrDefaultAsync();
+    Assert.IsNull(existing, "Der må ikke eksistere en post med dette id i testen");
 
-        await _posts.InsertOneAsync(existingPost);
+    await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+        async () => await _repository.EditAPost(input));
+}
 
-        var attemptedUpdate = new Post
-        {
-            Id = postId,
-            UserId = otherUserId,
-            FitnessClassId = "class-99",
-            WorkoutId = "workout-88",
-            PostTitle = "Hacked title",
-            PostContent = "Hacked content"
-        };
+[TestMethod]
+[DoNotParallelize]
+public async Task EditAPost_WhenPostBelongsToOtherUser_ShouldThrowKeyNotFoundException_AndNotChangePost()
+{
+    var postId = ObjectId.GenerateNewId().ToString();
+    var ownerUserId = "user-1";
+    var otherUserId = "user-2";
 
-        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
-            async () => await _repository.EditAPost(attemptedUpdate, otherUserId));
+    var existingPost = new Post
+    {
+        Id = postId,
+        UserId = ownerUserId,
+        FitnessClassId = "class-1",
+        WorkoutId = "workout-2",
+        PostTitle = "Original title",
+        PostContent = "Original content",
+        PostDate = new DateTime(2020, 1, 1)
+    };
 
-        var stored = await _posts
-            .Find(p => p.Id == postId)
-            .SingleOrDefaultAsync();
+    await _posts.InsertOneAsync(existingPost);
 
-        Assert.IsNotNull(stored);
-        Assert.AreEqual(existingPost.UserId, stored.UserId);
-        Assert.AreEqual(existingPost.FitnessClassId, stored.FitnessClassId);
-        Assert.AreEqual(existingPost.WorkoutId, stored.WorkoutId);
-        Assert.AreEqual(existingPost.PostTitle, stored.PostTitle);
-        Assert.AreEqual(existingPost.PostContent, stored.PostContent);
-    }
+    var attemptedUpdate = new Post
+    {
+        Id = postId,
+        UserId = otherUserId, // matcher ikke ejeren, så filteret finder intet
+        FitnessClassId = "class-99",
+        WorkoutId = "workout-88",
+        PostTitle = "Hacked title",
+        PostContent = "Hacked content"
+    };
+
+    await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
+        async () => await _repository.EditAPost(attemptedUpdate));
+
+    var stored = await _posts
+        .Find(p => p.Id == postId)
+        .SingleOrDefaultAsync();
+
+    Assert.IsNotNull(stored);
+    Assert.AreEqual(existingPost.UserId, stored.UserId);
+    Assert.AreEqual(existingPost.FitnessClassId, stored.FitnessClassId);
+    Assert.AreEqual(existingPost.WorkoutId, stored.WorkoutId);
+    Assert.AreEqual(existingPost.PostTitle, stored.PostTitle);
+    Assert.AreEqual(existingPost.PostContent, stored.PostContent);
+}
+
 
     // Comment Test
 
@@ -1287,6 +1295,7 @@ public class SocialRepositoryTests
             EventId: eventId,
             ClassId: "class-1",
             UserId: "user-1",
+            UserName: "Kent",
             CaloriesBurned: 123.4,
             Watt: 250.0,
             DurationMin: 60,

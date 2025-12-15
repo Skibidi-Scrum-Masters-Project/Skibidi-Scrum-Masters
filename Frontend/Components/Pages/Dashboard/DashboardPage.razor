@@ -1,59 +1,248 @@
 @page "/dashboard"
-@layout EmptyLayout
-
-@using FitLifeFitness.Components.Layout
+@layout PhoneLayout
+@using FitLifeFitness.Services
+@using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
+@using System.Net.Http.Json
+@using FitLifeFitness.Components.Layout
+@inject SocialService SocialService
+@inject TokenService TokenService
+@inject NavigationManager Nav
 
-<div class="dashboard-screen">
-    <h1 class="app-title">FitLife Fitness</h1>
+<div class="dashboard">
+    <main class="dashboard-body">
+        <section class="welcome-card">
+            <div class="welcome-top">
+                <div class="welcome-left">
+                    <p class="welcome-small">Din status</p>
+                    <h2 class="welcome-title">@Username</h2>
 
-    <p class="dashboard-welcome">Velkommen tilbage, <strong>@Username</strong></p>
+                    <div class="streak-row">
+                        <span class="streak-badge">🔥 5 ugers streak</span>
+                        <span class="streak-sub">Fortsæt for at slå din rekord</span>
+                    </div>
+                </div>
+            </div>
 
-    <section class="menu-grid">
-        <button class="menu-card">
-            <span>Workout</span>
-        </button>
-        <button class="menu-card" @onclick="GoToClasses">
-            <span>Holdtræning</span>
-        </button>
-        <button class="menu-card">
-            <span>Statistik</span>
-        </button>
-        <button class="menu-card">
-            <span>Digital hængelås</span>
-        </button>
-        <button class="menu-card">
-            <span>Personlig træner</span>
-        </button>
-        <button class="menu-card">
-            <span>Venner</span>
-        </button>
-    </section>
+            <p class="welcome-message">
+                Fantastisk arbejde. Du har trænet <strong>5 uger i streg</strong>. Klar til næste session?
+            </p>
 
-    <section class="traffic-card">
-        <div class="traffic-header">
-            <span>Travlhed i centeret</span>
-            <span class="traffic-label">Nu</span>
-        </div>
+            <button class="primary-cta" @onclick="GoToTrainingPrograms" type="button">
+                Start dagens træning
+            </button>
+        </section>
 
-        <div class="traffic-bar">
-            <div class="traffic-bar-fill"></div>
-        </div>
+        <section class="crowd-card">
+            <div class="crowd-head">
+                <span>Travlhed</span>
+                <span class="crowd-label">Nu</span>
+            </div>
 
-        <button class="primary-btn unlock-btn">
-            Lås op
-        </button>
-    </section>
+            <div class="bar">
+                <div class="bar-fill medium"></div>
+            </div>
+
+            <div class="crowd-info-row">
+                <span>Medium: Forvent kort ventetid.</span>
+                <button class="link-secondary" type="button">Se Travlhed</button>
+            </div>
+
+            <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+        </section>
+
+        <section class="action-stack">
+            <button class="stack-card" @onclick="GoToPersonalTraining" type="button">
+                <div class="stack-ico">🧑‍🏫</div>
+                <div class="stack-text">
+                    <div class="stack-title">Book personlig træner</div>
+                    <div class="stack-sub">Få et skræddersyet forløb</div>
+                </div>
+                <div class="stack-arrow">›</div>
+            </button>
+
+            <button class="stack-card" @onclick="GoToTrainingPrograms" type="button">
+                <div class="stack-ico">🏋️</div>
+                <div class="stack-text">
+                    <div class="stack-title">Træningsplaner</div>
+                    <div class="stack-sub">Se alle programmer</div>
+                </div>
+                <div class="stack-arrow">›</div>
+            </button>
+
+            <button class="stack-card" @onclick="GoToClasses" type="button">
+                <div class="stack-ico">🗓️</div>
+                <div class="stack-text">
+                    <div class="stack-title">Holdbooking</div>
+                    <div class="stack-sub">Book næste hold</div>
+                </div>
+                <div class="stack-arrow">›</div>
+            </button>
+        </section>
+
+        <section class="feed-preview">
+            <div class="feed-head">
+                <h2>Feed</h2>
+                <button class="link" @onclick="GoToFeed" type="button">Åbn feed</button>
+            </div>
+
+            <div class="feed-tabs">
+                <button class="tab @(activeFeedTab == "all" ? "active" : "")"
+                        @onclick='() => SwitchTab("all")' type="button">
+                    Alle
+                </button>
+
+                <button class="tab @(activeFeedTab == "ready" ? "active" : "")"
+                        @onclick='() => SwitchTab("ready")' type="button">
+                    Klar til deling
+                </button>
+            </div>
+
+            @if (isFeedLoading)
+            {
+                <div class="post-card">
+                    <div class="post-content-line">
+                        <span>Loader feed...</span>
+                    </div>
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(feedError))
+            {
+                <div class="post-card">
+                    <div class="post-content-line">
+                        <span>@feedError</span>
+                    </div>
+                </div>
+            }
+            else if (feedItems.Count == 0)
+            {
+                <div class="post-card">
+                    <div class="post-content-line">
+                        <span>@(activeFeedTab == "ready" ? "Ingen træninger klar til deling endnu." : "Ingen opslag endnu.")</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @foreach (var post in feedItems.Take(1))
+                {
+                    <article class="post-card"
+                             role="button"
+                             tabindex="0"
+                             @onclick="() => GoToPost(post.Id)">
+                        <div class="post-content-line">
+                            <span>@(string.IsNullOrWhiteSpace(post.PostContent) ? "Nyt opslag" : post.PostContent)</span>
+                            <span class="trophy-icon">🏆</span>
+                        </div>
+
+                        <div class="post-head">
+                            <div class="post-avatar">@GetInitial(GetDisplayName(post))</div>
+                            <div>
+                                <div class="post-name">@GetDisplayName(post)</div>
+                                <div class="post-sub">@FormatWhen(post.PostDate)</div>
+                            </div>
+                        </div>
+                    </article>
+                }
+            }
+        </section>
+    </main>
 </div>
 
 @code {
-    // Midlertidig hardcoded – senere kan den hentes fra backend
-    private string Username { get; set; } = "Bruger";
+    private string? LoggedInUserId { get; set; }
+    private string? Username { get; set; }
+    private string UserInitial => GetInitial(Username);
 
-    [Inject] private NavigationManager Nav { get; set; } = default!;
+    private string activeFeedTab = "all";
+    private bool isFeedLoading;
+    private string feedError = string.Empty;
 
-    private void GoToClasses()
+    private List<Post> feedItems = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        Nav.NavigateTo("/classes");
+        LoggedInUserId = await TokenService.GetUserIdAsync();
+        Username = await TokenService.GetUsernameAsync();
+
+        await LoadFeedAsync();
     }
+
+    private async Task SwitchTab(string tab)
+    {
+        if (activeFeedTab == tab) return;
+        activeFeedTab = tab;
+        await LoadFeedAsync();
+    }
+
+    private async Task LoadFeedAsync()
+    {
+        isFeedLoading = true;
+        feedError = string.Empty;
+        feedItems.Clear();
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            {
+                feedError = "Kunne ikke finde bruger id. Log ind igen.";
+                return;
+            }
+
+            var res =
+                activeFeedTab == "ready"
+                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId)
+                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                feedError = $"Feed fejlede: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            feedItems = await res.Content.ReadFromJsonAsync<List<Post>>() ?? new List<Post>();
+        }
+        catch (Exception ex)
+        {
+            feedError = $"Der skete en fejl: {ex.Message}";
+        }
+        finally
+        {
+            isFeedLoading = false;
+        }
+    }
+
+    private static string GetDisplayName(Post post)
+    {
+        if (!string.IsNullOrWhiteSpace(post.UserName))
+            return post.UserName.Trim();
+
+        return "Bruger";
+    }
+
+    private void GoToPost(string? postId)
+    {
+        if (string.IsNullOrWhiteSpace(postId)) return;
+        Nav.NavigateTo($"/post/{postId}");
+    }
+
+    private static string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        return name.Trim().Substring(0, 1).ToUpperInvariant();
+    }
+
+    private static string FormatWhen(DateTime dt)
+    {
+        if (dt == default) return "";
+        return dt.ToString("dd-MM-yyyy HH:mm");
+    }
+
+    void GoToTrainingPrograms() => Nav.NavigateTo("/training");
+    void GoToClasses() => Nav.NavigateTo("/classes");
+    void GoToFeed() => Nav.NavigateTo("/feedpage");
+    void GoToDashboard() => Nav.NavigateTo("/dashboard");
+    void GoToLocker() => Nav.NavigateTo("/locker");
+    void GoToProfile() => Nav.NavigateTo("/profile");
+    void GoToPersonalTraining() => Nav.NavigateTo("/personaltraining");
 }
