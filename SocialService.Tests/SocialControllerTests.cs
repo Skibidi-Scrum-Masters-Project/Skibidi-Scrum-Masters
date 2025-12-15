@@ -1373,7 +1373,9 @@ public async Task EditAPost_ShouldReturnNotFound_WhenRepositoryThrowsKeyNotFound
             Date = DateTime.UtcNow,
             TrainingType = "UpperBody",
             DurationMinutes = 30,
-            ExerciseCount = 5
+            ExerciseCount = 5,
+            WorkoutProgramName = "Strength Builder"
+            
         };
 
         _mockRepository.Setup(r => r.CreateDraftFromSoloTrainingCompletedAsync(It.IsAny<SoloTrainingCompletedEventDto>()))
