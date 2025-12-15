@@ -47,7 +47,7 @@ public class SoloTrainingRepositoryTests
         };
 
         // Act
-        var result = await _repository.CreateSoloTraining(userId, session);
+        var result = await _repository.CreateSoloTraining(userId, session, "program1");
 
         // Assert (return value)
         Assert.AreEqual(userId, result.UserId);

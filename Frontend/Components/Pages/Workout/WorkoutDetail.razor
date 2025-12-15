@@ -1,6 +1,7 @@
 @page "/workouts/{Id}"
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Models
 @layout EmptyLayout
 
 <div class="detail-screen">
@@ -16,60 +17,74 @@
 
         <h3 class="exercise-title">Øvelser</h3>
 
-        <ul class="exercise-list">
-            @foreach (var exercise in Workout.Exercises)
+        <div class="exercise-list">
+            @foreach (var exercise in Exercises)
             {
-                <li class="exercise-item">@exercise</li>
+                <div class="exercise-item">
+                    <strong>@exercise.ExerciseType</strong>
+                    <div>Sets: @exercise.Sets.Count</div>
+                    <button class="btn btn-sm" @onclick="() => AddSet(exercise)">Add set</button>
+                </div>
             }
-        </ul>
+        </div>
     }
 </div>
 
 @code {
     [Parameter] public string Id { get; set; } = "";
 
-    private WorkoutDetailModel? Workout { get; set; }
+    private WorkoutProgramDTO? Workout { get; set; }
 
-    protected override void OnParametersSet()
+    [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
+    public List<ExerciseDTO> PreviousExercises { get; set; } = new List<ExerciseDTO>();
+    private List<ExerciseDTO> Exercises { get; set; } = new List<ExerciseDTO>();
+    protected override async Task OnInitializedAsync()
     {
-        Workout = Id switch
+        var response = await SoloTrainingService.GetWorkoutProgramByIdAsync(Id);
+        if (response.IsSuccessStatusCode)
         {
-            "push" => new WorkoutDetailModel {
-                Name = "Push",
-                Description = "Fokus på bryst, skuldre og triceps.",
-                Exercises = new() {
-                    "Bænkpres – 4 x 8",
-                    "Skulderpres – 3 x 10",
-                    "Dips – 3 x 8",
-                    "Chest Flyes – 3 x 12",
-                    "Push-ups – 2 x max"
-                }
-            },
+            var program = await response.Content.ReadFromJsonAsync<WorkoutProgramDTO>();
+            if (program != null)
+            {
+                Workout = new WorkoutProgramDTO
+                {
+                    Id = program.Id!,
+                    Name = program.Name,
+                    Description = program.Description,
+                    ExerciseTypes = program.ExerciseTypes.Select(et => et).ToList(),
+                };
 
-            "pull" => new WorkoutDetailModel {
-                Name = "Pull",
-                Description = "Fokus på ryg og biceps.",
-                Exercises = new() {
-                    "Pullups – 4 x max",
-                    "Rows – 3 x 10",
-                    "Lat Pulldown – 3 x 12",
-                    "Face Pulls – 3 x 15",
-                    "Biceps Curls – 3 x 12"
-                }
-            },
-
-            _ => new WorkoutDetailModel {
-                Name = "Ukendt workout",
-                Description = "Kunne ikke finde denne workout.",
-                Exercises = new()
+                // create ExerciseDTO instances based on the program's exercise types
+                Exercises = Workout.ExerciseTypes
+                    .Select(et => new ExerciseDTO
+                    {
+                        ExerciseType = et,
+                        Volume = 0,
+                        Sets = new List<Set>
+                        {
+                            new Set { Repetitions = 0, Weight = 0 },
+                            new Set { Repetitions = 0, Weight = 0 },
+                            new Set { Repetitions = 0, Weight = 0 }
+                        }
+                    })
+                    .ToList();
             }
-        };
+        }
+        var response2 = await SoloTrainingService.GetMostRecentSoloTrainingForUserAndProgramAsync("userId", Id);
+        if (response2.IsSuccessStatusCode)
+        {
+            var session = await response2.Content.ReadFromJsonAsync<SoloTrainingSessionDTO>();
+            if (session != null && session.Exercises.Any())
+            {
+                PreviousExercises = session.Exercises;
+            }
+        }
     }
 
-    public class WorkoutDetailModel
+    private void AddSet(ExerciseDTO exercise)
     {
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public List<string> Exercises { get; set; } = new();
+        exercise.Sets.Add(new Set { Repetitions = 0, Weight = 0 });
     }
+
+
 }

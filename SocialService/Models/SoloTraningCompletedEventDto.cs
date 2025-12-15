@@ -6,6 +6,7 @@ public sealed class SoloTrainingCompletedEventDto
 
     public DateTime Date { get; set; }
     public string? WorkoutProgramName { get; set; }
+    public string? TrainingType { get; set; }
     public int DurationMinutes { get; set; }
     public int ExerciseCount { get; set; }
 }

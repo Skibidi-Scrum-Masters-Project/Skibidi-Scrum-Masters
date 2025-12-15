@@ -19,9 +19,10 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         _workoutProgramCollection = database.GetCollection<WorkoutProgram>("WorkoutPrograms");
     }
 
-    public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining)
+    public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining, string programId)
     {
         soloTraining.UserId = userId;
+        soloTraining.WorkoutProgramId = programId;
 
         await _SolotrainingCollection.InsertOneAsync(soloTraining);
 
@@ -66,14 +67,14 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         return soloTraining;
     }
 
-    public Task<WorkoutProgram> CreateWorkoutProgram(WorkoutProgram workoutProgram)
+    public async Task<WorkoutProgram> CreateWorkoutProgram(WorkoutProgram workoutProgram)
     {
         if (workoutProgram.ExerciseTypes == null)
         {
          throw new ArgumentException("ExerciseTypes cannot be null.");
         }
-        return _workoutProgramCollection.InsertOneAsync(workoutProgram)
-            .ContinueWith(_ => workoutProgram);
+        await _workoutProgramCollection.InsertOneAsync(workoutProgram);
+        return workoutProgram;
     }
 
     public async Task DeleteSoloTraining(string trainingId)
@@ -111,5 +112,24 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         return await _SolotrainingCollection.Find(s => s.UserId == userId)
             .SortByDescending(s => s.Date)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<SoloTrainingSession?> GetMostRecentSoloTrainingForUserAndProgram(string userId, string programId)
+    {
+        var response = await _SolotrainingCollection.Find(s => s.UserId == userId && s.WorkoutProgramId == programId)
+            .SortByDescending(s => s.Date)
+            .FirstOrDefaultAsync();
+            if (response == null)
+            {
+                return new SoloTrainingSession();
+            }
+            return response;
+    }
+
+    public async Task<WorkoutProgram?> GetWorkoutProgramById(string programId)
+    {
+        var filter = Builders<WorkoutProgram>.Filter.Eq(p => p.Id, programId);
+        var response = await _workoutProgramCollection.Find(filter).FirstOrDefaultAsync();
+        return response;
     }
 }

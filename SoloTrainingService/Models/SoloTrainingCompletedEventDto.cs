@@ -13,4 +13,5 @@ public sealed class SoloTrainingCompletedEvent
     public int DurationMinutes { get; set; }
 
     public int ExerciseCount { get; set; }
+    public string? TrainingType { get; set; }
 }

@@ -14,6 +14,9 @@ namespace FitnessApp.Shared.Models
         [BsonElement("_id")]
         public string? Id { get; set; }
         [Required]
+        [BsonElement("workoutProgramId")]
+        public string? WorkoutProgramId { get; set; }
+        [Required]
         [BsonElement("workoutProgramName")]
         public string? WorkoutProgramName { get; set; }
 

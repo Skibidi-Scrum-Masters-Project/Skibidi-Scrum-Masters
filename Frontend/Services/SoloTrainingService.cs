@@ -12,6 +12,10 @@ public class SoloTrainingService
     {
         return await _httpClient.GetAsync($"/api/solotraining/programs");
     }
+    public async Task<HttpResponseMessage> GetWorkoutProgramByIdAsync(string programId)
+    {
+        return await _httpClient.GetAsync($"/api/solotraining/programs/{programId}");
+    }
 
     public async Task<HttpResponseMessage> GetWorkoutsAsync(string userId)
     {
@@ -26,5 +30,9 @@ public class SoloTrainingService
     public async Task<HttpResponseMessage> GetExercisesAsync()
     {
         return await _httpClient.GetAsync("/api/solotraining/exercises");
+    }
+    public async Task<HttpResponseMessage> GetMostRecentSoloTrainingForUserAndProgramAsync(string userId, string programId)
+    {
+        return await _httpClient.GetAsync($"/api/solotraining/workouts/recent/{userId}/{programId}");
     }
 }
