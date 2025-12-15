@@ -38,6 +38,7 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
+    position: relative; /* allow absolutely positioned elements inside the phone screen */
 }
 
 /* ----- LOGIN CARD ----- */
@@ -200,6 +201,109 @@ html, body {
 
 .unlock-btn {
     margin-top: 0.25rem;
+}
+
+/* Create program floating button inside phone-screen */
+.create-program-button-container {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 80;
+}
+
+.create-program-button {
+    background: #111827;
+    color: #fff;
+    border: none;
+    padding: 0.6rem 0.9rem;
+    border-radius: 999px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+/* CreateWorkoutProgram page styles */
+.create-program-form {
+    width: 90%;
+    max-width: 380px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.create-program-header {
+    position: absolute;
+    top: 1rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 40;
+}
+
+.exercise-search {
+    width: 90%;
+    max-width: 380px;
+    padding: 0.5rem 0.6rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    margin: 0 auto 0.5rem auto;
+}
+
+.search-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.search-row .exercise-search {
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+.search-add-btn {
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: none;
+    background: #111827;
+    color: #fff;
+    cursor: pointer;
+}
+
+.selected-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.create-program-form label {
+    font-size: 0.9rem;
+    color: #111827;
+}
+
+.create-program-form input, .create-program-form select {
+    padding: 0.6rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    font-size: 0.95rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #e5e7eb;
+    color: #111827;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.chip button {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
 }
 
 

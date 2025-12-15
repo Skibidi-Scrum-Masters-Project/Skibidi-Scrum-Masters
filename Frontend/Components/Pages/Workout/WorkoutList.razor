@@ -26,13 +26,22 @@
             </button>
         }
     </div>
+    @if (ShowCreateProgramButton)
+    {
+        <div class="create-program-button-container">
+            <button class="create-program-button" @onclick="GoToCreateProgram">Create Program</button>
+        </div>
+    }
 </div>
 
 @code {
     [Inject] private NavigationManager Nav { get; set; } = default!;
-
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
+    [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
+
     private List<WorkoutProgramDTO> Workouts { get; set; } = new List<WorkoutProgramDTO>();
+    private bool ShowCreateProgramButton { get; set; } = false;
+
     protected override async Task OnInitializedAsync()
     {
         var response = await SoloTrainingService.GetWorkoutPrograms();
@@ -50,10 +59,30 @@
                 }).ToList();
             }
         }
+
+        // Determine if the logged-in user can create programs
+        try
+        {
+            var role = await TokenService.GetUserRoleAsync();
+            if (role == UserRole.Coach || role == UserRole.Admin)
+            {
+                ShowCreateProgramButton = true;
+            }
+        }
+        catch
+        {
+            ShowCreateProgramButton = false;
+        }
     }
+
     private void OpenWorkout(string id)
     {
         Nav.NavigateTo($"/workouts/{id}");
+    }
+
+    private void GoToCreateProgram()
+    {
+        Nav.NavigateTo("/create-workout-program");
     }
 
     public class WorkoutModel
