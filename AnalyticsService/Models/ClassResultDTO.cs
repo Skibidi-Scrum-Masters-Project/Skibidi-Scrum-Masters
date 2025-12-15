@@ -5,9 +5,9 @@ using System.ComponentModel.DataAnnotations;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace ClassService.Model
+namespace AnalyticsService.Models   
 {
-    public class ClassResult
+    public class ClassResultDTO
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
@@ -23,5 +23,14 @@ namespace ClassService.Model
         
         [BsonIgnore]
         public string EventId { get; set; } = string.Empty;
+    }
+    
+    
+    public enum Category
+    {
+        Yoga,
+        Pilates,
+        Crossfit,
+        Spinning
     }
 }

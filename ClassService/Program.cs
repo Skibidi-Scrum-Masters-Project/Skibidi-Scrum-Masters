@@ -120,6 +120,9 @@ builder.Services.AddScoped<IMongoDatabase>(serviceProvider =>
     return client.GetDatabase(databaseName);
 });
 
+// Register HttpClient
+builder.Services.AddHttpClient();
+
 // Register repositories
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 

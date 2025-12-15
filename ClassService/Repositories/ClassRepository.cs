@@ -229,16 +229,34 @@ public class ClassRepository : IClassRepository
             };
 
             await _classResultsCollection.InsertOneAsync(metric);
-
+            
+        
             try
             {
                 await NotifySocialService(metric);
+                var analyticsClient = _httpClientFactory.CreateClient("AnalyticsService");
+
+                await analyticsClient.PostAsJsonAsync(
+                    "http://analyticsservice:8080/api/analytics/classes",
+                    new ClassResult
+                    {
+                        ClassId = metric.ClassId,
+                        UserId = metric.UserId,
+                        CaloriesBurned = metric.CaloriesBurned,
+                        Watt = metric.Watt,
+                        Category = finishedClass.Category, // enum → JSON → enum
+                        DurationMin = metric.DurationMin,
+                        Date = metric.Date
+                    }
+                );
+
             }
             catch (Exception ex)
             {
                 // Stopper ikke finish hvis socialservice er nede
                 Console.WriteLine($"NotifySocialService failed for user {attendant.UserId} in class {classId}: {ex.Message}");
             }
+            
         }
 
         finishedClass.IsActive = false;
@@ -478,5 +496,18 @@ public class ClassRepository : IClassRepository
         var filter = Builders<FitnessClass>.Filter.Eq(c => c.InstructorId, coachId);
         var classes = _classesCollection.Find(filter).ToList();
         return Task.FromResult(classes.AsEnumerable());
+    }
+
+    public Task<List<ClassResult>> GetUserStatisticsAsync(string userId)
+    {
+
+        List<ClassResult> results = _classResultsCollection.Find(r => r.UserId == userId).ToList();
+        if (results == null)
+        {
+            return Task.FromResult(new List<ClassResult>());
+        }
+        return Task.FromResult(results);
+
+        
     }
 }

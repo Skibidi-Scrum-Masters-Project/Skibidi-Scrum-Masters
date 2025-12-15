@@ -118,8 +118,11 @@ builder.Services.AddScoped<IMongoDatabase>(serviceProvider =>
     return client.GetDatabase(databaseName);
 });
 
-// Register HttpClient for AnalyticsRepository
-builder.Services.AddHttpClient<IAnalyticsRepository, AnalyticsRepository>();
+// Register HttpClient
+builder.Services.AddHttpClient();
+
+// Register repositories
+builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
