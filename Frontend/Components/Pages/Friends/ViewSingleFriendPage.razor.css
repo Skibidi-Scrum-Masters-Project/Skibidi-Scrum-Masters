@@ -1,0 +1,147 @@
+.fd{
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    padding:12px 14px 104px;
+}
+
+.fd-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.back{
+    width:44px;
+    height:40px;
+    border:none;
+    border-radius:18px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    color: rgba(225,232,236,0.88);
+    font-weight:950;
+}
+
+.fd-title{
+    font-size:1.05rem;
+    font-weight:950;
+    color: rgba(225,232,236,0.95);
+}
+
+.fd-sub{
+    font-size:0.84rem;
+    color: rgba(225,232,236,0.62);
+}
+
+.spacer{
+    flex:1;
+}
+
+.fd-hero{
+    display:flex;
+    gap:14px;
+    padding:16px;
+    border-radius:26px;
+    background: linear-gradient(135deg, rgba(44,51,56,0.95), rgba(21,28,32,0.75));
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.fd-avatar{
+    width:64px;
+    height:64px;
+    border-radius:999px;
+    background: rgba(36,195,106,0.18);
+    color: var(--green-light);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:950;
+}
+
+.fd-name{
+    font-size:1.08rem;
+    font-weight:950;
+    color: rgba(225,232,236,0.95);
+}
+
+.fd-meta{
+    font-size:0.88rem;
+    color: rgba(225,232,236,0.62);
+}
+
+.fd-card{
+    background: rgba(44,51,56,0.75);
+    border-radius:22px;
+    padding:14px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.card-title{
+    font-size:0.95rem;
+    font-weight:950;
+    color: rgba(225,232,236,0.92);
+    margin-bottom:10px;
+}
+
+.row{
+    padding:10px 0;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+}
+
+.row:last-child{
+    border-bottom:none;
+}
+
+.row-title{
+    font-weight:950;
+    color: rgba(225,232,236,0.92);
+}
+
+.row-meta{
+    font-size:0.84rem;
+    color: rgba(225,232,236,0.62);
+}
+
+.row-btn{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:18px;
+    background: rgba(0,0,0,0.12);
+    color: rgba(225,232,236,0.92);
+    font-weight:950;
+    display:flex;
+    justify-content:space-between;
+}
+
+.row-btn.danger{
+    background: rgba(235,72,72,0.14);
+}
+
+.tag{
+    margin-top:6px;
+    padding:7px 10px;
+    border-radius:999px;
+    font-size:0.78rem;
+    font-weight:950;
+    width:fit-content;
+}
+
+.tag-coach{
+    background: rgba(36,195,106,0.14);
+}
+
+.tag-member{
+    background: rgba(255,255,255,0.08);
+}
+
+.empty{
+    color: rgba(225,232,236,0.62);
+}
+
+.note{
+    margin-top:10px;
+    font-size:0.84rem;
+    color: rgba(225,232,236,0.62);
+}

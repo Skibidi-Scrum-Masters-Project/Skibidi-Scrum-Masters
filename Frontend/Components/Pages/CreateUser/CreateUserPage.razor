@@ -8,88 +8,184 @@
 @using FitLifeFitness.Components.Layout
 @using FitLifeFitness.Models
 
-<div class="login-card">
-    <h1 class="app-title">Opret bruger</h1>
+<section class="create-page">
+    <header class="create-header">
+        <button type="button" class="back-btn" @onclick='() => Nav.NavigateTo("/login")'>
+            <span class="back-arrow">←</span>
+            Tilbage
+        </button>
 
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="error-message">@errorMessage</div>
-    }
-    @if (!string.IsNullOrEmpty(successMessage))
-    {
-        <div class="success-message">@successMessage</div>
-    }
-
-    <EditForm Model="@createModel" OnValidSubmit="OnCreateClicked">
-        <DataAnnotationsValidator />
-
-        <div class="form-group">
-            <label for="username">Brugernavn</label>
-            <InputText id="username" @bind-Value="createModel.Username" class="input-field" disabled="@isLoading" />
+        <div class="hero-section">
+            <div class="hero-icon">🚀</div>
+            <div class="hero-content">
+                <h1 class="hero-title">Opret bruger</h1>
+                <p class="hero-subtitle">Opret din konto for at komme i gang</p>
+            </div>
         </div>
+    </header>
 
-        <div class="form-group">
-            <label for="firstName">Fornavn</label>
-            <InputText id="firstName" @bind-Value="createModel.FirstName" class="input-field" disabled="@isLoading" />
-        </div>
-
-        <div class="form-group">
-            <label for="lastName">Efternavn</label>
-            <InputText id="lastName" @bind-Value="createModel.LastName" class="input-field" disabled="@isLoading" />
-        </div>
-
-        <div class="form-group">
-            <label for="email">Email</label>
-            <InputText id="email" type="email" @bind-Value="createModel.Email" class="input-field" disabled="@isLoading" />
-        </div>
-
-        <div class="form-group">
-            <label for="license">Registreringsnummer (valgfrit)</label>
-            <InputText id="license" @bind-Value="createModel.LicensePlate" class="input-field" disabled="@isLoading" />
-        </div>
-
-        <div class="form-group">
-            <label for="password">Password</label>
-            <InputText id="password" type="password" @bind-Value="createModel.Password" class="input-field" disabled="@isLoading" />
-        </div>
-
-        @if (isAdmin)
+    <main class="create-body">
+        @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <div class="form-group">
-                <label for="role">Rolle</label>
-                <InputSelect id="role" @bind-Value="createModel.Role" class="input-field" disabled="@isLoading">
-                    <option value="0">Member</option>
-                    <option value="1">Coach</option>
-                    <option value="2">Admin</option>
-                </InputSelect>
+            <div class="alert alert-error">
+                <span class="alert-icon">⚠️</span>
+                <span>@errorMessage</span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success">
+                <span class="alert-icon">✓</span>
+                <span>@successMessage</span>
             </div>
         }
 
-        <ValidationSummary />
+        <EditForm Model="@createModel" OnValidSubmit="OnCreateClicked" class="user-form">
+            <DataAnnotationsValidator />
 
-        <button type="submit" class="primary-btn" disabled="@isLoading">
-            @if (isLoading)
-            {
-                <span>Opretter...</span>
-            }
-            else
-            {
-                <span>Opret bruger</span>
-            }
-        </button>
-    </EditForm>
+            <section class="form-section">
+                <div class="section-title">
+                    <span class="title-icon">👤</span>
+                    Brugeroplysninger
+                </div>
 
-    <div class="login-links">
-        <button type="button" class="link-btn" @onclick='() => Nav.NavigateTo("/login")'>Tilbage til login</button>
-    </div>
-</div>
+                <div class="input-group">
+                    <label for="username" class="input-label">Brugernavn</label>
+                    <div class="input-shell">
+                        <input id="username"
+                               class="form-input"
+                               @bind="createModel.Username"
+                               disabled="@isLoading"
+                               autocomplete="username"
+                               placeholder="Vælg et unikt brugernavn" />
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="firstName" class="input-label">Fornavn</label>
+                        <div class="input-shell">
+                            <input id="firstName"
+                                   class="form-input"
+                                   @bind="createModel.FirstName"
+                                   disabled="@isLoading"
+                                   autocomplete="given-name"
+                                   placeholder="Dit fornavn" />
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="lastName" class="input-label">Efternavn</label>
+                        <div class="input-shell">
+                            <input id="lastName"
+                                   class="form-input"
+                                   @bind="createModel.LastName"
+                                   disabled="@isLoading"
+                                   autocomplete="family-name"
+                                   placeholder="Dit efternavn" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="email" class="input-label">Email</label>
+                    <div class="input-shell">
+                        <input id="email"
+                               class="form-input"
+                               type="email"
+                               @bind="createModel.Email"
+                               disabled="@isLoading"
+                               autocomplete="email"
+                               placeholder="din@email.dk" />
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-section">
+                <div class="section-title">
+                    <span class="title-icon">🔒</span>
+                    Sikkerhed
+                </div>
+
+                <div class="input-group">
+                    <label for="password" class="input-label">Password</label>
+                    <div class="input-shell">
+                        <input id="password"
+                               class="form-input"
+                               type="password"
+                               @bind="createModel.Password"
+                               disabled="@isLoading"
+                               autocomplete="new-password"
+                               placeholder="Mindst 6 tegn" />
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-section">
+                <div class="section-title">
+                    <span class="title-icon">🚗</span>
+                    Yderligere oplysninger
+                </div>
+
+                <div class="input-group">
+                    <label for="license" class="input-label">
+                        Registreringsnummer <span class="label-optional">(valgfrit)</span>
+                    </label>
+                    <div class="input-shell">
+                        <input id="license"
+                               class="form-input"
+                               @bind="createModel.LicensePlate"
+                               disabled="@isLoading"
+                               autocomplete="off"
+                               placeholder="AB12345" />
+                    </div>
+                </div>
+
+                @if (isAdmin)
+                {
+                    <div class="input-group">
+                        <label for="role" class="input-label">
+                            <span class="admin-badge">ADMIN</span>
+                            Brugerrolle
+                        </label>
+                        <div class="input-shell">
+                            <select id="role"
+                                    class="form-input form-select"
+                                    @bind="createModel.Role"
+                                    disabled="@isLoading">
+                                <option value="0">Member</option>
+                                <option value="1">Coach</option>
+                                <option value="2">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <ValidationSummary />
+
+            <button type="submit" class="submit-btn" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="btn-spinner">⏳</span>
+                    <span>Opretter konto...</span>
+                }
+                else
+                {
+                    <span class="btn-icon">✨</span>
+                    <span>Opret bruger</span>
+                }
+            </button>
+        </EditForm>
+    </main>
+</section>
 
 @code {
     private CreateModel createModel = new();
-    private bool isLoading = false;
+    private bool isLoading;
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
-    private bool isAdmin = false;
+    private bool isAdmin;
 
     protected override async Task OnInitializedAsync()
     {
@@ -102,10 +198,9 @@
         {
             isAdmin = false;
         }
+
         if (!isAdmin)
-        {
             createModel.Role = 0;
-        }
     }
 
     private async Task OnCreateClicked()
@@ -114,11 +209,8 @@
         successMessage = string.Empty;
         isLoading = true;
 
-        // No confirm password requested — send provided password as 'hashedPassword' (server will hash it)
-
         try
         {
-            // Backend expects HashedPassword field (repository hashes it), so send the plaintext in that property.
             var payload = new
             {
                 username = createModel.Username,
@@ -134,10 +226,9 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var respBody = await response.Content.ReadAsStringAsync();
-                successMessage = string.IsNullOrEmpty(respBody) ? "Bruger oprettet." : respBody;
-                Console.WriteLine($"Create user response: {respBody}");
-                await Task.Delay(300);
+                var body = await response.Content.ReadAsStringAsync();
+                successMessage = string.IsNullOrEmpty(body) ? "Bruger oprettet." : body;
+                await Task.Delay(1500);
                 Nav.NavigateTo("/login");
                 return;
             }
@@ -156,9 +247,8 @@
         {
             errorMessage = "Kunne ikke oprette forbindelse til serveren.";
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine(ex);
             errorMessage = "Der opstod en fejl. Prøv igen senere.";
         }
         finally
