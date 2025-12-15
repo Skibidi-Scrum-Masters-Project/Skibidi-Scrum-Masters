@@ -201,7 +201,7 @@ public class SocialController : ControllerBase
             await _socialRepository.CancelFriendRequest(userId, receiverId);
             return NoContent();
         }
-        catch (KeyNotFoundException ex)
+        catch (InvalidOperationException ex)
         {
             return NotFound(ex.Message);
         }

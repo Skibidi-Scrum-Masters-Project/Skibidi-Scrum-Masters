@@ -364,11 +364,11 @@ public class SocialRepositoryTests
         Assert.IsNull(result);
     }
 
-    // CancelFriendRequest
+    // CancelFriendRequest (DELETE)
 
     [TestMethod]
     [DoNotParallelize]
-    public async Task CancelFriendRequest_WhenPendingExists_ShouldUpdateStatusToNone()
+    public async Task CancelFriendRequest_WhenPendingExists_ShouldDeleteFriendship()
     {
         var userId = "user-1";
         var receiverId = "user-2";
@@ -385,24 +385,25 @@ public class SocialRepositoryTests
         var result = await _repository.CancelFriendRequest(userId, receiverId);
 
         Assert.IsNotNull(result);
-        Assert.AreEqual(FriendshipStatus.None, result.FriendShipStatus);
+        Assert.AreEqual(userId, result.SenderId);
+        Assert.AreEqual(receiverId, result.ReceiverId);
+        Assert.AreEqual(FriendshipStatus.Pending, result.FriendShipStatus);
 
         var stored = await _friendships
             .Find(f => f.SenderId == userId && f.ReceiverId == receiverId)
             .SingleOrDefaultAsync();
 
-        Assert.IsNotNull(stored);
-        Assert.AreEqual(FriendshipStatus.None, stored.FriendShipStatus);
+        Assert.IsNull(stored, "Friendship should be deleted from DB");
     }
 
     [TestMethod]
     [DoNotParallelize]
-    public async Task CancelFriendRequest_WhenNoPendingExists_ShouldThrowInvalidOperationException()
+    public async Task CancelFriendRequest_WhenNoPendingExists_ShouldThrowKeyNotFoundException()
     {
         var userId = "user-1";
         var receiverId = "user-2";
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
             async () => await _repository.CancelFriendRequest(userId, receiverId));
     }
 
@@ -422,9 +423,11 @@ public class SocialRepositoryTests
 
         await _friendships.InsertOneAsync(accepted);
 
-        await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+        await Assert.ThrowsExceptionAsync<KeyNotFoundException>(
             async () => await _repository.CancelFriendRequest(userId, receiverId));
     }
+
+
 
     // GetOutgoingFriendRequestsAsync
 
