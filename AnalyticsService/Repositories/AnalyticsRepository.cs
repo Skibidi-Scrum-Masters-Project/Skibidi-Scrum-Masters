@@ -23,7 +23,7 @@ public class AnalyticsRepository : IAnalyticsRepository
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
 
-    public async Task<ClassResultDTO> PostClassesAnalytics(string classId, string userId, double totalCaloriesBurned, string category, int durationMin, DateTime date)
+    public async Task<ClassResultDTO> PostClassesAnalytics(string classId, string userId, double caloriesBurned, Double watt, Category category, int durationMin, DateTime date)
     {
         if (string.IsNullOrWhiteSpace(classId)) throw new ArgumentNullException(nameof(classId));
         if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
@@ -33,8 +33,9 @@ public class AnalyticsRepository : IAnalyticsRepository
         {
             ClassId = classId,
             UserId = userId,
-            TotalCaloriesBurned = totalCaloriesBurned,
+            CaloriesBurned = caloriesBurned,
             Category = category,
+            Watt = watt,
             DurationMin = durationMin,
             Date = date
         };

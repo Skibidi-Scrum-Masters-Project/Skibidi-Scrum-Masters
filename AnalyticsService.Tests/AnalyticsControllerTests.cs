@@ -11,50 +11,55 @@ namespace AnalyticsService.Tests
     [TestClass]
     public class AnalyticsControllerTests
     {
-        private readonly Mock<IAnalyticsRepository> _mockRepository;
-        private readonly AnalyticsController _controller;
+        private Mock<IAnalyticsRepository> _mockRepository;
+        private AnalyticsController _controller;
 
-        public AnalyticsControllerTests()
+        [TestInitialize]
+        public void Setup()
         {
             _mockRepository = new Mock<IAnalyticsRepository>();
             _controller = new AnalyticsController(_mockRepository.Object);
         }
 
         [TestMethod]
-        public async Task GetClassesAnalytics_ShouldReturnOkWithClassResult()
+        public async Task PostClassesAnalytics_ShouldReturnOk_WithClassResult()
         {
             // Arrange
-            var classId = "class123";
-            var userId = "user123";
-            var calories = 500.0;
-            var category = "Yoga";
-            var duration = 60;
-            var date = DateTime.UtcNow;
-
-            var expectedResult = new ClassResultDTO
+            var dto = new ClassResultDTO
             {
-                ClassId = classId,
-                UserId = userId,
-                TotalCaloriesBurned = calories,
-                Category = category,
-                DurationMin = duration,
-                Date = date
+                ClassId = "class123",
+                UserId = "user123",
+                CaloriesBurned = 500,
+                Watt = 200,
+                Category = Category.Yoga,
+                DurationMin = 60,
+                Date = DateTime.UtcNow
             };
 
             _mockRepository
-                .Setup(r => r.PostClassesAnalytics(classId, userId, calories, category, duration, date))
-                .ReturnsAsync(expectedResult);
+                .Setup(r => r.PostClassesAnalytics(
+                    dto.ClassId,
+                    dto.UserId,
+                    dto.CaloriesBurned,
+                    dto.Watt,
+                    dto.Category,
+                    dto.DurationMin,
+                    dto.Date))
+                .ReturnsAsync(dto);
 
             // Act
-            var actionResult = await _controller.PostClassesAnalytics(classId, userId, calories, category, duration, date);
+            var result = await _controller.PostClassesAnalytics(dto);
 
             // Assert
-            var okResult = actionResult as OkObjectResult;
+            var okResult = result as OkObjectResult;
             Assert.IsNotNull(okResult);
+
             var returnValue = okResult.Value as ClassResultDTO;
             Assert.IsNotNull(returnValue);
-            Assert.AreEqual(classId, returnValue.ClassId);
-            Assert.AreEqual(userId, returnValue.UserId);
+
+            Assert.AreEqual(dto.ClassId, returnValue.ClassId);
+            Assert.AreEqual(dto.UserId, returnValue.UserId);
+            Assert.AreEqual(dto.Category, returnValue.Category);
         }
 
         [TestMethod]

@@ -16,14 +16,31 @@ public class AnalyticsController : ControllerBase
     }
 
     
-    // Post class results for 
-    [HttpPost("{classId}/{userId}/{totalCaloriesBurned}/{category}/{durationMin}/{date}")]
-    public async Task<IActionResult> PostClassesAnalytics(string classId, string userId, double totalCaloriesBurned, string category, int durationMin, DateTime date)
+    [HttpPost("classes")]
+    public async Task<IActionResult> PostClassesAnalytics(
+        [FromBody] ClassResultDTO dto)
     {
-        var classResult = await _analyticsRepository.PostClassesAnalytics(classId, userId, totalCaloriesBurned, category, durationMin, date);
-        return Ok(classResult);
+        if (dto == null)
+            return BadRequest("Payload required.");
+
+        if (string.IsNullOrWhiteSpace(dto.UserId))
+            return BadRequest("UserId required.");
+
+        if (string.IsNullOrWhiteSpace(dto.ClassId))
+            return BadRequest("ClassId required.");
+
+        var result = await _analyticsRepository.PostClassesAnalytics(
+            dto.ClassId,
+            dto.UserId,
+            dto.CaloriesBurned,
+            dto.Watt,
+            dto.Category,
+            dto.DurationMin,
+            dto.Date
+        );
+
+        return Ok(result);
     }
-    
 
     // Post entered users
     [HttpPost("entered/{userId}/{entryTime}")]

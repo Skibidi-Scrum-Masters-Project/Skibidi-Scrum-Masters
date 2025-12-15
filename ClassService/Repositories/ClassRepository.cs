@@ -236,10 +236,20 @@ public class ClassRepository : IClassRepository
                 await NotifySocialService(metric);
                 var analyticsClient = _httpClientFactory.CreateClient("AnalyticsService");
 
-                await analyticsClient.PostAsync(
-                    $"http://analyticsservice:8080/analytics/classes/{classId}/{attendant.UserId}/{caloriesBurnedTotal}/{finishedClass.Category}/{finishedClass.Duration}/{DateTime.UtcNow:o}",
-                    null
+                await analyticsClient.PostAsJsonAsync(
+                    "http://analyticsservice:8080/api/analytics/classes",
+                    new ClassResult
+                    {
+                        ClassId = metric.ClassId,
+                        UserId = metric.UserId,
+                        CaloriesBurned = metric.CaloriesBurned,
+                        Watt = metric.Watt,
+                        Category = finishedClass.Category, // enum → JSON → enum
+                        DurationMin = metric.DurationMin,
+                        Date = metric.Date
+                    }
                 );
+
             }
             catch (Exception ex)
             {
