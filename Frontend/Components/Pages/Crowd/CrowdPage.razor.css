@@ -1,0 +1,388 @@
+/* Pages/Crowd.razor.css */
+
+/* ==============================================
+   CROWD PAGE
+   Matcher scrolling setup fra dine andre sider
+   ============================================== */
+
+.crowdpage{
+    height:100%;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+}
+
+.crowd-body{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+
+    padding:12px 0 calc(104px + env(safe-area-inset-bottom));
+    scrollbar-width:none;
+}
+
+.crowd-body::-webkit-scrollbar{width:0;height:0;}
+
+.crowd-shell{
+    padding:0 14px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.crowd-back{
+    align-self:flex-start;
+}
+
+/* ==============================================
+   HERO
+   ============================================== */
+
+.crowd-hero{
+    background:linear-gradient(135deg, rgba(44,51,56,0.95), rgba(21,28,32,0.75));
+    border-radius:22px;
+    padding:20px;
+    border:1px solid rgba(255,255,255,0.06);
+    box-shadow:0 12px 26px rgba(0,0,0,0.35);
+}
+
+.crowd-title{
+    margin:0 0 8px 0;
+    color:rgba(225,232,236,0.95);
+    font-size:1.4rem;
+    font-weight:800;
+    letter-spacing:0.2px;
+}
+
+.crowd-subtitle{
+    margin:0;
+    color:rgba(225,232,236,0.70);
+    font-size:0.9rem;
+}
+
+/* ==============================================
+   CARDS
+   ============================================== */
+
+.crowd-card{
+    background:rgba(44,51,56,0.75);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:20px;
+    padding:18px;
+    box-shadow:0 10px 22px rgba(0,0,0,0.28);
+}
+
+.crowd-card-current{
+    background:linear-gradient(135deg, rgba(36,195,106,0.16), rgba(44,51,56,0.65));
+    border-color:rgba(36,195,106,0.22);
+}
+
+/* Lige nu */
+.crowd-now-label{
+    margin:0 0 10px 0;
+    font-size:0.85rem;
+    font-weight:750;
+    color:rgba(225,232,236,0.75);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+}
+
+/* Row med procent + chip */
+.crowd-now-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px;
+}
+
+.crowd-now-left{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.crowd-now-text{
+    font-size:1.05rem;
+    font-weight:850;
+    color:rgba(225,232,236,0.92);
+
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.crowd-now-right{
+    flex-shrink:0;
+    display:flex;
+    align-items:flex-start;
+}
+
+.crowd-now-percentage{
+    font-size:1.55rem;
+    font-weight:900;
+    line-height:1;
+}
+
+/* Person chip (ikon + antal) */
+.crowd-now-chip{
+    background: rgba(0,0,0,0.30);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 7px 9px;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    box-shadow: 0 10px 18px rgba(0,0,0,0.28);
+    white-space:nowrap;
+}
+
+.crowd-now-left{
+    flex: 1;
+    min-width: 0;
+}
+.crowd-now-right{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+.crowd-now-chip{
+    flex-shrink: 0;
+}
+
+/* lås procenten også */
+.crowd-now-percentage{
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+
+.crowd-now-chip .chip-ico{
+    width: 30px;
+    height: 24px;
+    border-radius: 10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(255,255,255,0.06);
+    color: rgba(225,232,236,0.85);
+    flex-shrink:0;
+}
+
+.crowd-now-chip .chip-ico svg{
+    width:16px;
+    height:16px;
+    stroke: currentColor;
+    fill:none;
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+
+.crowd-now-chip .chip-text{
+    font-size:0.78rem;
+    font-weight:850;
+    color: rgba(225,232,236,0.92);
+    white-space:nowrap;
+}
+
+/* Progress bar */
+.crowd-bar{
+    background:rgba(0,0,0,0.30);
+    border-radius:12px;
+    height:12px;
+    overflow:hidden;
+}
+
+.crowd-bar.small{
+    height:8px;
+    border-radius:10px;
+}
+
+.crowd-bar-fill{
+    height:100%;
+    border-radius:12px;
+    transition:width 500ms ease;
+}
+
+/* Legend */
+.crowd-legend{
+    margin-top:12px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 12px;
+
+    background:rgba(0,0,0,0.16);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:14px;
+    padding:10px 12px;
+}
+
+.legend-item{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+}
+
+.legend-dot{
+    width:10px;
+    height:10px;
+    border-radius:999px;
+    display:inline-block;
+    box-shadow:
+            0 6px 14px rgba(0,0,0,0.25),
+            inset 0 0 0 1px rgba(255,255,255,0.12);
+}
+
+.legend-dot.low{ background:rgb(36,195,106); }
+.legend-dot.medium{ background:rgb(255,193,7); }
+.legend-dot.high{ background:rgb(255,152,0); }
+.legend-dot.very-high{ background:rgb(235,72,72); }
+
+.legend-text{
+    font-size:0.78rem;
+    font-weight:800;
+    color:rgba(225,232,236,0.75);
+}
+
+/* ==============================================
+   TIP BOX
+   ============================================== */
+
+.crowd-tip{
+    background:rgba(255,152,0,0.10);
+    border:1px solid rgba(255,152,0,0.25);
+    border-radius:16px;
+    padding:14px 16px;
+}
+
+.crowd-tip-title{
+    font-size:0.9rem;
+    font-weight:850;
+    color:rgba(225,232,236,0.92);
+    margin-bottom:4px;
+}
+
+.crowd-tip-text{
+    font-size:0.85rem;
+    color:rgba(225,232,236,0.70);
+}
+
+/* ==============================================
+   FORECAST
+   ============================================== */
+
+.crowd-section-title{
+    margin:0 0 14px 0;
+    font-size:1.05rem;
+    font-weight:800;
+    color:rgba(225,232,236,0.95);
+}
+
+.crowd-forecast-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.crowd-forecast-row{
+    display:grid;
+    grid-template-columns:60px 1fr 60px;
+    align-items:center;
+    gap:12px;
+
+    padding:12px;
+    background:rgba(0,0,0,0.20);
+    border-radius:12px;
+}
+
+.crowd-time{
+    font-size:0.9rem;
+    font-weight:800;
+    color:rgba(225,232,236,0.90);
+}
+
+.crowd-percent{
+    font-size:0.85rem;
+    font-weight:850;
+    text-align:right;
+    white-space:nowrap;
+}
+
+/* ==============================================
+   STATS
+   ============================================== */
+
+.crowd-stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+
+.crowd-stat{
+    background:rgba(44,51,56,0.75);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:16px;
+    padding:16px;
+    text-align:center;
+}
+
+.crowd-stat-label{
+    font-size:0.75rem;
+    color:rgba(225,232,236,0.60);
+    margin-bottom:8px;
+}
+
+.crowd-stat-value{
+    font-size:1.25rem;
+    font-weight:900;
+    color:rgba(225,232,236,0.92);
+}
+
+.crowd-stat-value.best{ color:rgb(36,195,106); }
+.crowd-stat-value.peak{ color:rgb(235,72,72); }
+
+/* ==============================================
+   BUTTON
+   ============================================== */
+
+.crowd-refresh{
+    width:100%;
+    border-radius:14px;
+    padding:14px;
+}
+
+/* Small devices */
+@media (max-width:430px){
+    .crowd-shell{ padding:0 12px; }
+
+    .crowd-now-right{ gap:8px; }
+
+    .crowd-now-percentage{
+        font-size:1.5rem;
+    }
+
+    .crowd-now-chip{
+        padding: 6px 8px;
+        border-radius: 13px;
+    }
+
+    .crowd-now-chip .chip-ico{
+        width:28px;
+        height:22px;
+        border-radius:9px;
+    }
+
+    .crowd-now-chip .chip-text{
+        font-size:0.76rem;
+    }
+}

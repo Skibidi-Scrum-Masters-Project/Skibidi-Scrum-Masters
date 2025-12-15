@@ -1,90 +1,166 @@
 @page "/statistics"
-@using Microsoft.AspNetCore.Components
+
+@using FitLifeFitness.Models
+@using FitLifeFitness.Services
 @using FitLifeFitness.Components.Layout
-@layout EmptyLayout
+
+@layout PhoneLayout
+
+@inject TokenService TokenService
+@inject AnalyticsService AnalyticsService
 
 <div class="stats-screen">
-
     <h2 class="stats-title">Statistik</h2>
-    <p class="stats-subtitle">Se din udvikling og træningshistorik</p>
 
-    <!-- Weekly summary cards -->
-    <div class="stats-cards">
-        <div class="stat-card">
-            <p class="stat-value">@WorkoutsThisWeek</p>
-            <p class="stat-label">Træninger denne uge</p>
-        </div>
+    @if (isLoading)
+    {
+        <p>Indlæser statistik…</p>
+    }
+    else if (!string.IsNullOrEmpty(feedError))
+    {
+        <p style="color:red">@feedError</p>
+    }
+    else
+    {
+        @foreach (var c in ClassResults)
+        {
+            <div style="border-bottom:1px solid #ccc; margin-bottom:8px">
+                <p><b>ClassId:</b> @c.ClassId</p>
+                <p><b>UserId:</b> @c.UserId</p>
+                <p><b>Category:</b> @c.Category</p>
+                <p><b>Calories:</b> @c.CaloriesBurned</p>
+                <p><b>Watt:</b> @c.Watt</p>
+                <p><b>Duration:</b> @c.DurationMin min</p>
+                <p><b>Date:</b> @c.Date</p>
+                <p><b>EventId:</b> @c.EventId</p>
+            </div>
+        }
+    }
 
-        <div class="stat-card">
-            <p class="stat-value">@TotalMinutes</p>
-            <p class="stat-label">Minutter trænet</p>
-        </div>
+    <hr />
 
-        <div class="stat-card">
-            <p class="stat-value">@CaloriesBurnt</p>
-            <p class="stat-label">Kalorier forbrændt</p>
-        </div>
-    </div>
+    <h3>✅ Solo training results</h3>
 
-    <!-- Weekly bar chart -->
-    <div class="stats-chart-card">
-        <p class="chart-title">Ugentlig aktivitet</p>
+    @if (SoloTrainingResults.Count == 0)
+    {
+        <p>Ingen solo training results</p>
+    }
+    else
+    {
+        @foreach (var s in SoloTrainingResults)
+        {
+            <div style="border-bottom:1px solid #ccc; margin-bottom:8px">
+                <p><b>UserId:</b> @s.UserId</p>
+                <p><b>Date:</b> @s.Date</p>
+                <p><b>TrainingType:</b> @s.TrainingType</p>
+                <p><b>Duration:</b> @s.DurationMinutes min</p>
 
-        <div class="chart-bars">
-            @foreach (var day in WeeklyData)
-            {
-                <div class="chart-bar-col">
-                    <div class="chart-bar"
-                         style="height:@($"{day.HeightPercent}%")"
-                         title="@($"{day.DayName}: {day.Value} min")"></div>
-                    <span class="chart-label">@day.DayShort</span>
-                </div>
-            }
-        </div>
-    </div>
+                <p><b>Exercises:</b></p>
+                <ul>
+                    @foreach (var ex in s.Exercises)
+                    {
+                        <li>
+                            @ex.ExerciseType –
+                            Volume: @ex.Volume
 
-    <!-- Progress box -->
-    <div class="progress-card">
-        <p class="progress-title">Målsætning fremskridt</p>
+                            <ul>
+                                @foreach (var set in ex.Sets)
+                                {
+                                    <li>
+                                        Reps: @set.Repetitions |
+                                        Weight: @set.Weight
+                                    </li>
+                                }
+                            </ul>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    }
 
-        <p class="progress-text">@(ProgressPercent)% af ugens mål nået</p>
+    <hr />
 
-        <div class="progress-bar">
-            <div class="progress-bar-fill" style="width:@($"{ProgressPercent}%")"></div>
-        </div>
-    </div>
+    <h3>✅ Crowd count</h3>
+
+    <p><b>Antal i centeret:</b> @CrowdCount</p>
+    }
 </div>
 
 @code {
-    private int WorkoutsThisWeek = 4;
-    private int TotalMinutes = 185;
-    private int CaloriesBurnt = 1420;
 
-    private int ProgressPercent = 73;
+   
+    private string? LoggedInUserId;
+    private bool isLoading = true;
+    private string? feedError;
 
-    private List<DayStat> WeeklyData = new()
+    // Modeller klar til brug
+    private List<ClassResultDTO> ClassResults = new();
+    private List<SoloTrainingResultsDTO> SoloTrainingResults = new();
+    private int CrowdCount;
+
+    
+    protected override async Task OnInitializedAsync()
     {
-        new DayStat("Mon", "Man", 40),
-        new DayStat("Tue", "Tir", 65),
-        new DayStat("Wed", "Ons", 55),
-        new DayStat("Thu", "Tor", 30),
-        new DayStat("Fri", "Fre", 75),
-        new DayStat("Sat", "Lør", 20),
-        new DayStat("Sun", "Søn", 0),
-    };
+        LoggedInUserId = await TokenService.GetUserIdAsync();
+        await LoadStatisticsAsync();
+    }
 
-    public class DayStat
+    
+    private async Task LoadStatisticsAsync()
     {
-        public string DayShort { get; }
-        public string DayName { get; }
-        public int Value { get; }
-        public int HeightPercent => Math.Clamp(Value, 0, 100);
+        isLoading = true;
+        feedError = null;
 
-        public DayStat(string shortName, string name, int value)
+        try
         {
-            DayShort = shortName;
-            DayName = name;
-            Value = value;
+            if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            {
+                feedError = "UserId mangler";
+                return;
+            }
+
+            //  CLASS RESULTS 
+            var classRes =
+                await AnalyticsService.GetClassResultsAsync(LoggedInUserId);
+
+            if (classRes.IsSuccessStatusCode)
+            {
+                ClassResults =
+                    await classRes.Content
+                        .ReadFromJsonAsync<List<ClassResultDTO>>()
+                    ?? new();
+            }
+
+            //  SOLO TRAINING 
+            var soloRes =
+                await AnalyticsService.GetSoloTrainingResultsAsync(LoggedInUserId);
+
+            if (soloRes.IsSuccessStatusCode)
+            {
+                SoloTrainingResults =
+                    await soloRes.Content
+                        .ReadFromJsonAsync<List<SoloTrainingResultsDTO>>()
+                    ?? new();
+            }
+
+            //  CROWD 
+            var crowdRes =
+                await AnalyticsService.GetCrowdCountAsync();
+
+            if (crowdRes.IsSuccessStatusCode)
+            {
+                CrowdCount =
+                    await crowdRes.Content.ReadFromJsonAsync<int>();
+            }
+        }
+        catch (Exception ex)
+        {
+            feedError = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 }

@@ -1,52 +1,81 @@
 @page "/"
 @page "/login"
-@layout EmptyLayout
+@layout PhoneLayoutWithoutNav
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
 @inject NavigationManager Nav
 @using System.ComponentModel.DataAnnotations
-@using FitLifeFitness.Components.Layout
 @using System.Net.Http.Json
+@using FitLifeFitness.Components.Layout
 @using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
 
-<div class="login-card">
-    <h1 class="app-title">FitLife Fitness</h1>
+<section class="login-page">
 
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="error-message">@errorMessage</div>
-    }
+    <header class="login-hero">
+        <div class="hero-icon">🔑</div>
+        <div class="hero-content">
+            <h1 class="hero-title">FitLife Fitness</h1>
+            <p class="hero-subtitle">Log ind for at se din status, dine hold og dit skab.</p>
+        </div>
+    </header>
 
-    <EditForm Model="@loginModel" OnValidSubmit="OnLoginClicked" FormName="LoginForm">
-        <DataAnnotationsValidator />
-        <div class="form-group">
-            <label for="username">Brugernavn</label>
-            <InputText id="username" @bind-Value="loginModel.Username" class="input-field" disabled="@isLoading" />
+    <main class="login-body">
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="state-card error">
+                <div class="state-title">Noget gik galt</div>
+                <div class="state-sub">@errorMessage</div>
+            </div>
+        }
+
+        <EditForm Model="@loginModel" OnValidSubmit="OnLoginClicked" FormName="LoginForm" class="login-form">
+            <DataAnnotationsValidator />
+
+            <section class="card">
+                <div class="card-title">Log ind</div>
+
+                <div class="field">
+                    <label for="username">Brugernavn</label>
+                    <input id="username"
+                           class="input"
+                           @bind="loginModel.Username"
+                           disabled="@isLoading"
+                           autocomplete="username"
+                           placeholder="Dit brugernavn" />
+                </div>
+
+                <div class="field">
+                    <label for="password">Password</label>
+                    <input id="password"
+                           class="input"
+                           type="password"
+                           @bind="loginModel.Password"
+                           disabled="@isLoading"
+                           autocomplete="current-password"
+                           placeholder="Dit password" />
+                </div>
+
+                <ValidationSummary />
+
+                <button type="submit" class="primary" disabled="@isLoading">
+                    @(isLoading ? "Logger ind..." : "Log ind")
+                </button>
+            </section>
+        </EditForm>
+
+        <div class="actions">
+            <button type="button" class="ghost" disabled="@isLoading">Glemt password?</button>
+            <button type="button" class="ghost" @onclick="GoToCreateUser" disabled="@isLoading">Opret bruger</button>
         </div>
-        <div class="form-group">
-            <label for="password">Password</label>
-            <InputText id="password" type="password" @bind-Value="loginModel.Password" class="input-field"
-                disabled="@isLoading" />
-        </div>
-        <ValidationSummary />
-        <button type="submit" class="primary-btn" disabled="@isLoading">
-            @if (isLoading)
-            {
-                <span>Logger ind...</span>
-            }
-            else
-            {
-                <span>Log ind</span>
-            }
+
+        <button type="button" class="secondary" @onclick="GoToDashboardNow" disabled="@isLoading">
+            Fortsæt til dashboard
         </button>
-    </EditForm>
-    <div class="login-links">
-        <button type="button" class="link-btn">Glemt password?</button>
-        <button type="button" class="link-btn" @onclick="GoToCreateUser">Opret bruger</button>
-        <button type="button" class="primary-btn" @onclick="GoToDashboardNow">Fortsæt til dashboard</button>
-    </div>
-</div>
+
+    </main>
+</section>
 
 @code {
     [SupplyParameterFromForm]
@@ -70,19 +99,15 @@
 
                 if (result != null)
                 {
-                    // Save token and ensure it's flushed to storage
                     await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username, result.User.Role);
-                    
-                    // Try to flush any pending values before navigating
+
                     try
                     {
                         await TokenService.FlushPendingAsync();
-                        // Small delay to ensure storage write completes
                         await Task.Delay(50);
                     }
                     catch { }
-                    
-                    // Navigate WITHOUT force reload to preserve state
+
                     Nav.NavigateTo("/dashboard", forceLoad: false);
                     return;
                 }
@@ -90,30 +115,22 @@
             else
             {
                 if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
                     errorMessage = "Forkert brugernavn eller password.";
-                }
                 else
-                {
                     errorMessage = "Login mislykkedes. Prøv igen.";
-                }
             }
         }
         catch (NavigationException)
         {
-            // This is EXPECTED - it means navigation is working!
-            // Blazor throws this to stop execution and navigate
-            throw; // Re-throw to let Blazor handle the navigation
+            throw;
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
             errorMessage = "Kunne ikke oprette forbindelse til serveren.";
-            Console.WriteLine($"HTTP error: {ex.Message}");
         }
-        catch (Exception ex)
+        catch
         {
             errorMessage = "Der opstod en fejl. Prøv igen senere.";
-            Console.WriteLine($"Exception: {ex.GetType().Name} - {ex.Message}");
         }
         finally
         {
@@ -123,15 +140,12 @@
 
     private void GoToDashboardNow()
     {
-        // Use the current browser location to preserve the port
         var uri = new Uri(Nav.Uri);
         var dashboardUrl = $"{uri.Scheme}://{uri.Authority}/dashboard";
         Nav.NavigateTo(dashboardUrl, forceLoad: true);
     }
-    private void GoToCreateUser()
-    {
-        Nav.NavigateTo("/create-user");
-    }
+
+    private void GoToCreateUser() => Nav.NavigateTo("/create-user");
 
     public class LoginModel
     {

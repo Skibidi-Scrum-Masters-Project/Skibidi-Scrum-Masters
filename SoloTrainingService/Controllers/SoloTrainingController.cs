@@ -55,8 +55,8 @@ public class SoloTrainingController : ControllerBase
         {
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
+       
     }
-
     [HttpGet("{userId}")]
     public async Task<ActionResult<IEnumerable<SoloTrainingSession>>> GetAllSoloTrainingsForUser(string userId)
     {

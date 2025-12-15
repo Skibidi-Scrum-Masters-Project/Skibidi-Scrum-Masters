@@ -193,12 +193,18 @@ public class SocialController : ControllerBase
         }
     }
 
-    [HttpPut("{userId}/cancel/{receiverId}")]
-    public async Task<ActionResult<Friendship>> CancelFriendRequest(string userId, string receiverId)
+    [HttpDelete("{userId}/cancel/{receiverId}")]
+    public async Task<IActionResult> CancelFriendRequest(string userId, string receiverId)
     {
-        var friendRequestCanceled = await _socialRepository.CancelFriendRequest(userId, receiverId);
-        
-        return Ok(friendRequestCanceled);
+        try
+        {
+            await _socialRepository.CancelFriendRequest(userId, receiverId);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 
     [HttpGet("friendrequests/outgoing/{userId}")]
@@ -276,22 +282,12 @@ public class SocialController : ControllerBase
     }
 
     
-    [Authorize]
     [HttpPut("EditAPost")]
     public async Task<ActionResult<Post>> EditAPost([FromBody] Post post)
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-        {
-            return Unauthorized();
-        }
-
-        // Ignorér hvad klienten sender og sæt ejer ud fra JWT
-        post.UserId = currentUserId;
-
         try
         {
-            var editedPost = await _socialRepository.EditAPost(post, currentUserId);
+            var editedPost = await _socialRepository.EditAPost(post);
             return Ok(editedPost);
         }
         catch (KeyNotFoundException)
@@ -306,9 +302,9 @@ public class SocialController : ControllerBase
     {
         try
         {
-            var addedComment = await _socialRepository.AddCommentToPost(postId, comment);
+            var updatedPost  = await _socialRepository.AddCommentToPost(postId, comment);
         
-            return Ok(addedComment);
+            return Ok(updatedPost );
         }
 
         catch (KeyNotFoundException ex)
@@ -395,6 +391,12 @@ public class SocialController : ControllerBase
         return posts;
     }
 
+    [HttpGet("SeeSpecficPostByPostId/{postId}")]
+    public async Task<Post> SeeSpecficPostForPostId(string postId)
+    {
+        var post =  await _socialRepository.SeeSpecficPostByPostId(postId);
+        return post;
+    }
 
 
 }
