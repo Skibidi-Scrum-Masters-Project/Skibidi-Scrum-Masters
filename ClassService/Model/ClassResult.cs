@@ -20,5 +20,8 @@ namespace ClassService.Model
         public Double Watt { get; set; }
         public int DurationMin { get; set; }
         public DateTime Date { get; set; }
+        
+        [BsonIgnore]
+        public string EventId { get; set; } = string.Empty;
     }
 }

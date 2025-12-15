@@ -2,6 +2,8 @@ using FitnessApp.Shared.Models;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using System.Threading.Tasks;
+using SoloTrainingService.Models;
+
 
 public class SoloTrainingRepository : ISoloTrainingRepository
 {
@@ -22,7 +24,6 @@ public class SoloTrainingRepository : ISoloTrainingRepository
 
         try
         {
-            // soloTraining indeholder allerede: UserId, Date, Exercises, TrainingType, DurationMinutes
             var response = await _httpClient.PostAsJsonAsync(
                 "http://analyticsservice:8080/api/Analytics/solotraining",
                 soloTraining
@@ -35,8 +36,33 @@ public class SoloTrainingRepository : ISoloTrainingRepository
             Console.WriteLine($"Error calling analytics service: {ex.Message}");
         }
 
+        try
+        {
+            var evt = new SoloTrainingCompletedEvent
+            {
+                UserId = userId,
+                SoloTrainingSessionId = soloTraining.Id!,
+                Date = soloTraining.Date,
+                TrainingType = soloTraining.TrainingType.ToString(),
+                DurationMinutes = soloTraining.DurationMinutes,
+                ExerciseCount = soloTraining.Exercises?.Count ?? 0
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(
+                "http://socialservice:8080/internal/events/solo-training-completed",
+                evt
+            );
+
+            Console.WriteLine($"Social response: {response.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calling social service: {ex.Message}");
+        }
+
         return soloTraining;
     }
+
 
     public async Task DeleteSoloTraining(string trainingId)
     {

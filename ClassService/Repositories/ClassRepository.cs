@@ -3,18 +3,21 @@ using ClassService.Model;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
+using System.Net.Http.Json;
 
 public class ClassRepository : IClassRepository
 {
     private readonly IMongoCollection<FitnessClass> _classesCollection;
     private readonly IMongoCollection<ClassResult> _classResultsCollection;
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public ClassRepository(IMongoDatabase database, HttpClient httpClient)
+
+    public ClassRepository(IMongoDatabase database, IHttpClientFactory httpClientFactory)
     {
         _classesCollection = database.GetCollection<FitnessClass>("Classes");
         _classResultsCollection = database.GetCollection<ClassResult>("ClassResults");
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
+
     }
 
     public async Task<FitnessClass> AddUserToClassWaitlistAsync(string classId, string userId)
@@ -193,31 +196,78 @@ public class ClassRepository : IClassRepository
         return _classesCollection.DeleteOneAsync(c => c.Id == classId);
     }
 
-    public Task FinishClass(string classId)
+    public async Task FinishClass(string classId)
     {
-        var finishedClass = GetClassByIdAsync(classId).Result;
-        var caloriesBurnedTotal = CalculateCaloriesBurned(finishedClass.Intensity, finishedClass.Category, finishedClass.Duration);
-        var wattTotal = CalculateWatt(finishedClass.Intensity, finishedClass.Category, finishedClass.Duration).Result;
-        
-        foreach (var Attendant in finishedClass.BookingList)
+        var finishedClass = await GetClassByIdAsync(classId);
+        if (finishedClass == null) throw new Exception("Class not found.");
+
+        var caloriesBurnedTotal = CalculateCaloriesBurned(
+            finishedClass.Intensity,
+            finishedClass.Category,
+            finishedClass.Duration
+        );
+
+        var wattTotal = await CalculateWatt(
+            finishedClass.Intensity,
+            finishedClass.Category,
+            finishedClass.Duration
+        );
+
+        var occurredAtUtc = DateTime.UtcNow;
+
+        foreach (var attendant in finishedClass.BookingList)
         {
-            //Calculate their metrics
-            var Metric = new ClassResult();
-            Metric.Category = finishedClass.Category;
-            Metric.ClassId = classId;
-            Metric.UserId = Attendant.UserId;
-            Metric.CaloriesBurned = caloriesBurnedTotal;
-            Metric.Watt = wattTotal;
-            Metric.DurationMin = finishedClass.Duration;
-            Metric.Date = DateTime.Now;
-           _httpClient.PostAsync(
-               $"http://analyticsservice:8080/analytics/classes/{classId}/{Attendant.UserId}/{caloriesBurnedTotal}/{finishedClass.Category}/{finishedClass.Duration}/{Metric.Date:o}",
-               null);
+            var metric = new ClassResult
+            {
+                ClassId = classId,
+                UserId = attendant.UserId,
+                CaloriesBurned = caloriesBurnedTotal,
+                Watt = wattTotal,
+                DurationMin = finishedClass.Duration,
+                Date = DateTime.UtcNow,
+                EventId = Guid.NewGuid().ToString()
+            };
+
+            await _classResultsCollection.InsertOneAsync(metric);
+            
+        
+            try
+            {
+                await NotifySocialService(metric);
+                var analyticsClient = _httpClientFactory.CreateClient("AnalyticsService");
+
+                await analyticsClient.PostAsync(
+                    $"http://analyticsservice:8080/analytics/classes/{classId}/{attendant.UserId}/{caloriesBurnedTotal}/{finishedClass.Category}/{finishedClass.Duration}/{DateTime.UtcNow:o}",
+                    null
+                );
+            }
+            catch (Exception ex)
+            {
+                // Stopper ikke finish hvis socialservice er nede
+                Console.WriteLine($"NotifySocialService failed for user {attendant.UserId} in class {classId}: {ex.Message}");
+            }
+            
         }
+
         finishedClass.IsActive = false;
-        _classesCollection.ReplaceOne(c => c.Id == classId, finishedClass);
-        return Task.CompletedTask;
+        await _classesCollection.ReplaceOneAsync(c => c.Id == classId, finishedClass);
     }
+
+
+
+    private async Task NotifySocialService(ClassResult evt)
+    {
+        var client = _httpClientFactory.CreateClient("SocialService");
+        var res = await client.PostAsJsonAsync("/internal/events/class-workout-completed", evt);
+
+        if (!res.IsSuccessStatusCode)
+        {
+            var body = await res.Content.ReadAsStringAsync();
+            throw new Exception("SocialService event failed: " + (int)res.StatusCode + " " + body);
+        }
+    }
+
+
     public async Task<Double> CalculateWatt(Intensity intensity,
      Category category, int DurationMinutes)
     {
@@ -403,6 +453,39 @@ public class ClassRepository : IClassRepository
            c => c.Id == classId,
            Builders<FitnessClass>.Update.Pull(c => c.WaitlistUserIds, nextUserId)
        );
+    }
+    public async Task<IEnumerable<FitnessClass>> GetClassesByUserIdAsync(string userId)
+    {
+        //find classes where bookinglist or waitlist contains userId
+        var filter = Builders<FitnessClass>.Filter.Or(
+            Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId),
+            Builders<FitnessClass>.Filter.ElemMatch(c => c.WaitlistUserIds, id => id == userId)
+        );
+        var classes = _classesCollection.Find(filter).ToList();
+        return classes;
+    }
+
+    public Task<IEnumerable<FitnessClass>> GetAllAvailableClassesAsync(string userId)
+    {
+        var filter = Builders<FitnessClass>.Filter.And(
+            Builders<FitnessClass>.Filter.Eq(c => c.IsActive, true),
+            Builders<FitnessClass>.Filter.Not(
+                Builders<FitnessClass>.Filter.ElemMatch(c => c.BookingList, b => b.UserId == userId)
+            ),
+            Builders<FitnessClass>.Filter.Not(
+                Builders<FitnessClass>.Filter.ElemMatch(c => c.WaitlistUserIds, id => id == userId)
+            )
+        );
+
+        var classes = _classesCollection.Find(filter).ToList();
+        return Task.FromResult(classes.AsEnumerable());
+    }
+
+    public Task<IEnumerable<FitnessClass>> GetClassesByCoachIdAsync(string coachId)
+    {
+        var filter = Builders<FitnessClass>.Filter.Eq(c => c.InstructorId, coachId);
+        var classes = _classesCollection.Find(filter).ToList();
+        return Task.FromResult(classes.AsEnumerable());
     }
 
     public Task<List<ClassResult>> GetUserStatisticsAsync(string userId)

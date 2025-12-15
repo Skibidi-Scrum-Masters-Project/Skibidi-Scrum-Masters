@@ -1,53 +1,238 @@
 @page "/classes/book"
-@using Microsoft.AspNetCore.Components
-@using FitLifeFitness.Components.Layout
 @layout EmptyLayout
+@inject FitLifeFitness.Services.AuthService AuthService
+@inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.ClassService ClassService
+@using System.ComponentModel.DataAnnotations
+@using FitLifeFitness.Components.Layout
+@using System.Net.Http.Json
+@using FitlifeFitness.Models
+@using Microsoft.AspNetCore.Components
 <div class="book-screen">
+    <button class="secondary-btn book-back" @onclick="GoBack">Tilbage</button>
     <h2 class="book-title">Book hold</h2>
     <p class="book-subtitle">Vælg et hold du vil booke.</p>
 
     <div class="book-list">
-        @foreach (var c in AvailableClasses)
+        @foreach (FitnessClass c in AvailableClasses)
         {
-            <button class="book-card" @onclick="() => ChooseSeat(c.Id)">
-                <div class="book-main">
-                    <p class="book-name">@c.Name</p>
-                    <p class="book-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
-                    <p class="book-location">@c.Location</p>
+            @if (c.SeatBookingEnabled == false)
+            {
+                var isFull = c.BookingList.Count >= c.MaxCapacity;
+                <div class="book-card-container">
+                    <div class="book-card @(isFull ? "full" : "available")" @onclick="@(async () => { if (!isFull) GoToBooking(c.Id); await Task.CompletedTask; })">
+                        <div class="book-main">
+                            <p class="book-name">@c.Name</p>
+                            <p class="book-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
+                        </div>
+                        <div class="book-extra">
+                            <p class="book-type">@c.Category</p>
+                            <p class="book-spots">@c.BookingList.Count/@c.MaxCapacity pladser</p>
+                            <p class="book-location">@c.Intensity</p>
+                        </div>
+                        @if (isFull) {
+                            <button type="button" class="class-waitlist-inline" @onclick="async () => await BookClassForUserAsync(c.Id)" @onclick:stopPropagation>
+                                Meld dig på ventelisten
+                            </button>
+                        }
+                    </div>
+                    @if (WaitlistFeedbackClassId == c.Id && !string.IsNullOrEmpty(WaitlistFeedbackMessage))
+                    {
+                        <div class="waitlist-feedback @(WaitlistFeedbackMessage.Contains("galt") ? "error" : "success")">
+                            @WaitlistFeedbackMessage
+                        </div>
+                    }
                 </div>
-                <div class="book-extra">
-                    <p class="book-type">@c.Type</p>
-                    <p class="book-spots">@c.SpotsTaken/@c.SpotsTotal pladser</p>
+            }
+            else
+            {
+                var isFullSeat = c.BookingList.Count >= c.MaxCapacity;
+                <div class="book-card-container">
+                    <div class="book-card @(isFullSeat ? "full" : "available")" @onclick="@(async () => { if (!isFullSeat) ChooseSeat(c.Id); await Task.CompletedTask; })">
+                        <div class="book-main">
+                            <p class="book-name">@c.Name</p>
+                            <p class="book-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
+                        </div>
+                        <div class="book-extra">
+                            <p class="book-type">@c.Category</p>
+                            <p class="book-spots">@c.BookingList.Count/@c.MaxCapacity pladser</p>
+                            <p class="book-location">@c.Intensity</p>
+                        </div>
+                        @if (isFullSeat) {
+                            <button type="button" class="class-waitlist-inline" @onclick="async () => await BookClassForUserAsync(c.Id)" @onclick:stopPropagation>
+                                Meld dig på ventelisten
+                            </button>
+                        }
+                    </div>
+                    @if (WaitlistFeedbackClassId == c.Id && !string.IsNullOrEmpty(WaitlistFeedbackMessage))
+                    {
+                        <div class="waitlist-feedback @(WaitlistFeedbackMessage.Contains("galt") ? "error" : "success")">
+                            @WaitlistFeedbackMessage
+                        </div>
+                    }
                 </div>
-            </button>
+            }
         }
     </div>
 </div>
 
+<style>
+.book-card-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.book-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.book-card.available {
+    background: #e8f5e9 !important;
+}
+
+.book-card.available:hover {
+    transform: translateY(-2px);
+}
+
+.book-card.full {
+    background: #ffebee !important;
+    cursor: default;
+}
+
+.class-waitlist-inline {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    border-radius: 8px;
+    background: #fff3e0;
+    border: 1px solid #ffb74d;
+    color: #e65100;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    margin-top: 4px;
+}
+
+.class-waitlist-inline:hover {
+    background: #ffe0b2;
+    border-color: #ffa726;
+}
+
+.class-waitlist-inline:active {
+    transform: scale(0.98);
+}
+
+.waitlist-feedback {
+    width: 100%;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    text-align: center;
+    font-weight: 500;
+    animation: slideIn 0.3s ease-out;
+}
+
+.waitlist-feedback.success {
+    color: #2e7d32;
+    background: #e8f5e9;
+    border: 1px solid #81c784;
+}
+
+.waitlist-feedback.error {
+    color: #c62828;
+    background: #ffebee;
+    border: 1px solid #e57373;
+}
+
+
+}
+</style>
+
 @code {
+    private string? userId;
+    private List<FitnessClass> AvailableClasses = new List<FitnessClass>();
+    private string? WaitlistFeedbackClassId;
+    private string? WaitlistFeedbackMessage;
     [Inject] private NavigationManager Nav { get; set; } = default!;
-
-    private List<ClassOption> AvailableClasses = new()
+    
+    protected override async Task OnInitializedAsync()
     {
-        new() { Id = 1, Name = "Bodypump", Type = "Styrke", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)), Time = "17:00", Location = "Sal 1", SpotsTaken = 12, SpotsTotal = 20 },
-        new() { Id = 2, Name = "Spinning", Type = "Cardio", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(1)), Time = "18:30", Location = "Cykelsal", SpotsTaken = 8, SpotsTotal = 18 },
-        new() { Id = 3, Name = "Yoga", Type = "Mobility", Date = DateOnly.FromDateTime(DateTime.Today.AddDays(2)), Time = "19:00", Location = "Sal 2", SpotsTaken = 5, SpotsTotal = 15 },
-    };
+        userId = await TokenService.GetUserIdAsync();
+        if (string.IsNullOrEmpty(userId))
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
 
-    private void ChooseSeat(int id)
-    {
-        Nav.NavigateTo($"/classes/seat/{id}");
+        await LoadAvailableClassesAsync();
     }
 
-    public class ClassOption
+    private async Task LoadAvailableClassesAsync()
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = "";
-        public string Type { get; set; } = "";
-        public DateOnly Date { get; set; }
-        public string Time { get; set; } = "";
-        public string Location { get; set; } = "";
-        public int SpotsTaken { get; set; }
-        public int SpotsTotal { get; set; }
+        var response = await ClassService.GetAllAvailableClassesAsync(userId!);
+        if (response.IsSuccessStatusCode)
+        {
+            AvailableClasses = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
+        }
+    }
+
+    private async Task ChooseSeat(string? ClassId)
+    {
+        if (ClassId == null) return;
+        Nav.NavigateTo($"/classes/seat/{ClassId}");
+    }
+    
+    private void GoBack()
+    {
+        Nav.NavigateTo("/classes");
+    }
+    
+    private void GoToBooking(string? ClassId)
+    {
+        if (ClassId == null) return;
+        Nav.NavigateTo($"/classes/book/{ClassId}");
+    }
+    
+    private async Task BookClassForUserAsync(string classId)
+    {
+        // Clear previous feedback
+        WaitlistFeedbackClassId = null;
+        WaitlistFeedbackMessage = null;
+        StateHasChanged();
+
+        // Add to waitlist
+        var response = await ClassService.BookClassForUser(classId, userId!);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            WaitlistFeedbackClassId = classId;
+            WaitlistFeedbackMessage = "Du er nu på ventelisten! 🎉";
+            
+            // Refresh the available classes list
+            await LoadAvailableClassesAsync();
+            
+            // Clear feedback after 3 seconds
+            StateHasChanged();
+            await Task.Delay(3000);
+            WaitlistFeedbackClassId = null;
+            WaitlistFeedbackMessage = null;
+        }
+        else
+        {
+            WaitlistFeedbackClassId = classId;
+            WaitlistFeedbackMessage = "Noget gik galt. Prøv igen.";
+        }
+        
+        StateHasChanged();
     }
 }

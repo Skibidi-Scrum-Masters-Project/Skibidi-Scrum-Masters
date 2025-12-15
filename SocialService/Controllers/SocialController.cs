@@ -1,7 +1,11 @@
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using SocialService.Models;
 using SocialService.Repositories;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using MongoDB.Driver;
 
 namespace SocialService.Controllers;
 
@@ -10,32 +14,64 @@ namespace SocialService.Controllers;
 public class SocialController : ControllerBase
 {
     private readonly ISocialRepository _socialRepository;
+    private readonly IMongoCollection<Post> _posts;
+
 
     public SocialController(ISocialRepository socialRepository)
     {
         _socialRepository = socialRepository;
     }
-
-    [HttpGet("user/{userId}")]
-    public ActionResult<IEnumerable<Friend>> GetUserFriends(string userId)
+    
+    [HttpPost("/internal/events/class-workout-completed")]
+    public async Task<IActionResult> ClassWorkoutCompleted([FromBody] ClassResultEventDto metric)
     {
-        // TBA: Implement get user's friends
-        return Ok(new { message = $"Get friends for user {userId} - TBA" });
+        if (string.IsNullOrWhiteSpace(metric.EventId) ||
+            string.IsNullOrWhiteSpace(metric.UserId) ||
+            string.IsNullOrWhiteSpace(metric.ClassId))
+            return BadRequest("Invalid payload.");
+
+        var draftId = await _socialRepository.CreateDraftFromClassWorkoutCompletedAsync(metric);
+
+        // Hvis dedupe ramte, kan du stadig returnere Ok()
+        if (draftId == null) return Ok();
+
+        return Ok(new { draftId });
+    }
+    
+    [HttpPost("/internal/events/solo-training-completed")]
+    public async Task<IActionResult> SoloTrainingCompleted([FromBody] SoloTrainingCompletedEventDto metric)
+    {
+        if (string.IsNullOrWhiteSpace(metric.UserId) ||
+            string.IsNullOrWhiteSpace(metric.SoloTrainingSessionId) ||
+            string.IsNullOrWhiteSpace(metric.TrainingType) ||
+            metric.DurationMinutes <= 0)
+            return BadRequest("Invalid payload.");
+
+
+        metric.EventId ??= Guid.NewGuid().ToString();
+
+        var draftId = await _socialRepository.CreateDraftFromSoloTrainingCompletedAsync(metric);
+
+        if (draftId == null) return Ok();
+
+        return Ok(new { draftId });
     }
 
-    [HttpPost("friendrequest")]
-    public async Task<ActionResult<FriendshipStatus>> SendFriendRequestAsync([FromBody] Friendship friendship)
+
+    
+    [HttpPost("{userId}/sendFriendrequest/{receiverId}")]
+    public async Task<ActionResult<Friendship>> SendFriendRequestAsync(string userId, string receiverId)
     {
-        if (friendship.SenderId == friendship.ReceiverId)
+        if (userId == receiverId)
             return BadRequest("You cannot send a friend request to yourself.");
     
-        if (friendship.SenderId <= 0 || friendship.ReceiverId <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(receiverId))
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
         {
             var createdFriendship = await _socialRepository
-                .SendFriendRequestAsync(friendship.SenderId, friendship.ReceiverId);
+                .SendFriendRequestAsync(userId, receiverId);
 
             return Ok(createdFriendship);
         }
@@ -59,19 +95,19 @@ public class SocialController : ControllerBase
     }
 
 
-    [HttpPut("decline/{senderId}/{receiverId}")]
-    public async Task<IActionResult> DeclineFriendRequestAsync(int senderId, int receiverId)
+    [HttpPut("declineRequest/{userId}/{receiverId}")]
+    public async Task<IActionResult> DeclineFriendRequestAsync(string userId, string receiverId)
     {
-        if (senderId == receiverId)
+        if (userId == receiverId)
             return BadRequest("You cannot decline a friend request to yourself.");
     
-        if (senderId <= 0 || receiverId <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(receiverId))
             return BadRequest("SenderId and ReceiverId must be valid ids.");
 
         try
         {
             var declineFriendship = await _socialRepository
-                .DeclineFriendRequestAsync(senderId, receiverId);
+                .DeclineFriendRequestAsync(userId, receiverId);
 
             return Ok(declineFriendship.FriendShipStatus);
         }
@@ -94,13 +130,13 @@ public class SocialController : ControllerBase
         }
     }
 
-    [HttpGet("{senderId}/friends")]
-    public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(int senderId)
+    [HttpGet("{userId}/friends")]
+    public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(string userId)
     {
 
         try
         {
-            var listOfFriends = await _socialRepository.GetAllFriends(senderId);
+            var listOfFriends = await _socialRepository.GetAllFriends(userId);
             return Ok(listOfFriends);
         }
         catch (KeyNotFoundException ex)
@@ -123,12 +159,12 @@ public class SocialController : ControllerBase
 
     }
     
-    [HttpGet("{senderId}/friends/{receiverId}")]
-    public async Task<ActionResult<Friendship>> GetFriendById(int senderId, int receiverId)
+    [HttpGet("{userId}/friends/{receiverId}")]
+    public async Task<ActionResult<Friendship>> GetFriendById(string userId, string receiverId)
     {
         try
         {
-            var friendFound = await _socialRepository.GetFriendById(senderId, receiverId);
+            var friendFound = await _socialRepository.GetFriendById(userId, receiverId);
 
             if (friendFound == null)
                 return NotFound();
@@ -157,24 +193,209 @@ public class SocialController : ControllerBase
         }
     }
 
-    [HttpPut("{senderId}/friends/{receiverId}")]
-    public async Task<ActionResult<Friendship>> CancelFriendRequest(int senderId, int receiverId)
+    [HttpPut("{userId}/cancel/{receiverId}")]
+    public async Task<ActionResult<Friendship>> CancelFriendRequest(string userId, string receiverId)
     {
-        var friendRequestCanceled = await _socialRepository.CancelFriendRequest(senderId, receiverId);
+        var friendRequestCanceled = await _socialRepository.CancelFriendRequest(userId, receiverId);
         
         return Ok(friendRequestCanceled);
     }
 
-    [HttpGet("friendrequests/{senderId}")]
-    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllFriendRequests(int senderId)
+    [HttpGet("friendrequests/outgoing/{userId}")]
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetOutgoingFriendRequests(string userId)
     {
-        var friendRequests = await _socialRepository.GetAllFriendRequests(senderId);
+        var friendRequests = await _socialRepository.GetOutgoingFriendRequestsAsync(userId);
         
         if (friendRequests == null)
             return BadRequest(friendRequests);
                 
         return Ok(friendRequests);
     }
+    
+    [HttpGet("friendrequests/incoming/{userId}")]
+    public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllIncomingFriendRequests(string userId)
+    {
+        var friendRequests = await _socialRepository.GetAllIncomingFriendRequests(userId);
+        
+        if (friendRequests == null)
+            return BadRequest(friendRequests);
+                
+        return Ok(friendRequests);
+    }
+    
+    
+    [HttpPut("accept/{userId}/{receiverId}")]
+    public async Task<IActionResult> AcceptFriendRequestAsync(string userId, string receiverId)
+    {
+        if (userId == receiverId)
+            return BadRequest("You cannot accept yourself as a friend.");
+    
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(receiverId))
+            return BadRequest("SenderId and ReceiverId must be valid ids.");
+
+        try
+        {
+            var acceptFriendshipRequest = await _socialRepository
+                .AcceptFriendRequest(userId, receiverId);
+
+            return Ok(acceptFriendshipRequest.FriendShipStatus);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            // log her
+            return StatusCode(500, "An unexpected error occurred.");
+        }
+    }
+
+
+    [HttpPost("PostAPost")]
+    public Task<Post> PostAPost([FromBody]Post post)
+    {
+        var createdPost = _socialRepository.PostAPost(post);
+        
+        return createdPost;
+    }
+
+
+    [HttpDelete("RemoveAPost/{postId}")]
+    public Task<Post> RemoveAPost(string postId)
+    {
+        return _socialRepository.RemoveAPost(postId);
+    }
+
+    
+    [Authorize]
+    [HttpPut("EditAPost")]
+    public async Task<ActionResult<Post>> EditAPost([FromBody] Post post)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return Unauthorized();
+        }
+
+        // Ignorér hvad klienten sender og sæt ejer ud fra JWT
+        post.UserId = currentUserId;
+
+        try
+        {
+            var editedPost = await _socialRepository.EditAPost(post, currentUserId);
+            return Ok(editedPost);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+
+    [HttpPut("AddACommentToPost/{postId}")]
+    public async Task<ActionResult<Post>> AddACommentToPost(string postId, [FromBody]Comment comment)
+    {
+        try
+        {
+            var addedComment = await _socialRepository.AddCommentToPost(postId, comment);
+        
+            return Ok(addedComment);
+        }
+
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
+
+    [HttpDelete("RemoveACommentFromPost/{postId}/{commentId}")]
+    public async Task<ActionResult<Post>> RemoveCommentFromPost(string postId, string commentId)
+    {
+        try
+        {
+            var updatedPost = await _socialRepository.RemoveCommentFromPost(postId, commentId);
+            return Ok(updatedPost);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+
+    [HttpPut("EditComment/{postId}")]
+    public async Task<ActionResult<Post>> EditComment(string postId, [FromBody] Comment comment)
+    {
+        try
+        {
+            var editedComment = await _socialRepository.EditComment(postId, comment);
+            return Ok(editedComment);
+
+        }
+        catch (KeyNotFoundException ex)
+        {
+            // Post eller comment fandtes ikke
+            return NotFound(ex.Message);
+        }
+        catch (Exception)
+        {
+            // Anden type fejl: database nede, null reference, osv.
+            return StatusCode(500, "An unexpected error occurred");
+        }
+    }
+
+    [HttpGet("SeeAllCommentForPost/{postId}")] 
+    public async Task<IEnumerable<Comment>> SeeAllCommentForPost(string postId) 
+    { 
+        var listOfCommentsForPost = await _socialRepository.SeeAllCommentForPostId(postId); 
+        return listOfCommentsForPost; 
+    }
+
+    [HttpGet("SeeAllPostsForUser/{userId}")]
+    public async Task<IEnumerable<Post>> SeeAllPostsForUser(string userId)
+    {
+        var listOfPostForUser = await _socialRepository.SeeAllPostsForUser(userId);
+
+        return listOfPostForUser;
+    }
+
+
+    [HttpGet("SeeAllDraftPostsForUser/{userId}")]
+    public async Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId)
+    {
+        var listOfDraftPosts = await _socialRepository.SeeAllDraftPostsForUser(userId);
+
+        return listOfDraftPosts;
+    }
+
+
+    [HttpPut("ChangeDraftStatusForPost/{postId}")]
+    public async Task<Post> ChangeDraftStatusForPost(string postId)
+    {
+        var post = await _socialRepository.ChangeDraftStatusForPost(postId);
+        
+        return post;
+    }
+    
+    
+    [HttpGet("SeeAllFriendsPosts/{userId}")]
+    public async Task<IEnumerable<Post>> SeeAllFriendsPosts(string userId)
+    {
+        var posts = await _socialRepository.SeeAllFriendsPosts(userId);
+        
+        return posts;
+    }
+
+
 
 }
 

@@ -15,18 +15,41 @@ public class SoloTrainingController : ControllerBase
     }
 
     [HttpPost("{userId}")]
-    public async Task<ActionResult<SoloTrainingSession>> CreateSoloTraining(string userId, SoloTrainingSession soloTraining)
+    public async Task<ActionResult<SoloTrainingSession>> CreateSoloTraining(string userId, [FromBody] SoloTrainingSession soloTraining)
     {
         if (soloTraining == null)
+        {
             return BadRequest(new { error = "Invalid input", message = "Solo training session cannot be null." });
+        }
 
         if (string.IsNullOrEmpty(userId))
+        {
             return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
+        }
 
         try
         {
-            var result = await _soloTrainingRepository.CreateSoloTraining(userId, soloTraining);
-            return Ok(result);
+            var soloTrainingSession = await _soloTrainingRepository.CreateSoloTraining(userId, soloTraining);
+            return Ok(soloTrainingSession);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+       
+    }
+    [HttpGet("{userId}")]
+    public async Task<ActionResult<IEnumerable<SoloTrainingSession>>> GetAllSoloTrainingsForUser(string userId)
+    {
+        if (string.IsNullOrEmpty(userId))
+        {
+            return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
+        }
+
+        try
+        {
+            var soloTrainings = await _soloTrainingRepository.GetAllSoloTrainingsForUser(userId);
+            return Ok(soloTrainings);
         }
         catch (Exception ex)
         {
@@ -34,31 +57,38 @@ public class SoloTrainingController : ControllerBase
         }
     }
 
-    [HttpGet("{userId}")]
-    public async Task<ActionResult<IEnumerable<SoloTrainingSession>>> GetAllSoloTrainingsForUser(string userId)
-    {
-        if (string.IsNullOrEmpty(userId))
-            return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
-
-        var sessions = await _soloTrainingRepository.GetAllSoloTrainingsForUser(userId);
-        return Ok(sessions);
-    }
-
     [HttpGet("recent/{userId}")]
     public async Task<ActionResult<SoloTrainingSession>> GetMostRecentSoloTrainingForUser(string userId)
     {
         if (string.IsNullOrEmpty(userId))
+        {
             return BadRequest(new { error = "Invalid input", message = "User ID cannot be null or empty." });
+        }
 
-        var session = await _soloTrainingRepository.GetMostRecentSoloTrainingForUser(userId);
-        return Ok(session);
+        try
+        {
+            var recentSession = await _soloTrainingRepository.GetMostRecentSoloTrainingForUser(userId);
+
+            if (recentSession == null)
+            {
+                return NotFound(new { error = "Not found", message = "No solo training sessions found for this user." });
+            }
+
+            return Ok(recentSession);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
     }
 
     [HttpDelete("{trainingId}")]
     public async Task<IActionResult> DeleteSoloTraining(string trainingId)
     {
         if (string.IsNullOrEmpty(trainingId))
+        {
             return BadRequest(new { error = "Invalid input", message = "Training ID cannot be null or empty." });
+        }
 
         try
         {

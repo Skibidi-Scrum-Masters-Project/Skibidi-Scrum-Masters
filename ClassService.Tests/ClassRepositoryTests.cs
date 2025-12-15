@@ -1,6 +1,13 @@
 using ClassService.Model;
 using Mongo2Go;
 using MongoDB.Driver;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 
 namespace ClassService.Tests;
 
@@ -10,6 +17,7 @@ public class ClassRepositoryTests
     private MongoDbRunner _runner = null!;
     private IMongoDatabase _database = null!;
     private ClassRepository _repository = null!;
+    private RecordingHandler _handler = null!;
 
     [TestInitialize]
     public void Setup()
@@ -17,8 +25,17 @@ public class ClassRepositoryTests
         _runner = MongoDbRunner.Start();
         var client = new MongoClient(_runner.ConnectionString);
         _database = client.GetDatabase("TestDatabase");
-        var httpClient = new HttpClient();
-        _repository = new ClassRepository(_database, httpClient);
+        
+
+        _handler = new RecordingHandler();
+        var httpClient = new HttpClient(_handler)
+        {
+            BaseAddress = new Uri("http://fake-socialservice")
+        };
+
+        var factory = new FakeHttpClientFactory(httpClient);
+
+        _repository = new ClassRepository(_database, factory);
     }
 
     [TestCleanup]
@@ -27,10 +44,41 @@ public class ClassRepositoryTests
         _runner.Dispose();
     }
 
+    // --------- HTTP test doubles ---------
+
+    public sealed class RecordingHandler : HttpMessageHandler
+    {
+        public List<HttpRequestMessage> Requests { get; } = new();
+        public HttpStatusCode StatusCodeToReturn { get; set; } = HttpStatusCode.OK;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests.Add(request);
+
+            return Task.FromResult(new HttpResponseMessage(StatusCodeToReturn)
+            {
+                Content = new StringContent("ok")
+            });
+        }
+    }
+
+    public sealed class FakeHttpClientFactory : IHttpClientFactory
+    {
+        private readonly HttpClient _client;
+
+        public FakeHttpClientFactory(HttpClient client)
+        {
+            _client = client;
+        }
+
+        public HttpClient CreateClient(string name) => _client;
+    }
+
+    // --------- Existing tests ---------
+
     [TestMethod]
     public async Task CreateClassAsync_AddsClassToDatabase()
     {
-        // Arrange
         var fitnessClass = new FitnessClass
         {
             InstructorId = "instructor123",
@@ -44,17 +92,14 @@ public class ClassRepositoryTests
             MaxCapacity = 20
         };
 
-        // Act
         var result = await _repository.CreateClassAsync(fitnessClass);
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.IsNotNull(result.Id);
         Assert.AreEqual("instructor123", result.InstructorId);
         Assert.AreEqual("Morning Yoga", result.Name);
         Assert.IsTrue(result.IsActive);
 
-        // Verify it's in the database
         var collection = _database.GetCollection<FitnessClass>("Classes");
         var foundClass = await collection.Find(c => c.Id == result.Id).FirstOrDefaultAsync();
         Assert.IsNotNull(foundClass);
@@ -64,7 +109,6 @@ public class ClassRepositoryTests
     [TestMethod]
     public async Task CreateClassAsync_SetsIsActiveToTrue()
     {
-        // Arrange
         var fitnessClass = new FitnessClass
         {
             InstructorId = "instructor123",
@@ -76,7 +120,7 @@ public class ClassRepositoryTests
             StartTime = DateTime.UtcNow.AddDays(2),
             Duration = 45,
             MaxCapacity = 15,
-            IsActive = false // Should be overridden to true
+            IsActive = false
         };
 
         // Act
@@ -264,9 +308,9 @@ public class ClassRepositoryTests
     [TestMethod]
     public async Task BookClassForUserWithSeatAsync_WhenSeatTaken_ThrowsException()
     {
-        // Arrange
         var seatMap = new bool[5];
-        seatMap[2] = true; // Seat 2 is already taken
+        seatMap[2] = true;
+
         var fitnessClass = new FitnessClass
         {
             InstructorId = "instructor123",
@@ -323,10 +367,8 @@ public class ClassRepositoryTests
         var collection = _database.GetCollection<FitnessClass>("Classes");
         await collection.InsertOneAsync(fitnessClass);
 
-        // Act
         var result = await _repository.CancelClassBookingForUserAsync(fitnessClass.Id!, "user123");
 
-        // Assert
         Assert.IsNotNull(result);
         Assert.AreEqual(1, result.BookingList.Count);
         Assert.IsFalse(result.BookingList.Any(b => b.UserId == "user123"));
@@ -336,9 +378,9 @@ public class ClassRepositoryTests
     [TestMethod]
     public async Task CancelClassBookingForUserAsync_WithSeat_FreesUpSeat()
     {
-        // Arrange
         var seatMap = new bool[5];
         seatMap[2] = true;
+
         var fitnessClass = new FitnessClass
         {
             InstructorId = "instructor123",
@@ -415,6 +457,7 @@ public class ClassRepositoryTests
         // Arrange
         var seatMap = new bool[5];
         seatMap[2] = true;
+
         var fitnessClass = new FitnessClass
         {
             InstructorId = "instructor123",
@@ -558,6 +601,43 @@ public class ClassRepositoryTests
     }
 
     [TestMethod]
+    public async Task FinishClass_CreatesClassResultsForAllAttendees()
+    {
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Morning Yoga",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Yoga class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user1", SeatNumber = 0 },
+                new Booking { UserId = "user2", SeatNumber = 0 },
+                new Booking { UserId = "user3", SeatNumber = 0 }
+            }
+        };
+        var collection = _database.GetCollection<FitnessClass>("Classes");
+        await collection.InsertOneAsync(fitnessClass);
+
+        await _repository.FinishClass(fitnessClass.Id!);
+
+        var resultsCollection = _database.GetCollection<ClassResult>("ClassResults");
+        var results = resultsCollection.Find(r => r.ClassId == fitnessClass.Id).ToList();
+        Assert.AreEqual(3, results.Count);
+        Assert.IsTrue(results.Any(r => r.UserId == "user1"));
+        Assert.IsTrue(results.Any(r => r.UserId == "user2"));
+        Assert.IsTrue(results.Any(r => r.UserId == "user3"));
+        Assert.IsTrue(results.All(r => r.CaloriesBurned > 0));
+        Assert.IsTrue(results.All(r => r.DurationMin == 60));
+    }
+
+    [TestMethod]
     public async Task FinishClass_SetsIsActiveToFalse()
     {
         // Arrange
@@ -617,7 +697,55 @@ public class ClassRepositoryTests
         var resultsCollection = _database.GetCollection<ClassResult>("ClassResults");
         var results = resultsCollection.Find(r => r.ClassId == fitnessClass.Id).ToList();
         Assert.AreEqual(0, results.Count);
+
         var updatedClass = await _repository.GetClassByIdAsync(fitnessClass.Id!);
         Assert.IsFalse(updatedClass.IsActive);
+    }
+
+    // --------- NEW TEST: verifies event POST to SocialService ---------
+
+    [TestMethod]
+    public async Task FinishClass_SendsEventToSocialService_ForEachAttendant()
+    {
+        var fitnessClass = new FitnessClass
+        {
+            InstructorId = "instructor123",
+            CenterId = "center456",
+            Name = "Event Test Class",
+            Category = Category.Yoga,
+            Intensity = Intensity.Easy,
+            Description = "Test class.",
+            StartTime = DateTime.UtcNow.AddDays(1),
+            Duration = 60,
+            MaxCapacity = 10,
+            IsActive = true,
+            BookingList = new List<Booking>
+            {
+                new Booking { UserId = "user1", SeatNumber = 0 },
+                new Booking { UserId = "user2", SeatNumber = 0 }
+            }
+        };
+
+        await _database.GetCollection<FitnessClass>("Classes").InsertOneAsync(fitnessClass);
+
+        await _repository.FinishClass(fitnessClass.Id!);
+
+        Assert.AreEqual(2, _handler.Requests.Count);
+
+        foreach (var req in _handler.Requests)
+        {
+            Assert.AreEqual(HttpMethod.Post, req.Method);
+            Assert.IsNotNull(req.RequestUri);
+            Assert.AreEqual("/internal/events/class-workout-completed", req.RequestUri!.AbsolutePath);
+
+            var body = await req.Content!.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(body);
+
+            var hasEventId =
+                (doc.RootElement.TryGetProperty("eventId", out var e1) && !string.IsNullOrWhiteSpace(e1.GetString())) ||
+                (doc.RootElement.TryGetProperty("EventId", out var e2) && !string.IsNullOrWhiteSpace(e2.GetString()));
+
+            Assert.IsTrue(hasEventId, $"Expected EventId in payload but got: {body}");
+        }
     }
 }

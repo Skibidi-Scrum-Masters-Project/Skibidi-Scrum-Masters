@@ -1,0 +1,193 @@
+@page "/create-user"
+@page "/register"
+@layout EmptyLayout
+@inject FitLifeFitness.Services.UserService UserService
+@inject FitLifeFitness.Services.TokenService TokenService
+@inject NavigationManager Nav
+@using System.ComponentModel.DataAnnotations
+@using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Models
+
+<div class="login-card">
+    <h1 class="app-title">Opret bruger</h1>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="error-message">@errorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="success-message">@successMessage</div>
+    }
+
+    <EditForm Model="@createModel" OnValidSubmit="OnCreateClicked">
+        <DataAnnotationsValidator />
+
+        <div class="form-group">
+            <label for="username">Brugernavn</label>
+            <InputText id="username" @bind-Value="createModel.Username" class="input-field" disabled="@isLoading" />
+        </div>
+
+        <div class="form-group">
+            <label for="firstName">Fornavn</label>
+            <InputText id="firstName" @bind-Value="createModel.FirstName" class="input-field" disabled="@isLoading" />
+        </div>
+
+        <div class="form-group">
+            <label for="lastName">Efternavn</label>
+            <InputText id="lastName" @bind-Value="createModel.LastName" class="input-field" disabled="@isLoading" />
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <InputText id="email" type="email" @bind-Value="createModel.Email" class="input-field" disabled="@isLoading" />
+        </div>
+
+        <div class="form-group">
+            <label for="license">Registreringsnummer (valgfrit)</label>
+            <InputText id="license" @bind-Value="createModel.LicensePlate" class="input-field" disabled="@isLoading" />
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <InputText id="password" type="password" @bind-Value="createModel.Password" class="input-field" disabled="@isLoading" />
+        </div>
+
+        @if (isAdmin)
+        {
+            <div class="form-group">
+                <label for="role">Rolle</label>
+                <InputSelect id="role" @bind-Value="createModel.Role" class="input-field" disabled="@isLoading">
+                    <option value="0">Member</option>
+                    <option value="1">Coach</option>
+                    <option value="2">Admin</option>
+                </InputSelect>
+            </div>
+        }
+
+        <ValidationSummary />
+
+        <button type="submit" class="primary-btn" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span>Opretter...</span>
+            }
+            else
+            {
+                <span>Opret bruger</span>
+            }
+        </button>
+    </EditForm>
+
+    <div class="login-links">
+        <button type="button" class="link-btn" @onclick='() => Nav.NavigateTo("/login")'>Tilbage til login</button>
+    </div>
+</div>
+
+@code {
+    private CreateModel createModel = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var role = await TokenService.GetUserRoleAsync();
+            isAdmin = role == UserRole.Admin;
+        }
+        catch
+        {
+            isAdmin = false;
+        }
+        if (!isAdmin)
+        {
+            createModel.Role = 0;
+        }
+    }
+
+    private async Task OnCreateClicked()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        isLoading = true;
+
+        // No confirm password requested — send provided password as 'hashedPassword' (server will hash it)
+
+        try
+        {
+            // Backend expects HashedPassword field (repository hashes it), so send the plaintext in that property.
+            var payload = new
+            {
+                username = createModel.Username,
+                firstName = createModel.FirstName,
+                lastName = createModel.LastName,
+                email = createModel.Email,
+                licensePlate = string.IsNullOrWhiteSpace(createModel.LicensePlate) ? null : createModel.LicensePlate,
+                hashedPassword = createModel.Password,
+                role = isAdmin ? createModel.Role : 0
+            };
+
+            var response = await UserService.CreateUserAsync(payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var respBody = await response.Content.ReadAsStringAsync();
+                successMessage = string.IsNullOrEmpty(respBody) ? "Bruger oprettet." : respBody;
+                Console.WriteLine($"Create user response: {respBody}");
+                await Task.Delay(300);
+                Nav.NavigateTo("/login");
+                return;
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                errorMessage = string.IsNullOrEmpty(body) ? "Ugyldig input." : body;
+            }
+            else
+            {
+                errorMessage = "Oprettelse mislykkedes. Prøv igen.";
+            }
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Kunne ikke oprette forbindelse til serveren.";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            errorMessage = "Der opstod en fejl. Prøv igen senere.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    public class CreateModel
+    {
+        [Required(ErrorMessage = "Indtast brugernavn")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Indtast fornavn")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Indtast efternavn")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Indtast email")]
+        [EmailAddress(ErrorMessage = "Ugyldig email")]
+        public string Email { get; set; } = string.Empty;
+
+        public string? LicensePlate { get; set; }
+
+        [Required(ErrorMessage = "Indtast password")]
+        [MinLength(6, ErrorMessage = "Password skal være mindst 6 tegn")]
+        public string Password { get; set; } = string.Empty;
+
+        public int Role { get; set; } = 0;
+    }
+}
