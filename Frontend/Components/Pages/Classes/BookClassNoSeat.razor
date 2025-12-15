@@ -1,5 +1,5 @@
 @page "/classes/book/{Id}"
-@layout EmptyLayout
+@layout PhoneLayout
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
 @inject FitLifeFitness.Services.ClassService ClassService
@@ -261,7 +261,7 @@
             Nav.NavigateTo("/login");
             return;
         }
-        var FriendIdsresponse = await SocialService.GetFriendsAsync(userId);
+        var FriendIdsresponse = await SocialService.GetAllFriendsAsync(userId);
         if (FriendIdsresponse.IsSuccessStatusCode)
         {
             FriendIds = await FriendIdsresponse.Content.ReadFromJsonAsync<List<Friendship>>() ?? new List<Friendship>();

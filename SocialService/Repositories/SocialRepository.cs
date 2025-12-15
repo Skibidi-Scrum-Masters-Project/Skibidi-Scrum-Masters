@@ -119,32 +119,15 @@ public class SocialRepository : ISocialRepository
 
     public async Task<Friendship> CancelFriendRequest(string userId, string receiverId)
     {
-        var existingFriendshipRequest = await _friendshipCollection
-            .Find(f => f.SenderId == userId 
-                       && f.ReceiverId == receiverId 
-                       && f.FriendShipStatus == FriendshipStatus.Pending)
-            .FirstOrDefaultAsync();
-        
-        if (existingFriendshipRequest == null)
-        {
-            throw new InvalidOperationException("There is no pending friendship request between these users.");
-        }
-        
+        var deleted = await _friendshipCollection.FindOneAndDeleteAsync(f =>
+            f.SenderId == userId &&
+            f.ReceiverId == receiverId &&
+            f.FriendShipStatus == FriendshipStatus.Pending);
 
-        var newStatus = FriendshipStatus.None;
+        if (deleted == null)
+            throw new KeyNotFoundException("Pending friend request not found");
 
-        var updateStatus = Builders<Friendship>.Update
-            .Set(f => f.FriendShipStatus, newStatus);
-
-        await _friendshipCollection.UpdateOneAsync(
-            friendship => friendship.FriendshipId == existingFriendshipRequest.FriendshipId,
-            updateStatus
-        );
-
-       
-        existingFriendshipRequest.FriendShipStatus = newStatus;
-
-        return existingFriendshipRequest;
+        return deleted;
     }
 
     public async Task<IEnumerable<Friendship>?> GetOutgoingFriendRequestsAsync(string userId)
@@ -213,6 +196,7 @@ public class SocialRepository : ISocialRepository
     {
         var newPost = new Post
         {
+            UserName = post.UserName,
             UserId = post.UserId,
             FitnessClassId = post.FitnessClassId,
             WorkoutId = post.WorkoutId,
@@ -227,6 +211,20 @@ public class SocialRepository : ISocialRepository
         
         return newPost;
         
+    }
+
+    public Task<Post> SeeSpecficPostByPostId(string postId)
+    {
+        var findPostForId = _postCollection
+            .Find(p => p.Id == postId)
+            .FirstOrDefaultAsync();
+        
+        if (findPostForId == null)
+        {
+            throw new KeyNotFoundException("Post not found");
+        }
+        
+        return findPostForId;
     }
 
     
@@ -248,11 +246,11 @@ public class SocialRepository : ISocialRepository
     }
 
 
-    public async Task<Post> EditAPost(Post post, string currentUserId)
+    public async Task<Post> EditAPost(Post post)
     {
         var filter = Builders<Post>.Filter.And(
             Builders<Post>.Filter.Eq(p => p.Id, post.Id),
-            Builders<Post>.Filter.Eq(p => p.UserId, currentUserId)
+            Builders<Post>.Filter.Eq(p => p.UserId, post.UserId)
         );
 
         var updateDefinition = Builders<Post>.Update
@@ -283,20 +281,20 @@ public class SocialRepository : ISocialRepository
 
     public async Task<Post> AddCommentToPost(string postId, Comment comment)
     {
-        var existingPost = await _postCollection
-            .Find(p => p.Id == postId)
-            .FirstOrDefaultAsync();
+        comment.Id ??= ObjectId.GenerateNewId().ToString();
+        comment.CommentDate = DateTime.UtcNow;
 
-        if (existingPost == null)
-        {
-            throw new  KeyNotFoundException("Post not found");
-        }
-        
-        existingPost.Comments.Add(comment);
-        
-        await _postCollection.ReplaceOneAsync(p=> p.Id == postId, existingPost);
+        var update = Builders<Post>.Update.Push(p => p.Comments, comment);
+        var options = new FindOneAndUpdateOptions<Post> { ReturnDocument = ReturnDocument.After };
 
-        return existingPost;
+        var updatedPost = await _postCollection.FindOneAndUpdateAsync(
+            p => p.Id == postId,
+            update,
+            options);
+
+        if (updatedPost == null) throw new KeyNotFoundException("Post not found");
+        return updatedPost;
+
     }
     
     
@@ -405,6 +403,7 @@ public class SocialRepository : ISocialRepository
 
         var draft = new Post
         {
+            UserName = metric.UserName,
             UserId = metric.UserId,
             FitnessClassId = metric.ClassId,
             PostDate = metric.Date,
@@ -432,6 +431,7 @@ public class SocialRepository : ISocialRepository
 
         var draft = new Post
         {
+            UserName = metric.UserName,
             UserId = metric.UserId!,
             WorkoutId = metric.SoloTrainingSessionId!,
             PostDate = metric.Date,
