@@ -3,17 +3,20 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using System.Threading.Tasks;
 using SoloTrainingService.Models;
+using FitnessApp.SoloTrainingService.Models;
 
 
 public class SoloTrainingRepository : ISoloTrainingRepository
 {
     private readonly IMongoCollection<SoloTrainingSession> _SolotrainingCollection;
+    private readonly IMongoCollection<WorkoutProgram> _workoutProgramCollection;
     private readonly HttpClient _httpClient;
 
     public SoloTrainingRepository(IMongoDatabase database, HttpClient httpClient)
     {
         _SolotrainingCollection = database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
         _httpClient = httpClient;
+        _workoutProgramCollection = database.GetCollection<WorkoutProgram>("WorkoutPrograms");
     }
 
     public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining)
@@ -43,7 +46,7 @@ public class SoloTrainingRepository : ISoloTrainingRepository
                 UserId = userId,
                 SoloTrainingSessionId = soloTraining.Id!,
                 Date = soloTraining.Date,
-                TrainingType = soloTraining.TrainingType.ToString(),
+                WorkoutProgramName = soloTraining.WorkoutProgramName,
                 DurationMinutes = soloTraining.DurationMinutes,
                 ExerciseCount = soloTraining.Exercises?.Count ?? 0
             };
@@ -63,6 +66,15 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         return soloTraining;
     }
 
+    public Task<WorkoutProgram> CreateWorkoutProgram(WorkoutProgram workoutProgram)
+    {
+        if (workoutProgram.ExerciseTypes == null)
+        {
+         throw new ArgumentException("ExerciseTypes cannot be null.");
+        }
+        return _workoutProgramCollection.InsertOneAsync(workoutProgram)
+            .ContinueWith(_ => workoutProgram);
+    }
 
     public async Task DeleteSoloTraining(string trainingId)
     {
@@ -87,6 +99,11 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         var sessions = await _SolotrainingCollection.Find(filter).ToListAsync();
 
         return sessions ?? new List<SoloTrainingSession>();
+    }
+
+    public async Task<List<WorkoutProgram>> GetAllWorkoutPrograms()
+    {
+        return await _workoutProgramCollection.Find(_ => true).ToListAsync();
     }
 
     public async Task<SoloTrainingSession> GetMostRecentSoloTrainingForUser(string userId)

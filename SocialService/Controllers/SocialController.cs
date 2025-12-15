@@ -43,7 +43,7 @@ public class SocialController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(metric.UserId) ||
             string.IsNullOrWhiteSpace(metric.SoloTrainingSessionId) ||
-            string.IsNullOrWhiteSpace(metric.TrainingType) ||
+            string.IsNullOrWhiteSpace(metric.WorkoutProgramName) ||
             metric.DurationMinutes <= 0)
             return BadRequest("Invalid payload.");
 

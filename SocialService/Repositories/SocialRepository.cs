@@ -437,7 +437,7 @@ public class SocialRepository : ISocialRepository
             PostDate = metric.Date,
             PostTitle = "SoloTraining completed",
             PostContent =
-                $"Just Finished a {metric.TrainingType} Duration: {metric.DurationMinutes} min Exercises: {metric.ExerciseCount}",
+                $"Just Finished a {metric.WorkoutProgramName} Duration: {metric.DurationMinutes} min Exercises: {metric.ExerciseCount}",
             Type = PostType.Workout,
             IsDraft = true,
             SourceEventId = metric.EventId,

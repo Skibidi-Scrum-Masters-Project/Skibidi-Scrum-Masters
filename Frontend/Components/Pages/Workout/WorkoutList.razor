@@ -1,6 +1,7 @@
 @page "/workouts"
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Models
 @layout EmptyLayout
 
 <div class="workout-screen">
@@ -14,13 +15,13 @@
             <button class="workout-card" @onclick="() => OpenWorkout(workout.Id)">
                 <div class="workout-card-header">
                     <h3>@workout.Name</h3>
-                    <span class="workout-tag">@workout.Level</span>
+                    
                 </div>
 
-                <p class="workout-focus">@workout.Focus</p>
+                <p class="workout-focus">@workout.Description</p>
 
                 <p class="workout-meta">
-                    @workout.ExerciseCount øvelser • @workout.EstimatedMinutes min
+                    @workout.ExerciseTypes.Count øvelser 
                 </p>
             </button>
         }
@@ -30,14 +31,26 @@
 @code {
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
-    private List<WorkoutModel> Workouts = new()
+    [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
+    private List<WorkoutProgramDTO> Workouts { get; set; } = new List<WorkoutProgramDTO>();
+    protected override async Task OnInitializedAsync()
     {
-        new() { Id = "push", Name = "Push", Level = "Mellem", Focus = "Bryst, skuldre, triceps", ExerciseCount = 6, EstimatedMinutes = 45 },
-        new() { Id = "pull", Name = "Pull", Level = "Mellem", Focus = "Ryg, biceps", ExerciseCount = 5, EstimatedMinutes = 40 },
-        new() { Id = "legs", Name = "Ben", Level = "Øvet", Focus = "Ben og balder", ExerciseCount = 7, EstimatedMinutes = 50 },
-        new() { Id = "fullbody", Name = "Full body", Level = "Begynder", Focus = "Hele kroppen", ExerciseCount = 5, EstimatedMinutes = 35 },
-    };
-
+        var response = await SoloTrainingService.GetWorkoutPrograms();
+        if (response.IsSuccessStatusCode)
+        {
+            List<WorkoutProgramDTO>? programs = await response.Content.ReadFromJsonAsync<List<WorkoutProgramDTO>>();
+            if (programs != null)
+            {
+                Workouts = programs.Select(p => new WorkoutProgramDTO
+                {
+                    Id = p.Id!,
+                    Name = p.Name,
+                    Description = p.Description,
+                    ExerciseTypes = p.ExerciseTypes,
+                }).ToList();
+            }
+        }
+    }
     private void OpenWorkout(string id)
     {
         Nav.NavigateTo($"/workouts/{id}");

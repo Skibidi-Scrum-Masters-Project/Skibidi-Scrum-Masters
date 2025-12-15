@@ -245,7 +245,6 @@ public class SoloTrainingControllerTests
             var session = new SoloTrainingSession
             {
                 Date = DateTime.UtcNow,
-                TrainingType = TrainingType.UpperBody,
                 DurationMinutes = 30,
                 Exercises = new()
             };

@@ -41,7 +41,7 @@ public class SoloTrainingRepositoryTests
         var session = new SoloTrainingSession
         {
             Date = DateTime.UtcNow,
-            TrainingType = TrainingType.UpperBody,
+
             DurationMinutes = 45,
             Exercises = new List<Exercise>()
         };

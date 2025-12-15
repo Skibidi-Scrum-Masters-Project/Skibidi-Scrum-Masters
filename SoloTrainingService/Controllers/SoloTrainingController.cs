@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
-
+using FitnessApp.SoloTrainingService.Models;
 namespace SoloTrainingService.Controllers;
 
 [ApiController]
@@ -12,6 +12,25 @@ public class SoloTrainingController : ControllerBase
     public SoloTrainingController(ISoloTrainingRepository soloTrainingRepository)
     {
         _soloTrainingRepository = soloTrainingRepository;
+    }
+    [HttpPost("create/program")]
+    public async Task<ActionResult<WorkoutProgram>> CreateWorkoutProgram([FromBody] WorkoutProgram workoutProgram)
+    {
+        if (workoutProgram == null)
+        {
+            return BadRequest(new { error = "Invalid input", message = "Workout program cannot be null." });
+        }
+
+        try
+        {
+            var createdProgram = await _soloTrainingRepository.CreateWorkoutProgram(workoutProgram);
+            return Ok(createdProgram);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+     
     }
 
     [HttpPost("{userId}")]
@@ -94,6 +113,19 @@ public class SoloTrainingController : ControllerBase
         {
             await _soloTrainingRepository.DeleteSoloTraining(trainingId);
             return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+    [HttpGet("programs")]
+    public async Task<ActionResult<IEnumerable<WorkoutProgram>>> GetAllWorkoutPrograms()
+    {
+        try
+        {
+            var workoutPrograms = await _soloTrainingRepository.GetAllWorkoutPrograms();
+            return Ok(workoutPrograms);
         }
         catch (Exception ex)
         {

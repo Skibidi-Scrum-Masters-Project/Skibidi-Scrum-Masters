@@ -7,7 +7,10 @@ public class SoloTrainingService
     public SoloTrainingService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("http://localhost:4000");
+    }
+    public async Task<HttpResponseMessage> GetWorkoutPrograms()
+    {
+        return await _httpClient.GetAsync($"/api/solotraining/programs");
     }
 
     public async Task<HttpResponseMessage> GetWorkoutsAsync(string userId)

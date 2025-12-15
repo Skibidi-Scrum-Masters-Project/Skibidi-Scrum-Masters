@@ -10,7 +10,7 @@
     <p class="dashboard-welcome">Velkommen tilbage, <strong>@Username</strong></p>
 
     <section class="menu-grid">
-        <button class="menu-card">
+        <button class="menu-card" @onclick="GoToWorkouts">
             <span>Workout</span>
         </button>
         <button class="menu-card" @onclick="GoToClasses">
@@ -55,5 +55,9 @@
     private void GoToClasses()
     {
         Nav.NavigateTo("/classes");
+    }
+    private void GoToWorkouts()
+    {
+        Nav.NavigateTo("/workouts");
     }
 }
