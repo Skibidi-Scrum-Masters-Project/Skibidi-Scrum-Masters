@@ -4,6 +4,7 @@
 @inject FitLifeFitness.Services.TokenService TokenService
 @inject FitLifeFitness.Services.ClassService ClassService
 @inject FitLifeFitness.Services.SocialService SocialService
+@inject NavigationManager Nav
 @using System.ComponentModel.DataAnnotations
 @using FitLifeFitness.Components.Layout
 @using System.Net.Http.Json
@@ -20,7 +21,6 @@
             <p class="book-subtitle">Find det perfekte hold til dig</p>
         </header>
 
-        @* Mine bookinger sektion *@
         @if (MyBookedClasses.Any())
         {
             <div class="my-bookings">
@@ -47,7 +47,6 @@
             </div>
         }
 
-        @* Søg og filter *@
         <div class="search-filter-section">
             <div class="search-box">
                 <span class="search-icon">🔍</span>
@@ -70,7 +69,6 @@
             </div>
         </div>
 
-        @* Hold liste *@
         <div class="book-list">
             @foreach (var c in FilteredClasses)
             {
@@ -81,8 +79,7 @@
                 var friendsInClass = GetFriendsInClass(c);
 
                 <div class="book-card-container">
-                    <article class="book-card-new @(isFull ? "full" : "available")"
-                             @onclick="@(() => { if (!isFull) HandleBookingClick(c); })">
+                    <article class="book-card-new @(isFull ? "full" : "available")">
 
                         <div class="card-badges">
                             @if (isPopular && !isFull)
@@ -172,6 +169,7 @@
                         {
                             <button type="button"
                                     class="class-book-btn"
+                                    @onclick="@(() => HandleBookingClick(c))"
                                     @onclick:stopPropagation>
                                 Book nu →
                             </button>
@@ -199,7 +197,6 @@
     </div>
 </section>
 
-
 @code {
     private string? userId;
     private List<FitnessClass> AvailableClasses = new();
@@ -211,8 +208,6 @@
     private string? WaitlistFeedbackClassId;
     private string? WaitlistFeedbackMessage;
 
-    [Inject] private NavigationManager Nav { get; set; } = default!;
-
     private List<CategoryFilter> Categories = new()
     {
         new CategoryFilter { Id = "alle", Label = "Alle", Icon = "🏃" },
@@ -222,16 +217,10 @@
         new CategoryFilter { Id = "crossfit", Label = "Crossfit", Icon = "💪" },
     };
 
-    private IEnumerable<FitnessClass> FilteredClasses
-    {
-        get
-        {
-            return AvailableClasses
-                .Where(c => ActiveFilter == "alle" || c.Category.ToString().Equals(ActiveFilter, StringComparison.OrdinalIgnoreCase))
-                .Where(c => string.IsNullOrEmpty(SearchQuery) ||
-                           c.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
-        }
-    }
+    private IEnumerable<FitnessClass> FilteredClasses =>
+        AvailableClasses
+            .Where(c => ActiveFilter == "alle" || c.Category.ToString().Equals(ActiveFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(c => string.IsNullOrEmpty(SearchQuery) || c.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
@@ -274,10 +263,7 @@
         }
     }
 
-    private void SetFilter(string filterId)
-    {
-        ActiveFilter = filterId;
-    }
+    private void SetFilter(string filterId) => ActiveFilter = filterId;
 
     private void ToggleFavorite(string? classId)
     {
@@ -293,9 +279,7 @@
     {
         if (MyFriendships == null || !MyFriendships.Any()) return 0;
 
-        var acceptedFriendships = MyFriendships;
-
-        var friendIds = acceptedFriendships
+        var friendIds = MyFriendships
             .Select(f => f.SenderId == userId ? f.ReceiverId : f.SenderId)
             .Where(id => !string.IsNullOrEmpty(id))
             .ToHashSet();
@@ -310,9 +294,8 @@
         return "rgb(36, 195, 106)";
     }
 
-    private string GetCategoryIcon(Category category)
-    {
-        return category switch
+    private string GetCategoryIcon(Category category) =>
+        category switch
         {
             Category.Yoga => "🧘",
             Category.Spinning => "🚴",
@@ -320,6 +303,13 @@
             Category.Crossfit => "💪",
             _ => "🏃"
         };
+
+    private void OnCardClick(FitnessClass c)
+    {
+        var isFull = c.BookingList.Count >= c.MaxCapacity;
+        if (isFull) return;
+
+        HandleBookingClick(c);
     }
 
     private void HandleBookingClick(FitnessClass c)
@@ -330,21 +320,18 @@
             GoToBooking(c.Id);
     }
 
-    private void ChooseSeat(string? ClassId)
+    private void ChooseSeat(string? classId)
     {
-        if (ClassId == null) return;
-        Nav.NavigateTo($"/classes/seat/{ClassId}");
+        if (classId == null) return;
+        Nav.NavigateTo($"/classes/seat/{classId}");
     }
 
-    private void GoBack()
-    {
-        Nav.NavigateTo("/classes");
-    }
+    private void GoBack() => Nav.NavigateTo("/classes");
 
-    private void GoToBooking(string? ClassId)
+    private void GoToBooking(string? classId)
     {
-        if (ClassId == null) return;
-        Nav.NavigateTo($"/classes/book/{ClassId}");
+        if (classId == null) return;
+        Nav.NavigateTo($"/classes/book/{classId}");
     }
 
     private async Task BookClassForUserAsync(string? classId)
