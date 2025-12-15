@@ -2,6 +2,9 @@ using AccessControlService.Models;
 using AccessControlService.Repositories;
 using Mongo2Go;
 using MongoDB.Driver;
+using Moq;
+using Moq.Protected;
+using System.Net;
 
 namespace AccessControlService.Tests;
 
@@ -13,6 +16,8 @@ public class AccessControlRepositoryTests
     private AccessControlRepository _repository = null!;
     private IMongoCollection<LockerRoom> _lockerRoomsCollection = null!;
     private IMongoCollection<EntryPoint> _entryPointsCollection = null!;
+    private Mock<HttpMessageHandler> _mockHttpMessageHandler = null!;
+    private HttpClient _httpClient = null!;
 
     [TestInitialize]
     public void Initialize()
@@ -20,7 +25,23 @@ public class AccessControlRepositoryTests
         _runner = MongoDbRunner.Start(singleNodeReplSet: true);
         var client = new MongoClient(_runner.ConnectionString);
         _database = client.GetDatabase("AccessControlTests");
-        _repository = new AccessControlRepository(_database);
+        
+        // Create a mock HttpMessageHandler
+        _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        _mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("{}")
+            });
+        
+        _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
+        _repository = new AccessControlRepository(_database, _httpClient);
         _lockerRoomsCollection = _database.GetCollection<LockerRoom>("LockerRooms");
         _entryPointsCollection = _database.GetCollection<EntryPoint>("EntryPoints");
     }

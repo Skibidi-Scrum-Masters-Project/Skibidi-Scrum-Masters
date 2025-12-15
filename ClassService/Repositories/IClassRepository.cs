@@ -18,3 +18,8 @@ public interface IClassRepository
    public Task<IEnumerable<FitnessClass>> GetAllAvailableClassesAsync(string userId);
    public Task<IEnumerable<FitnessClass>> GetClassesByCoachIdAsync(string coachId);
    }
+
+
+  
+  
+

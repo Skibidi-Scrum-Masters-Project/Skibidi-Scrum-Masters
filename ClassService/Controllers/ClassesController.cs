@@ -258,4 +258,6 @@ public class ClassesController : ControllerBase
         }
         return Ok(fitnessClass);
     }
+
+    
 }
