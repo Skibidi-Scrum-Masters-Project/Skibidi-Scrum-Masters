@@ -1,0 +1,198 @@
+.topbar{
+    position: sticky;
+    top: 0;
+    z-index: 50;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+
+    padding: 12px 14px;
+
+    background: rgba(21, 28, 32, 0.78);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    box-shadow:
+            0 14px 30px rgba(0,0,0,0.45),
+            inset 0 1px 0 rgba(255,255,255,0.06);
+
+    color: var(--text-secondary);
+}
+
+.topbar-left{
+    min-width: 0;
+}
+
+.brand{
+    margin: 0;
+    font-size: 1.08rem;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: var(--text-primary);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.welcome{
+    margin: 3px 0 0 0;
+    font-size: 0.84rem;
+    color: rgba(225,232,236,0.70);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.topbar-right{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Icon buttons */
+.icon-btn{
+    appearance: none;
+    border: none;
+    background: rgba(255,255,255,0.06);
+
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+
+    display: grid;
+    place-items: center;
+
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    box-shadow:
+            0 10px 18px rgba(0,0,0,0.22),
+            inset 0 0 0 1px rgba(255,255,255,0.10);
+
+    transition: transform 0.12s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.icon-btn:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.08);
+}
+
+.icon-btn:active{
+    transform: scale(0.96);
+}
+
+.icon-btn:focus-visible{
+    outline: none;
+    box-shadow:
+            0 0 0 4px rgba(36,195,106,0.26),
+            0 10px 18px rgba(0,0,0,0.22),
+            inset 0 0 0 1px rgba(255,255,255,0.12);
+}
+
+.ico{
+    color: rgba(225,232,236,0.75);
+}
+
+.ico svg{
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    display: block;
+}
+
+/* notification dot */
+.icon-btn{
+    position: relative;
+}
+
+.dot{
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--green-light);
+    box-shadow: 0 0 0 3px rgba(15,20,24,0.9);
+}
+
+/* Avatar */
+.avatar{
+    appearance: none;
+    border: none;
+
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+
+    background: rgba(36,195,106,0.18);
+    color: var(--green-light);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: 900;
+    user-select: none;
+
+    cursor: pointer;
+
+    box-shadow:
+            0 10px 20px rgba(0,0,0,0.30),
+            inset 0 0 0 1px rgba(255,255,255,0.12);
+
+    transition: transform 0.12s ease, filter 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.avatar:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    background: rgba(36,195,106,0.24);
+}
+
+.avatar:active{
+    transform: scale(0.96);
+    filter: brightness(0.98);
+}
+
+.avatar:focus-visible{
+    outline: none;
+    box-shadow:
+            0 0 0 4px rgba(36,195,106,0.32),
+            0 10px 20px rgba(0,0,0,0.30),
+            inset 0 0 0 1px rgba(255,255,255,0.14);
+}
+
+@media (max-width: 430px){
+    .topbar{
+        padding: 10px 12px;
+    }
+
+    .brand{
+        font-size: 1.02rem;
+    }
+
+    .welcome{
+        font-size: 0.82rem;
+    }
+
+    .icon-btn{
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+    }
+
+    .avatar{
+        width: 42px;
+        height: 42px;
+    }
+}

@@ -46,7 +46,7 @@ public interface ISocialRepository
     Task<Post> RemoveAPost(string postId);
     
     //Metode til at redigere et post
-    Task<Post> EditAPost(Post post, string currentUserId);
+    Task<Post> EditAPost(Post post);
     
     //Metode til at tilføje Comment til et post
     Task<Post> AddCommentToPost(string postId, Comment comment);
@@ -62,6 +62,9 @@ public interface ISocialRepository
     
     //Metode til at se alle post for user
     Task<IEnumerable<Post>> SeeAllPostsForUser(string userId);
+    
+    //Metode til at se et spefikt post
+    Task<Post> SeeSpecficPostByPostId(string postId);
     
     //Event handler der subscriber til ClassService.FinishClass
     Task<string?> CreateDraftFromClassWorkoutCompletedAsync(ClassResultEventDto metric);
