@@ -72,6 +72,68 @@
         }
     }
 </div>
+@if (_selectedSession is not null)
+{
+    <div style="
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.4);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        z-index:80;">
+
+        <div style="
+            background:white;
+            border-radius:16px;
+            padding:20px;
+            width:90%;
+            max-width:420px;
+            box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+
+            <h3 style="margin-top:0;">Bookingdetaljer</h3>
+
+            <p><strong>Kunde:</strong> @_selectedCustomerName</p>
+
+            <p><strong>Mål:</strong><br />
+                @_selectedSession.BookingForm?.Goals
+            </p>
+
+            <p><strong>Noter:</strong><br />
+                @_selectedSession.BookingForm?.Notes
+            </p>
+
+            <p><strong>Erfaring:</strong>
+                @_selectedSession.BookingForm?.Experience
+            </p>
+
+            <p style="font-size:13px; color:#6b7280;">
+                Oprettet:
+                @(
+                _selectedSession.BookingForm != null
+                    ? _selectedSession.BookingForm.CreatedAt
+                        .ToLocalTime()
+                        .ToString("dd/MM HH:mm")
+                    : "-"
+                )
+            </p>
+
+            <button @onclick="CloseDetails"
+                    style="
+                        margin-top:16px;
+                        width:100%;
+                        background:#2563eb;
+                        color:white;
+                        border:none;
+                        padding:12px;
+                        border-radius:999px;
+                        font-weight:600;">
+                Luk
+            </button>
+        </div>
+    </div>
+}
+
 
 <!-- CREATE SESSION MODAL -->
 @if (_showCreateModal)
@@ -151,6 +213,11 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadSessions();
+    }
+    
+    void CloseDetails()
+    {
+        _selectedSession = null;
     }
 
     async Task LoadSessions()
