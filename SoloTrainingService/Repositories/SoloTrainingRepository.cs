@@ -22,18 +22,10 @@ public class SoloTrainingRepository : ISoloTrainingRepository
 
         try
         {
-            var metric = new
-            {
-                UserId = soloTraining.UserId,
-                Date = soloTraining.Date,
-                Exercises = soloTraining.Exercises,
-                TrainingType = soloTraining.TrainingType.ToString(), // enum → string
-                DurationMinutes = soloTraining.DurationMinutes
-            };
-
+            // soloTraining indeholder allerede: UserId, Date, Exercises, TrainingType, DurationMinutes
             var response = await _httpClient.PostAsJsonAsync(
                 "http://analyticsservice:8080/api/Analytics/solotraining",
-                metric
+                soloTraining
             );
 
             Console.WriteLine($"Analytics response: {response.StatusCode}");

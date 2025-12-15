@@ -15,7 +15,7 @@ public class SoloTrainingResultsDTO
     public string UserId { get; set; } = string.Empty;
     public DateTime Date { get; set; }
     public List<Exercise> Exercises { get; set; }
-    public string TrainingType { get; set; } = string.Empty;
+    public TrainingTypes TrainingType { get; set; } 
     public double DurationMinutes { get; set; }
 }
 
@@ -39,5 +39,12 @@ public class Set
 {
     public int Repetitions { get; set; }
     public double Weight { get; set; }
+}
+public enum TrainingTypes
+{
+    Cardio,
+    UpperBody,
+    LowerBody,
+    SixPack
 }
 

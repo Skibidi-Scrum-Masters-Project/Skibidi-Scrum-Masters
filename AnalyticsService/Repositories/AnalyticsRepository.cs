@@ -1,24 +1,35 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using MongoDB.Driver;
 using AnalyticsService.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 public class AnalyticsRepository : IAnalyticsRepository
 {
     private readonly HttpClient? _httpClient;
 
-    private readonly IMongoCollection<ClassResultDTO>? _classesResultsCollection;
-    private readonly IMongoCollection<CrowdResultDTO>? _crowdResultsCollection;
-    private readonly IMongoCollection<SoloTrainingResultsDTO>? _soloTrainingResultsCollection;
+    private readonly IMongoCollection<ClassResultDTO> _classesResultsCollection;
+    private readonly IMongoCollection<CrowdResultDTO> _crowdResultsCollection;
+    private readonly IMongoCollection<SoloTrainingResultsDTO> _soloTrainingResultsCollection;
     
     public AnalyticsRepository(IMongoDatabase database, HttpClient httpClient)
     {
+        if (database == null) throw new ArgumentNullException(nameof(database));
         _classesResultsCollection = database.GetCollection<ClassResultDTO>("ClassResults");
         _crowdResultsCollection = database.GetCollection<CrowdResultDTO>("CrowdResults");
         _soloTrainingResultsCollection = database.GetCollection<SoloTrainingResultsDTO>("SoloTrainingResults");
-        _httpClient = httpClient;
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
     }
-    public Task<ClassResultDTO> PostClassesAnalytics(string classId, string userId, double totalCaloriesBurned, string category, int durationMin, DateTime date)
+
+    public async Task<ClassResultDTO> PostClassesAnalytics(string classId, string userId, double totalCaloriesBurned, string category, int durationMin, DateTime date)
     {
-        ClassResultDTO classResult = new ClassResultDTO
+        if (string.IsNullOrWhiteSpace(classId)) throw new ArgumentNullException(nameof(classId));
+        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
+        if (durationMin < 0) throw new ArgumentOutOfRangeException(nameof(durationMin));
+
+        var classResult = new ClassResultDTO
         {
             ClassId = classId,
             UserId = userId,
@@ -27,81 +38,79 @@ public class AnalyticsRepository : IAnalyticsRepository
             DurationMin = durationMin,
             Date = date
         };
-        _classesResultsCollection!.InsertOne(classResult);
 
-        return Task.FromResult(classResult);
+        await _classesResultsCollection.InsertOneAsync(classResult).ConfigureAwait(false);
+
+        return classResult;
     }
 
-    public Task<int> GetCrowdCount()
+    public async Task<int> GetCrowdCount()
     {
         try
         {
-            var filter = Builders<CrowdResultDTO>.Filter.Eq("Status", CrowdResultDTO.timestatus.Entered);
-            var count = _crowdResultsCollection.CountDocuments(filter);
-
-            return Task.FromResult((int)count);
+            var filter = Builders<CrowdResultDTO>.Filter.Eq(x => x.Status, CrowdResultDTO.timestatus.Entered);
+            var count = await _crowdResultsCollection.CountDocumentsAsync(filter).ConfigureAwait(false);
+            return (int)count;
         }
         catch (Exception ex)
         {
             throw new Exception("Error retrieving crowd count", ex);
         }
-
     }
 
-    public Task<string> PostEnteredUser(string userId, DateTime entryTime, DateTime exitTime)
+    public async Task<string> PostEnteredUser(string userId, DateTime entryTime, DateTime exitTime)
     {
-        if (userId == null)
-        {
+        if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
-        }
 
-
-        CrowdResultDTO crowdResult = new CrowdResultDTO
+        var crowdResult = new CrowdResultDTO
         {
             UserId = userId,
             EntryTime = entryTime,
             ExitTime = exitTime,
             Status = CrowdResultDTO.timestatus.Entered
         };
-        // Assuming you have a MongoDB collection for CrowdResults similar to ClassResults
-        _crowdResultsCollection!.InsertOne(crowdResult);
 
-        return Task.FromResult("User entered crowd data posted successfully");
+        await _crowdResultsCollection.InsertOneAsync(crowdResult).ConfigureAwait(false);
+
+        // return inserted id or message
+        return crowdResult.Id ?? "User entered crowd data posted successfully";
     }
 
-    public Task<string> UpdateUserExitTime(string userId, DateTime exitTime)
+    public async Task<string> UpdateUserExitTime(string userId, DateTime exitTime)
     {
-        if (userId == null)
-        {
+        if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
-        }
         if (exitTime == DateTime.MinValue)
-        {
-            throw new ArgumentException("Exit time cannot be DateTime.MinValue.");
-        }
-        var filter = Builders<CrowdResultDTO>.Filter.Eq("UserId", userId) & Builders<CrowdResultDTO>.Filter.Eq("ExitTime", DateTime.MinValue);
-        var update = Builders<CrowdResultDTO>.Update.Combine(
-        Builders<CrowdResultDTO>.Update.Set(x => x.ExitTime, exitTime),
-        Builders<CrowdResultDTO>.Update.Set(x => x.Status, CrowdResultDTO.timestatus.Exited)
-        );
+            throw new ArgumentException("Exit time cannot be DateTime.MinValue.", nameof(exitTime));
+
+        var filter = Builders<CrowdResultDTO>.Filter.Eq(x => x.UserId, userId) &
+                     Builders<CrowdResultDTO>.Filter.Eq(x => x.ExitTime, DateTime.MinValue);
+
+        var update = Builders<CrowdResultDTO>.Update
+            .Set(x => x.ExitTime, exitTime)
+            .Set(x => x.Status, CrowdResultDTO.timestatus.Exited);
+
         var options = new FindOneAndUpdateOptions<CrowdResultDTO>
         {
             ReturnDocument = ReturnDocument.After
         };
 
-        var updatedCrowdResult = _crowdResultsCollection.FindOneAndUpdate(filter, update, options);
+        var updated = await _crowdResultsCollection.FindOneAndUpdateAsync(filter, update, options).ConfigureAwait(false);
 
-        return Task.FromResult("User exit time updated successfully");
+        if (updated == null)
+            throw new InvalidOperationException("No matching crowd entry found to update.");
+
+        return updated.Id ?? "User exit time updated successfully";
     }
 
-    public Task<string> PostSoloTrainingResult(string userId, DateTime date, List<Exercise> exercises, string trainingType, double durationMinutes)
+    public async Task<string> PostSoloTrainingResult(string userId, DateTime date, List<Exercise> exercises, TrainingTypes trainingType, double durationMinutes)
     {
-        if (userId == null) { throw new ArgumentNullException(nameof(userId)); }
-        if (exercises == null) { throw new ArgumentNullException(nameof(exercises)); }
-        if (trainingType == null) { throw new ArgumentNullException(nameof(trainingType)); }
-        if (durationMinutes == 0) { throw new ArgumentNullException(nameof(durationMinutes)); }
+        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
+        if (exercises == null) throw new ArgumentNullException(nameof(exercises));
+        if (durationMinutes < 0) throw new ArgumentOutOfRangeException(nameof(durationMinutes));
 
-        SoloTrainingResultsDTO soloTrainingResults = new SoloTrainingResultsDTO()
+        var soloTrainingResults = new SoloTrainingResultsDTO
         {
             UserId = userId,
             Date = date,
@@ -110,8 +119,34 @@ public class AnalyticsRepository : IAnalyticsRepository
             DurationMinutes = durationMinutes
         };
         
-        _soloTrainingResultsCollection!.InsertOne(soloTrainingResults);
-        return Task.FromResult("Solo training result added successfully");
+        await _soloTrainingResultsCollection.InsertOneAsync(soloTrainingResults).ConfigureAwait(false);
 
+        return soloTrainingResults.Id ?? "Solo training result added successfully";
+    }
+
+    public async Task<List<SoloTrainingResultsDTO>> GetSoloTrainingResult(string userId)
+    {
+        if (userId == null) 
+            throw new ArgumentNullException(nameof(userId));
+
+        var filter = Builders<SoloTrainingResultsDTO>
+            .Filter.Eq(x => x.UserId, userId);
+
+        return await _soloTrainingResultsCollection
+            .Find(filter)
+            .ToListAsync();
+    }
+
+    public async Task<List<ClassResultDTO>> GetClassResult(string userId)
+    {
+        if (userId == null) 
+            throw new ArgumentNullException(nameof(userId));
+
+        var filter = Builders<ClassResultDTO>
+            .Filter.Eq(x => x.UserId, userId);
+
+        return await _classesResultsCollection
+            .Find(filter)
+            .ToListAsync();
     }
 }

@@ -15,24 +15,17 @@ public class AnalyticsController : ControllerBase
         _analyticsRepository = analyticsRepository;
     }
 
-    [HttpGet]
-    public ActionResult<IEnumerable<object>> GetAnalytics()
-    {
-        // TBA: Implement get analytics data
-        return Ok(new { message = "Get users - TBA" });
-    }
     
-    
-    // Endpoint to receive class analytics data
+    // Post class results for 
     [HttpPost("{classId}/{userId}/{totalCaloriesBurned}/{category}/{durationMin}/{date}")]
     public async Task<IActionResult> PostClassesAnalytics(string classId, string userId, double totalCaloriesBurned, string category, int durationMin, DateTime date)
     {
         var classResult = await _analyticsRepository.PostClassesAnalytics(classId, userId, totalCaloriesBurned, category, durationMin, date);
         return Ok(classResult);
     }
+    
 
-
-    // Endpoint to post entered users
+    // Post entered users
     [HttpPost("entered/{userId}/{entryTime}")]
     public async Task<IActionResult> AddUserToCrowd(string userId, DateTime entryTime)
     {
@@ -40,7 +33,7 @@ public class AnalyticsController : ControllerBase
         return Ok(PostedUser);
     }
     
-    // Endpoint to edit status for entered users
+    // Change status to exit for entered users
     [HttpPut("Exited/{userId}/{exitTime}")]
     public async Task<IActionResult> UpdateUserExitTime(string userId, DateTime exitTime)
     {
@@ -48,17 +41,7 @@ public class AnalyticsController : ControllerBase
         return Ok(UpdatedExitTime);
     }
     
-    [HttpPost("")]
-    
-    
-    // Endpoint to get crowd
-    [HttpGet("crowd")]
-    public async Task<IActionResult> GetCrowdCount()
-    {
-        var crowdCount = await _analyticsRepository.GetCrowdCount();
-        return Ok(crowdCount);
-    }
-
+    // Post solotraining results
     [HttpPost("solotraining")]
     public async Task<IActionResult> PostSoloTrainingResult([FromBody] SoloTrainingResultsDTO dto)
     {
@@ -79,6 +62,38 @@ public class AnalyticsController : ControllerBase
 
         return Ok(result);
     }
+    
+    // Get crowd result
+    [HttpGet("crowd")]
+    public async Task<IActionResult> GetCrowdCount()
+    {
+        var crowdCount = await _analyticsRepository.GetCrowdCount();
+        return Ok(crowdCount);
+    }
+    
+    // Get all solo training result
+    [HttpGet("solotrainingresult/{userId}")]
+
+    public async Task<IActionResult> GetSoloTrainingResult(string userId)
+    {
+        var soloTrainingResult = await _analyticsRepository.GetSoloTrainingResult(userId);
+        return Ok(soloTrainingResult);
+    }
+    
+    // Get all class training results
+
+    [HttpGet("classresult/{userId}")]
+
+    public async Task<IActionResult> GetClassResult(string userId)
+    {
+        var classTrainingResult = await _analyticsRepository.GetClassResult(userId);
+        return Ok(classTrainingResult);
+    }
+    
+    
+    
+    
+    
 
 
 

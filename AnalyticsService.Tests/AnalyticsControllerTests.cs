@@ -29,7 +29,7 @@ namespace AnalyticsService.Tests
             var calories = 500.0;
             var category = "Yoga";
             var duration = 60;
-            var date = DateTime.Now;
+            var date = DateTime.UtcNow;
 
             var expectedResult = new ClassResultDTO
             {
@@ -41,14 +41,15 @@ namespace AnalyticsService.Tests
                 Date = date
             };
 
-            _mockRepository.Setup(r => r.PostClassesAnalytics(classId, userId, calories, category, duration, date))
+            _mockRepository
+                .Setup(r => r.PostClassesAnalytics(classId, userId, calories, category, duration, date))
                 .ReturnsAsync(expectedResult);
 
             // Act
-            var result = await _controller.PostClassesAnalytics(classId, userId, calories, category, duration, date);
+            var actionResult = await _controller.PostClassesAnalytics(classId, userId, calories, category, duration, date);
 
             // Assert
-            var okResult = result as OkObjectResult;
+            var okResult = actionResult as OkObjectResult;
             Assert.IsNotNull(okResult);
             var returnValue = okResult.Value as ClassResultDTO;
             Assert.IsNotNull(returnValue);
@@ -61,18 +62,20 @@ namespace AnalyticsService.Tests
         {
             // Arrange
             var userId = "user123";
-            var entryTime = DateTime.Now;
+            var entryTime = DateTime.UtcNow;
+            var expected = "User entered crowd data posted successfully";
 
-            _mockRepository.Setup(r => r.PostEnteredUser(userId, entryTime, DateTime.MinValue))
-                .ReturnsAsync("User entered crowd data posted successfully");
+            _mockRepository
+                .Setup(r => r.PostEnteredUser(userId, entryTime, DateTime.MinValue))
+                .ReturnsAsync(expected);
 
             // Act
-            var result = await _controller.AddUserToCrowd(userId, entryTime);
+            var actionResult = await _controller.AddUserToCrowd(userId, entryTime);
 
             // Assert
-            var okResult = result as OkObjectResult;
+            var okResult = actionResult as OkObjectResult;
             Assert.IsNotNull(okResult);
-            Assert.AreEqual("User entered crowd data posted successfully", okResult.Value);
+            Assert.AreEqual(expected, okResult.Value);
         }
 
         [TestMethod]
@@ -80,18 +83,20 @@ namespace AnalyticsService.Tests
         {
             // Arrange
             var userId = "user123";
-            var exitTime = DateTime.Now;
+            var exitTime = DateTime.UtcNow;
+            var expected = "User exit time updated successfully";
 
-            _mockRepository.Setup(r => r.UpdateUserExitTime(userId, exitTime))
-                .ReturnsAsync("User exit time updated successfully");
+            _mockRepository
+                .Setup(r => r.UpdateUserExitTime(userId, exitTime))
+                .ReturnsAsync(expected);
 
             // Act
-            var result = await _controller.UpdateUserExitTime(userId, exitTime);
+            var actionResult = await _controller.UpdateUserExitTime(userId, exitTime);
 
             // Assert
-            var okResult = result as OkObjectResult;
+            var okResult = actionResult as OkObjectResult;
             Assert.IsNotNull(okResult);
-            Assert.AreEqual("User exit time updated successfully", okResult.Value);
+            Assert.AreEqual(expected, okResult.Value);
         }
     }
 }
