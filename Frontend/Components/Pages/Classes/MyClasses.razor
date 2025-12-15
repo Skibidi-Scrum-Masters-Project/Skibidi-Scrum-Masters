@@ -11,30 +11,37 @@
 @using FitLifeFitness.Models
 @using FitlifeFitness.Models
 @using Microsoft.AspNetCore.Components
-<div class="classes-screen">
+
+<section class="classes-screen">
     <button class="secondary-btn classes-back" @onclick="GoToDashboard">Tilbage</button>
-    <h2 class="classes-title">Mine hold</h2>
-    <p class="classes-subtitle">Se dine kommende holdbookinger.</p>
+
+    <header class="classes-hero">
+        <h2 class="classes-title">Mine hold</h2>
+        <p class="classes-subtitle">Se dine kommende holdbookinger.</p>
+    </header>
+
     <p class="classes-user">Bruger-id: @(userId ?? "ikke logget ind")</p>
 
     @if (!MyClassesList.Any())
     {
-        <p class="classes-empty">Du har ingen bookede hold endnu.</p>
+        <div class="classes-empty">Du har ingen bookede hold endnu.</div>
     }
     else
     {
         <div class="classes-list">
             @foreach (FitnessClass c in MyClassesList)
             {
-                <div class="class-card" @onclick="() => GoToBooking(c)" style="cursor:pointer;">
+                <article class="class-card" @onclick="() => GoToBooking(c)">
                     <div class="class-main">
                         <p class="class-name">@c.Name</p>
                         <p class="class-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
                         <p class="class-location">@c.Location</p>
                     </div>
+
                     <div class="class-status-area">
                         <span class="class-status">@c.Category.ToString()</span>
-                        @{ 
+
+                        @{
                             var waitIndex = -1;
                             var waitCount = 0;
                             if (!string.IsNullOrEmpty(userId) && c.WaitlistUserIds != null)
@@ -43,13 +50,15 @@
                                 waitCount = c.WaitlistUserIds.Count;
                             }
                         }
+
                         @if (waitIndex >= 0)
                         {
                             <span class="class-waitlist">På venteliste #@((waitIndex + 1)) af @waitCount</span>
                         }
+
                         <button class="class-cancel" @onclick:stopPropagation @onclick="() => CancelClassBooking(c.Id!)">Afbryd</button>
                     </div>
-                </div>
+                </article>
             }
         </div>
     }
@@ -66,14 +75,15 @@
             Book nyt hold
         </button>
     }
-</div>
+</section>
 
 @code {
-    
+
     private string? userId;
     private UserRole? userRole;
     private List<FitnessClass> MyClassesList = new();
     private bool isCancelling = false;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -82,6 +92,7 @@
             await TokenService.FlushPendingAsync();
         }
     }
+
     protected override async Task OnInitializedAsync()
     {
         userId = await TokenService.GetUserIdAsync();
@@ -110,7 +121,6 @@
             MyClassesList = MyClassesList.OrderBy(c => c.Date).ThenBy(c => c.Time).ToList();
         }
     }
-
 
     private void GoToCreate()
     {
@@ -178,8 +188,6 @@
         StateHasChanged();
     }
 
-
-
     public class MyClassModel
     {
         public string Name { get; set; } = "";
@@ -189,159 +197,3 @@
         public string Status { get; set; } = "";
     }
 }
-
-<style>
-    .classes-screen {
-        padding: 20px;
-        max-width: 800px;
-        margin: 0 auto;
-    }
-
-    .classes-title {
-        font-size: 28px;
-        font-weight: 600;
-        margin-bottom: 10px;
-    }
-
-    .classes-subtitle {
-        font-size: 18px;
-        margin-bottom: 20px;
-        color: #666;
-    }
-
-    .classes-user {
-        font-size: 14px;
-        margin-bottom: 30px;
-        color: #999;
-    }
-
-    .classes-empty {
-        text-align: center;
-        color: #999;
-        font-style: italic;
-    }
-
-    .classes-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 20px;
-    }
-
-    .class-card {
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        padding: 15px;
-        position: relative;
-    }
-
-    .class-main {
-        margin-bottom: 10px;
-    }
-
-    .class-name {
-        font-size: 18px;
-        font-weight: 500;
-        margin: 0;
-    }
-
-    .class-meta {
-        font-size: 14px;
-        color: #666;
-        margin: 5px 0;
-    }
-
-    .class-location {
-        font-size: 14px;
-        color: #999;
-        margin: 0;
-    }
-
-    .class-status-area {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        grid-template-rows: auto auto;
-        gap: 6px 12px;
-        align-items: center;
-        margin-top: 10px;
-        padding-bottom: 6px;
-    }
-
-    .class-status {
-        font-size: 14px;
-        padding: 4px 8px;
-        border-radius: 12px;
-        background: #e0f7fa;
-        color: #00796b;
-        font-weight: 500;
-    }
-
-    .class-waitlist {
-        font-size: 13px;
-        padding: 4px 8px;
-        border-radius: 12px;
-        background: #fff3e0;
-        color: #bf360c;
-        font-weight: 600;
-        grid-column: 1 / -1;
-        justify-self: center;
-        margin-top: 4px;
-    }
-
-    .class-status-area .class-status {
-        grid-column: 1 / 2;
-        grid-row: 1 / 2;
-        justify-self: start;
-    }
-
-    .class-status-area .class-cancel {
-        grid-column: 2 / 3;
-        grid-row: 1 / 2;
-        justify-self: end;
-    }
-
-    .class-cancel {
-        background: #ef5350;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 12px;
-        font-size: 14px;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-
-    .class-cancel:hover {
-        background: #e53935;
-    }
-
-    .primary-btn {
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 10px 20px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-
-    .primary-btn:hover {
-        background: #0056b3;
-    }
-
-    .secondary-btn {
-        background: #6c757d;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 10px 20px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background 0.3s;
-    }
-
-    .secondary-btn:hover {
-        background: #5a6268;
-    }
-</style>

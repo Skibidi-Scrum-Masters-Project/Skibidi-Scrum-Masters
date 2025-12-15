@@ -8,11 +8,7 @@
     gap:0;
 }
 
-/* VIGTIGT
-   Når du bruger EmptyLayout med <TopBar /> og <BottomNav />,
-   så skal Dashboard sidens egne <header class="topbar"> og <nav class="bottom-nav">
-   ikke vises, ellers får du dubletter.
-*/
+
 .dashboard > .topbar{
     display:none;
 }
@@ -20,10 +16,6 @@
     display:none;
 }
 
-/* Body
-   Du har allerede scroll på dashboard-body, og det fungerer fint.
-   Vi giver bund padding nok til at layoutets bottom nav ikke overlapper indholdet.
-*/
 .dashboard-body{
     flex:1;
     min-height:0;

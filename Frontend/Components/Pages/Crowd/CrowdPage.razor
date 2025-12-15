@@ -1,63 +1,129 @@
 @page "/crowd"
+@layout PhoneLayout
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
-@layout PhoneLayout
-<div class="crowd-screen">
 
-    <h2 class="crowd-title">Travlhed i centeret</h2>
-    <p class="crowd-subtitle">Se hvor fyldt centeret er lige nu og senere i dag.</p>
+<div class="crowdpage">
+    <div class="crowd-body">
+        <div class="crowd-shell">
+            <button class="secondary-btn crowd-back" @onclick="GoBack">Tilbage</button>
 
-    <div class="crowd-card">
-        <p class="crowd-now-label">Lige nu</p>
+            <header class="crowd-hero">
+                <h2 class="crowd-title">Travlhed i centeret</h2>
+                <p class="crowd-subtitle">Se hvor fyldt centeret er lige nu og senere i dag.</p>
+            </header>
 
-        <div class="crowd-now-row">
-            <span class="crowd-now-text">@CurrentLabel</span>
-            <span class="crowd-now-percentage">@CurrentPercent %</span>
-        </div>
+            <section class="crowd-card crowd-card-current">
+                <p class="crowd-now-label">Lige nu</p>
 
-        <div class="crowd-bar">
-            <div class="crowd-bar-fill @CurrentLevelClass" style="width:@($"{CurrentPercent}%")"></div>
-        </div>
-
-        <p class="crowd-hint">Grøn = god tid · Gul = moderat · Rød = meget travlt</p>
-    </div>
-
-    <div class="crowd-card">
-        <p class="crowd-section-title">Senere i dag</p>
-
-        <div class="crowd-forecast-list">
-            @foreach (var point in Forecast)
-            {
-                <div class="crowd-forecast-row">
-                    <span class="crowd-time">@point.Time</span>
-
-                    <div class="crowd-bar small">
-                        <div class="crowd-bar-fill @GetLevelClass(point.Percent)"
-                             style="width:@($"{point.Percent}%")"></div>
+                <div class="crowd-now-row">
+                    <div class="crowd-now-left">
+                        <span class="crowd-now-percentage" style="color:@CurrentColor">@CurrentPercent %</span>
+                        <span class="crowd-now-text">@CurrentLabel</span>
                     </div>
 
-                    <span class="crowd-percent">@point.Percent %</span>
+                    <div class="crowd-now-right">
+                        <div class="crowd-now-chip" title="Antal personer lige nu">
+                            <span class="chip-ico" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                    <path d="M8 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"></path>
+                                    <path d="M22 21v-2a3.5 3.5 0 0 0-3-3.45"></path>
+                                    <path d="M18 3.65a4 4 0 0 1 0 7.7"></path>
+                                </svg>
+                            </span>
+                            <span class="chip-text">@CurrentPeople personer</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="crowd-bar">
+                    <div class="crowd-bar-fill" style="width:@($"{CurrentPercent}%"); background:@CurrentColor"></div>
+                </div>
+
+                <div class="crowd-legend" aria-label="Forklaring på farver">
+                    <span class="legend-item">
+                        <span class="legend-dot low" aria-hidden="true"></span>
+                        <span class="legend-text">Roligt</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot medium" aria-hidden="true"></span>
+                        <span class="legend-text">Moderat</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot high" aria-hidden="true"></span>
+                        <span class="legend-text">Travlt</span>
+                    </span>
+                    <span class="legend-item">
+                        <span class="legend-dot very-high" aria-hidden="true"></span>
+                        <span class="legend-text">Meget travlt</span>
+                    </span>
+                </div>
+            </section>
+
+
+            @if (ShowTip)
+            {
+                <div class="crowd-tip">
+                    <div class="crowd-tip-title">Højsæson lige nu</div>
+                    <div class="crowd-tip-text">
+                        Overvej at komme kl. @BestTime, hvis du vil undgå spidsbelastning.
+                    </div>
                 </div>
             }
+
+            <section class="crowd-card">
+                <p class="crowd-section-title">Senere i dag</p>
+
+                <div class="crowd-forecast-list">
+                    @foreach (var point in Forecast)
+                    {
+                        <div class="crowd-forecast-row">
+                            <span class="crowd-time">@point.Time</span>
+
+                            <div class="crowd-bar small">
+                                <div class="crowd-bar-fill"
+                                     style="width:@($"{point.Percent}%"); background:@GetLevelColor(point.Percent)"></div>
+                            </div>
+
+                            <span class="crowd-percent" style="color:@GetLevelColor(point.Percent)">@point.Percent %</span>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <div class="crowd-stats">
+                <div class="crowd-stat">
+                    <div class="crowd-stat-label">Bedste tid</div>
+                    <div class="crowd-stat-value best">@BestTime</div>
+                </div>
+
+                <div class="crowd-stat">
+                    <div class="crowd-stat-label">Spidsbelastning</div>
+                    <div class="crowd-stat-value peak">@PeakTime</div>
+                </div>
+            </div>
+
+            <button class="primary-btn crowd-refresh" @onclick="RefreshData">
+                Opdater
+            </button>
         </div>
     </div>
-
-    <button class="primary-btn crowd-refresh" @onclick="RefreshData">
-        Opdater
-    </button>
 </div>
 
 @code {
-    private int CurrentPercent { get; set; } = 68;
-    private string CurrentLabel => CurrentPercent switch
-    {
-        <= 30 => "Roligt",
-        <= 60 => "Mellem",
-        <= 85 => "Travlt",
-        _     => "Meget travlt"
-    };
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
-    private string CurrentLevelClass => GetLevelClass(CurrentPercent);
+    // seed data (TODO: hent rigtige data fra backend)
+    private const int MaxPeopleCapacity = 250;
+
+    private int CurrentPercent { get; set; } = 68;
+
+    private int CurrentPeople =>
+        (int)Math.Round(MaxPeopleCapacity * (CurrentPercent / 100.0));
+
+    private string CurrentLabel => GetLevelLabel(CurrentPercent);
+    private string CurrentColor => GetLevelColor(CurrentPercent);
 
     private List<CrowdPoint> Forecast { get; set; } = new()
     {
@@ -68,10 +134,20 @@
         new CrowdPoint("20:00", 35),
     };
 
+    private bool ShowTip => CurrentPercent > 70;
+
+    private string BestTime =>
+        Forecast.OrderBy(x => x.Percent).FirstOrDefault()?.Time ?? "20:00";
+
+    private string PeakTime =>
+        Forecast.OrderByDescending(x => x.Percent).FirstOrDefault()?.Time ?? "18:00";
+
     private void RefreshData()
     {
-        // TODO: Senere: hent rigtige data fra backend
-        // Lige nu faker vi bare lidt “nyt”
+        // TODO: hent rigtige data fra backend (via service)
+        // TODO: tilføj loading + error state
+        // TODO: udregn CurrentPercent baseret på real-time occupancy
+
         var rand = new Random();
         CurrentPercent = rand.Next(20, 95);
 
@@ -81,12 +157,26 @@
         }
     }
 
-    private string GetLevelClass(int percent) => percent switch
+    private void GoBack()
     {
-        <= 30 => "low",
-        <= 60 => "medium",
-        <= 85 => "high",
-        _     => "very-high"
+        // TODO: skift destination hvis du vil tilbage til et bestemt sted
+        NavigationManager.NavigateTo("/dashboard");
+    }
+
+    private static string GetLevelLabel(int percent) => percent switch
+    {
+        <= 30 => "Roligt",
+        <= 60 => "Mellem",
+        <= 85 => "Travlt",
+        _ => "Meget travlt"
+    };
+
+    private static string GetLevelColor(int percent) => percent switch
+    {
+        <= 30 => "rgb(36, 195, 106)",
+        <= 60 => "rgb(255, 193, 7)",
+        <= 85 => "rgb(255, 152, 0)",
+        _ => "rgb(235, 72, 72)"
     };
 
     public class CrowdPoint
