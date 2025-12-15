@@ -1,55 +1,65 @@
-/* FeedPage.css scoped to .feedpage */
-
 .feedpage{
     height:100%;
     width:100%;
     display:flex;
     flex-direction:column;
-    position:relative;
+
+    min-width:0;
+    min-height:0;
+    overflow:hidden;   /* klipper overlay korrekt til phone */
+    /* fjern evt. position:relative hvis du har den */
 }
 
-/* Topbar */
-.feedpage .topbar{
-    position:sticky;
-    top:0;
-    z-index:60;
+.feedpage .feed-body{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding:12px 0 16px;
+}
 
+.feedpage .feed-shell{
+    padding:0 14px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.feedpage .page-head{
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
     gap:12px;
 
-    padding:10px 14px;
-    background:var(--bar-bg);
-    border-bottom:1px solid var(--bar-border);
-    box-shadow:var(--bar-shadow);
-    color:var(--text-secondary);
+    padding:14px;
+    border-radius:18px;
 
-    backdrop-filter:blur(14px);
-    -webkit-backdrop-filter:blur(14px);
+    background:rgba(0,0,0,0.12);
+    border:1px solid rgba(255,255,255,0.06);
+    box-shadow:0 6px 14px rgba(0,0,0,0.32);
 }
 
-.feedpage .topbar-left{
+.feedpage .page-left{
     display:flex;
     flex-direction:column;
-    gap:2px;
+    gap:4px;
     min-width:0;
 }
 
-.feedpage .brand{
+.feedpage .page-title{
     margin:0;
     font-size:1.1rem;
-    font-weight:750;
+    font-weight:900;
     color:var(--text-primary);
 }
 
-.feedpage .welcome{
+.feedpage .page-sub{
     margin:0;
     font-size:0.85rem;
     color:var(--text-secondary);
 }
 
-.feedpage .topbar-right{
+.feedpage .page-right{
     display:flex;
     align-items:center;
     gap:10px;
@@ -68,45 +78,16 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:1.1rem;
+    font-size:1.05rem;
     font-weight:900;
 }
 
 .feedpage .icon-btn:active{ transform:scale(0.96); }
 
-.feedpage .avatar{
-    width:44px;
-    height:44px;
-    border-radius:999px;
-    background:var(--green-light);
-    color:var(--bg-dark);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:900;
-    cursor:pointer;
-    box-shadow:0 10px 18px rgba(0,0,0,0.28);
-}
-
-/* Body */
-.feedpage .feed-body{
-    flex:1;
-    min-height:0;
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    padding:12px 0 calc(76px + 16px + env(safe-area-inset-bottom));
-}
-
-.feedpage .feed-shell{
-    padding:0 14px;
-}
-
-/* Tabs */
 .feedpage .feed-tabs{
     display:flex;
     align-items:center;
     gap:8px;
-    margin-bottom:12px;
 }
 
 .feedpage .tab{
@@ -141,7 +122,6 @@
 
 .feedpage .create-btn:active{ transform:scale(0.98); }
 
-/* States */
 .feedpage .state-card{
     background:rgba(0,0,0,0.12);
     border-radius:18px;
@@ -169,14 +149,12 @@
     color:var(--text-secondary);
 }
 
-/* Post list */
 .feedpage .post-list{
     display:flex;
     flex-direction:column;
     gap:10px;
 }
 
-/* Post cards */
 .feedpage .post-card,
 .feedpage .workout-card{
     background:rgba(0,0,0,0.12);
@@ -254,11 +232,23 @@
     white-space:pre-wrap;
 }
 
-/* Workout meta */
 .feedpage .row-left{
     display:flex;
     flex-direction:column;
     gap:4px;
+}
+
+.feedpage .row-sub{
+    font-size:0.8rem;
+    color:var(--text-secondary);
+    font-weight:750;
+}
+
+.feedpage .row-muted{
+    margin-top:6px;
+    font-size:0.86rem;
+    color:rgba(225,232,236,0.68);
+    font-weight:750;
 }
 
 .feedpage .pill{
@@ -289,6 +279,29 @@
     font-size:0.82rem;
 }
 
+.feedpage .post-footer{
+    margin-top:12px;
+    padding-top:10px;
+    border-top:1px solid rgba(255,255,255,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.feedpage .pf-left{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+}
+
+.feedpage .pf-item{
+    font-size:0.82rem;
+    color:rgba(225,232,236,0.62);
+    font-weight:800;
+}
+
 .feedpage .row-actions{
     display:flex;
     justify-content:flex-end;
@@ -313,74 +326,26 @@
     box-shadow:none;
 }
 
-/* Bottom nav */
-.feedpage .bottom-nav{
-    position:sticky;
-    bottom:0;
-    z-index:50;
-
-    height:76px;
-    padding:10px 10px calc(10px + env(safe-area-inset-bottom));
-    background:var(--bar-bg);
-    border-top:1px solid var(--bar-border);
-    box-shadow:0 -10px 24px rgba(0,0,0,0.35);
-
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    gap:6px;
-    user-select:none;
-}
-
-.feedpage .bn-item{
-    border:none;
-    background:transparent;
-    cursor:pointer;
-
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:6px;
-
-    border-radius:14px;
-    padding:8px 6px;
-    color:var(--text-secondary);
-    font-size:0.75rem;
-}
-
-.feedpage .bn-item.active{ color:var(--green-light); }
-
-.feedpage .bn-ico{
-    width:36px;
-    height:28px;
-    border-radius:12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:rgba(36,195,106,0.12);
-}
-
-.feedpage .bn-item.active .bn-ico{
-    background:rgba(36,195,106,0.22);
-}
-
-.feedpage .bn-lbl{ font-weight:800; }
-
-/* Composer */
 .feedpage .composer-backdrop{
-    position:fixed;
+    position:absolute;   /* vigtig: ikke fixed */
     inset:0;
     background:rgba(0,0,0,0.55);
-    z-index:200;
+    z-index:9999;
+
     display:flex;
     align-items:flex-end;
     justify-content:center;
+
     padding:18px;
+    padding-bottom:max(18px, env(safe-area-inset-bottom));
 }
+
 
 .feedpage .composer-sheet{
     width:100%;
     max-width:390px;
+    box-sizing:border-box;
+
     background:rgba(20,25,30,0.98);
     border:1px solid rgba(255,255,255,0.12);
     border-radius:20px;
@@ -407,6 +372,18 @@
 .feedpage .composer-title{
     font-weight:900;
     color:var(--text-primary);
+}
+
+.feedpage .menu-btn{
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:14px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.10);
+    color:var(--text-primary);
+    cursor:pointer;
+    font-weight:900;
 }
 
 .feedpage .composer-body{
@@ -472,7 +449,11 @@
     box-shadow:none;
 }
 
-/* Small devices */
 @media (max-width:430px){
     .feedpage .feed-shell{ padding:0 12px; }
+}
+
+
+@media (max-width:430px){
+    .feedpage .composer-sheet{ max-width:100%; }
 }

@@ -45,7 +45,7 @@
 
             <div class="crowd-info-row">
                 <span>Medium: Forvent kort ventetid.</span>
-                <button class="link-secondary" type="button">Se Travlhed</button>
+                <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
             </div>
 
             <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
@@ -245,4 +245,5 @@
     void GoToLocker() => Nav.NavigateTo("/locker");
     void GoToProfile() => Nav.NavigateTo("/profile");
     void GoToPersonalTraining() => Nav.NavigateTo("/personaltraining");
+    void GoToCrowd() => Nav.NavigateTo("/crowd");
 }
