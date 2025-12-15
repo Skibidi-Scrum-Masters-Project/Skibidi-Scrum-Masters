@@ -33,6 +33,10 @@ public class SoloTrainingService
     }
     public async Task<HttpResponseMessage> GetMostRecentSoloTrainingForUserAndProgramAsync(string userId, string programId)
     {
-        return await _httpClient.GetAsync($"/api/solotraining/workouts/recent/{userId}/{programId}");
+        return await _httpClient.GetAsync($"/api/solotraining/recent/{userId}/{programId}");
+    }
+    public async Task<HttpResponseMessage> CreateSoloTrainingSessionAsync(string userId, string programId, object soloTrainingData)
+    {
+        return await _httpClient.PostAsJsonAsync($"/api/solotraining/{userId}/{programId}", soloTrainingData);
     }
 }
