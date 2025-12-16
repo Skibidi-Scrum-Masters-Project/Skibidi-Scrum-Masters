@@ -144,15 +144,15 @@
                     ?? new();
             }
 
-            //  CROWD 
-            var crowdRes =
-                await AnalyticsService.GetCrowdCountAsync();
+                //  CROWD 
+                var crowdRes =
+                    await AnalyticsService.GetCrowdCountAsync();
 
-            if (crowdRes.IsSuccessStatusCode)
-            {
-                CrowdCount =
-                    await crowdRes.Content.ReadFromJsonAsync<int>();
-            }
+                if (crowdRes.IsSuccessStatusCode)
+                {
+                    CrowdCount =
+                        await crowdRes.Content.ReadFromJsonAsync<int>();
+                }
         }
         catch (Exception ex)
         {
