@@ -78,7 +78,7 @@ public class AccessControlRepository : IAccessControlRepository
     
     }
 
-    public Task<List<Models.Locker>> GetAllAvailableLockers(string lockerRoomId)
+    public Task<List<Locker>> GetAllAvailableLockers(string lockerRoomId)
     {
         if (lockerRoomId == null)
         {

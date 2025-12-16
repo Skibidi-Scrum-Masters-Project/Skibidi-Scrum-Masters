@@ -12,192 +12,262 @@
 @layout PhoneLayout
 
 <div class="trainer-screen">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div>
-            <h2 class="trainer-title">Mine sessioner</h2>
-            <p class="trainer-subtitle">Overblik over dine tider som personlig træner</p>
+    <section class="trainer-hero">
+        <div class="trainer-hero-top">
+            <div class="trainer-hero-text">
+                <h2 class="trainer-title">Mine sessioner</h2>
+                <p class="trainer-subtitle">Overblik over dine tider som personlig træner</p>
+            </div>
+
+            <button class="fab" type="button" @onclick="OpenCreateSession" aria-label="Tilføj session">
+                <span class="fab-plus">+</span>
+            </button>
         </div>
 
-        
-        <button @onclick="OpenCreateSession"
-                style="
-            width:44px;
-            height:44px;
-            border-radius:50%;
-            background:#16a34a;
-            color:white;
-            border:none;
-            cursor:pointer;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-size:28px;
-            font-weight:600;">
-            +
-        </button>
+        <div class="trainer-hero-pills">
+            <div class="hero-pill">
+                <span class="pill-dot"></span>
+                <span class="pill-text">@_available.Count ledige</span>
+            </div>
+            <div class="hero-pill blue">
+                <span class="pill-dot"></span>
+                <span class="pill-text">@_planned.Count planlagte</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="trainer-body">
+        @if (_isLoading)
+        {
+            <div class="state-card">
+                <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Indlæser dine sessioner...</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            @if (!string.IsNullOrWhiteSpace(_pageError))
+            {
+                <div class="todo-card">
+                    <div class="todo-title">Fejl</div>
+                    <div style="color:rgba(252,165,165,0.95); font-weight:800; line-height:1.4;">
+                        @_pageError
+                    </div>
+                </div>
+            }
+
+            <div class="trainer-tabs">
+                <button class="trainer-tab @(ActiveTab == Tab.Available ? "active" : "")"
+                        type="button"
+                        @onclick="() => ActiveTab = Tab.Available">
+                    Ledige
+                </button>
+
+                <button class="trainer-tab @(ActiveTab == Tab.Planned ? "active" : "")"
+                        type="button"
+                        @onclick="() => ActiveTab = Tab.Planned">
+                    Planlagte
+                </button>
+            </div>
+
+            @if (ActiveTab == Tab.Available)
+            {
+                <section class="section-card">
+                    <div class="section-head">
+                        <div class="section-title">
+                            <span class="section-dot green"></span>
+                            Ledige tider
+                        </div>
+                        <div class="section-sub">Opret flere tider</div>
+                    </div>
+
+                    @if (!_available.Any())
+                    {
+                        <div class="empty-box">
+                            <div class="empty-ico">🕐</div>
+                            <div class="empty-title">Ingen ledige tider</div>
+                            <div class="empty-sub">Opret en ny session for at gøre den bookbar.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="session-list">
+                            @foreach (var s in _available)
+                            {
+                                @SessionCard(s, false)
+                            }
+                        </div>
+                    }
+                </section>
+            }
+            else
+            {
+                <section class="section-card">
+                    <div class="section-head">
+                        <div class="section-title">
+                            <span class="section-dot blue"></span>
+                            Planlagte sessioner
+                        </div>
+                        <div class="section-sub">Se hvem der har booket og læs detaljer.</div>
+                    </div>
+
+                    @if (!_planned.Any())
+                    {
+                        <div class="empty-box">
+                            <div class="empty-ico">📭</div>
+                            <div class="empty-title">Ingen planlagte sessioner</div>
+                            <div class="empty-sub">Når en kunde booker, vises den her.</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="session-list">
+                            @foreach (var s in _planned)
+                            {
+                                @SessionCard(s, true)
+                            }
+                        </div>
+                    }
+                </section>
+            }
+
+            <div class="todo-card">
+                <div class="todo-title">TODO</div>
+                <ul class="todo-list">
+                    <li>Sortering: nærmeste først, derefter længde</li>
+                    <li>Rediger session</li>
+                    <li>Vis session type og pris</li>
+                    <li>Vis push besked når en session bookes</li>
+                    <li>Bekræftelse og regler for sletning af bookede sessioner</li>
+                </ul>
+            </div>
+        }
     </div>
-
-    @if (_isLoading)
-    {
-        <p>Indlæser dine sessioner...</p>
-    }
-    else
-    {
-        <h3 style="margin-top:24px;">🟢 Ledige tider</h3>
-
-        @if (!_available.Any())
-        {
-            <p>Ingen ledige tider.</p>
-        }
-        else
-        {
-            @foreach (var s in _available)
-            {
-                @SessionCard(s, false)
-            }
-        }
-
-        <h3 style="margin-top:32px;">🔵 Planlagte sessioner</h3>
-
-        @if (!_planned.Any())
-        {
-            <p>Ingen planlagte sessioner.</p>
-        }
-        else
-        {
-            @foreach (var s in _planned)
-            {
-                @SessionCard(s, true)
-            }
-        }
-    }
 </div>
+
 @if (_selectedSession is not null)
 {
-    <div style="
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,0.4);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        z-index:80;">
+    <div class="modal-backdrop" @onclick="CloseDetails">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <div class="modal-title">Bookingdetaljer</div>
+                <button class="modal-x" type="button" @onclick="CloseDetails" aria-label="Luk">✕</button>
+            </div>
 
-        <div style="
-            background:white;
-            border-radius:16px;
-            padding:20px;
-            width:90%;
-            max-width:420px;
-            box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-row">
+                <div class="modal-label">Kunde</div>
+                <div class="modal-value">@_selectedCustomerName</div>
+            </div>
 
-            <h3 style="margin-top:0;">Bookingdetaljer</h3>
+            <div class="modal-row">
+                <div class="modal-label">Mål</div>
+                <div class="modal-value multiline">@(_selectedSession.BookingForm?.Goals ?? "-")</div>
+            </div>
 
-            <p><strong>Kunde:</strong> @_selectedCustomerName</p>
+            <div class="modal-row">
+                <div class="modal-label">Noter</div>
+                <div class="modal-value multiline">@(_selectedSession.BookingForm?.Notes ?? "-")</div>
+            </div>
 
-            <p><strong>Mål:</strong><br />
-                @_selectedSession.BookingForm?.Goals
-            </p>
+            <div class="modal-row">
+                <div class="modal-label">Erfaring</div>
+                <div class="modal-value">@ExperienceText(_selectedSession.BookingForm?.Experience)</div>
+            </div>
 
-            <p><strong>Noter:</strong><br />
-                @_selectedSession.BookingForm?.Notes
-            </p>
-
-            <p><strong>Erfaring:</strong>
-                @_selectedSession.BookingForm?.Experience
-            </p>
-
-            <p style="font-size:13px; color:#6b7280;">
+            <div class="modal-meta">
                 Oprettet:
                 @(
-                _selectedSession.BookingForm != null
-                    ? _selectedSession.BookingForm.CreatedAt
-                        .ToLocalTime()
-                        .ToString("dd/MM HH:mm")
-                    : "-"
+                    _selectedSession.BookingForm != null
+                        ? _selectedSession.BookingForm.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")
+                        : "-"
                 )
-            </p>
+            </div>
 
-            <button @onclick="CloseDetails"
-                    style="
-                        margin-top:16px;
-                        width:100%;
-                        background:#2563eb;
-                        color:white;
-                        border:none;
-                        padding:12px;
-                        border-radius:999px;
-                        font-weight:600;">
+            <button class="primary-btn" type="button" @onclick="CloseDetails">
                 Luk
             </button>
         </div>
     </div>
 }
 
-
-<!-- CREATE SESSION MODAL -->
 @if (_showCreateModal)
 {
-    <div style="
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,0.4);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        z-index:60;">
-
-        <div style="
-            background:white;
-            border-radius:16px;
-            padding:20px;
-            width:90%;
-            max-width:420px;">
-
-            <h3>Tilføj ny session</h3>
-
-            <div style="margin-top:12px;">
-                <label>Start tidspunkt</label>
-                <input type="datetime-local"
-                       style="width:100%; padding:8px;"
-                       @bind="_newStartTime" />
+    <div class="modal-backdrop" @onclick="CloseCreateSession">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <div class="modal-title">Tilføj ny session</div>
+                <button class="modal-x" type="button" @onclick="CloseCreateSession" aria-label="Luk">✕</button>
             </div>
 
-            <div style="margin-top:12px;">
-                <label>Slut tidspunkt</label>
-                <input type="datetime-local"
-                       style="width:100%; padding:8px;"
-                       @bind="_newEndTime" />
+            <div class="field">
+                <label class="field-label">Start tidspunkt</label>
+                <input class="field-input" type="datetime-local" @bind="_newStartTime" />
             </div>
 
-            <div style="display:flex; gap:10px; margin-top:20px;">
-                <button @onclick="CloseCreateSession"
-                        style="
-                            flex:1;
-                            background:#e5e7eb;
-                            border:none;
-                            padding:10px;
-                            border-radius:999px;">
-                    Annuller
-                </button>
-                <button @onclick="CreateSession"
-                        style="
-                            flex:1;
-                            background:#16a34a;
-                            color:white;
-                            border:none;
-                            padding:10px;
-                            border-radius:999px;
-                            font-weight:600;">
-                    Tilføj
-                </button>
+            <div class="field">
+                <label class="field-label">Slut tidspunkt</label>
+                <input class="field-input" type="datetime-local" @bind="_newEndTime" />
+            </div>
+
+            <div class="btn-row">
+                <button class="ghost-btn" type="button" @onclick="CloseCreateSession">Annuller</button>
+                <button class="primary-btn" type="button" @onclick="CreateSession">Tilføj</button>
             </div>
         </div>
     </div>
 }
 
+@if (_deleteCandidate is not null)
+{
+    <div class="modal-backdrop" @onclick="CancelDelete">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            <div class="modal-head">
+                <div class="modal-title">Slet session</div>
+                <button class="modal-x" type="button" @onclick="CancelDelete" aria-label="Luk">✕</button>
+            </div>
+
+            <div class="modal-row">
+                <div class="modal-label">Tid</div>
+                <div class="modal-value">
+                    @FormatDate(_deleteCandidate.StartTime) @FormatTime(_deleteCandidate.StartTime) - @FormatTime(_deleteCandidate.EndTime)
+                </div>
+            </div>
+
+            <div class="modal-row">
+                <div class="modal-label">Status</div>
+                <div class="modal-value">@(_deleteCandidate.CurrentStatus.ToString())</div>
+            </div>
+
+            <div class="modal-meta" style="margin-top:0;">
+                Denne handling kan ikke fortrydes.
+            </div>
+
+            <div class="btn-row" style="margin-top:14px;">
+                <button class="ghost-btn" type="button" @onclick="CancelDelete">Annuller</button>
+                <button class="danger-btn" type="button" @onclick="ConfirmDelete" disabled="@_isDeleting">
+                    @(_isDeleting ? "Sletter..." : "Slet")
+                </button>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_deleteError))
+            {
+                <div style="margin-top:12px; color:rgba(252,165,165,0.95); font-weight:800; line-height:1.35;">
+                    @_deleteError
+                </div>
+            }
+        </div>
+    </div>
+}
+
 @code {
+    private enum Tab { Available, Planned }
+
+    private Tab ActiveTab = Tab.Available;
+
     private bool _isLoading = true;
+    private string? _pageError;
 
     private List<CoachingSession.SessionDto> _available = new();
     private List<CoachingSession.SessionDto> _planned = new();
@@ -211,76 +281,90 @@
     private DateTime _newEndTime;
     private string? jwt;
 
+    private CoachingSession.SessionDto? _deleteCandidate;
+    private bool _isDeleting = false;
+    private string? _deleteError;
+
     protected override async Task OnInitializedAsync()
     {
         jwt = await TokenService.GetTokenAsync();
         await LoadSessions();
     }
-    
-    void CloseDetails()
+
+    private void CloseDetails()
     {
         _selectedSession = null;
     }
 
-    async Task LoadSessions()
+    private async Task LoadSessions()
     {
         _isLoading = true;
+        _pageError = null;
 
-        var coachId = await TokenService.GetUserIdAsync();
-        if (string.IsNullOrEmpty(coachId))
-            return;
+        try
+        {
+            var coachId = await TokenService.GetUserIdAsync();
+            if (string.IsNullOrEmpty(coachId))
+                return;
 
         var response = await CoachingService.GetAllSessionsByCoachIdAsync(coachId, jwt ?? "");
         response.EnsureSuccessStatusCode();
 
-        var sessions =
-            await response.Content.ReadFromJsonAsync<List<CoachingSession.SessionDto>>()
-            ?? new();
+            var sessions =
+                await response.Content.ReadFromJsonAsync<List<CoachingSession.SessionDto>>()
+                ?? new();
 
-        _available = sessions
-            .Where(s => s.CurrentStatus == CoachingSession.Status.Available)
-            .OrderBy(s => s.StartTime)
-            .ToList();
+            _available = sessions
+                .Where(s => s.CurrentStatus == CoachingSession.Status.Available)
+                .OrderBy(s => s.StartTime)
+                .ToList();
 
-        _planned = sessions
-            .Where(s => s.CurrentStatus == CoachingSession.Status.Planned)
-            .OrderBy(s => s.StartTime)
-            .ToList();
+            _planned = sessions
+                .Where(s => s.CurrentStatus == CoachingSession.Status.Planned)
+                .OrderBy(s => s.StartTime)
+                .ToList();
 
-        _users.Clear();
+            _users.Clear();
 
-        var userIds = _planned
-            .Where(s => !string.IsNullOrEmpty(s.UserId))
-            .Select(s => s.UserId!)
-            .Distinct();
+            var userIds = _planned
+                .Where(s => !string.IsNullOrEmpty(s.UserId))
+                .Select(s => s.UserId!)
+                .Distinct();
 
-        foreach (var id in userIds)
-        {
-            var userResponse = await UserService.GetUserByIdAsync(id);
-            if (userResponse.IsSuccessStatusCode)
+            foreach (var id in userIds)
             {
-                var user = await userResponse.Content.ReadFromJsonAsync<UserDto>();
-                if (user != null)
-                    _users[id] = user;
+                var userResponse = await UserService.GetUserByIdAsync(id);
+                if (userResponse.IsSuccessStatusCode)
+                {
+                    var user = await userResponse.Content.ReadFromJsonAsync<UserDto>();
+                    if (user != null)
+                        _users[id] = user;
+                }
             }
         }
-
-        _isLoading = false;
+        catch (Exception ex)
+        {
+            _pageError = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
-    void OpenCreateSession()
+    private void OpenCreateSession()
     {
         _newStartTime = DateTime.Now;
         _newEndTime = DateTime.Now.AddHours(1);
         _showCreateModal = true;
     }
 
-    void CloseCreateSession()
+    private void CloseCreateSession()
     {
         _showCreateModal = false;
     }
 
-    async Task CreateSession()
+    private async Task CreateSession()
     {
         var coachId = await TokenService.GetUserIdAsync();
         if (string.IsNullOrEmpty(coachId))
@@ -300,14 +384,16 @@
         await LoadSessions();
     }
 
-    void ShowDetails(CoachingSession.SessionDto session)
+    private void ShowDetails(CoachingSession.SessionDto session)
     {
         _selectedSession = session;
 
         if (!string.IsNullOrEmpty(session.UserId) &&
             _users.TryGetValue(session.UserId, out var user))
         {
-            _selectedCustomerName = user.Username;
+            _selectedCustomerName = !string.IsNullOrWhiteSpace(user.FirstName)
+                ? user.FirstName
+                : (!string.IsNullOrWhiteSpace(user.Username) ? user.Username : "Ukendt kunde");
         }
         else
         {
@@ -315,47 +401,122 @@
         }
     }
 
-    RenderFragment SessionCard(CoachingSession.SessionDto session, bool showCustomer) => @<div style="
-        background:white;
-        border-radius:14px;
-        padding:14px;
-        margin-bottom:12px;
-        box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+    private string FormatDate(DateTime dt) => dt.ToLocalTime().ToString("dd/MM");
+    private string FormatTime(DateTime dt) => dt.ToLocalTime().ToString("HH:mm");
 
-        <p style="margin:0; font-weight:600;">
-            @session.StartTime.ToLocalTime().ToString("dd/MM")
-        </p>
+    private string GetCustomerName(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return "Ukendt kunde";
+        if (_users.TryGetValue(userId, out var user))
+        {
+            if (!string.IsNullOrWhiteSpace(user.FirstName)) return user.FirstName;
+            if (!string.IsNullOrWhiteSpace(user.Username)) return user.Username;
+        }
+        return "Ukendt kunde";
+    }
 
-        <p style="margin:4px 0 0 0; color:#6b7280;">
-            @session.StartTime.ToLocalTime().ToString("HH:mm")
-            –
-            @session.EndTime.ToLocalTime().ToString("HH:mm")
-        </p>
+    private static string ExperienceText(CoachingSession.Experience? exp)
+    {
+        if (!exp.HasValue) return "-";
+
+        return exp.Value switch
+        {
+            CoachingSession.Experience.Begynder => "Begynder",
+            CoachingSession.Experience.Øvet => "Øvet",
+            CoachingSession.Experience.Ekspert => "Erfaren",
+            _ => exp.Value.ToString()
+        };
+    }
+
+    private string GetCustomerInitial(string? userId)
+    {
+        var name = GetCustomerName(userId);
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        return name.Trim().Substring(0, 1).ToUpperInvariant();
+    }
+
+    private void AskDelete(CoachingSession.SessionDto session)
+    {
+        _deleteError = null;
+        _isDeleting = false;
+        _deleteCandidate = session;
+    }
+
+    private void CancelDelete()
+    {
+        _deleteCandidate = null;
+        _deleteError = null;
+        _isDeleting = false;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (_deleteCandidate is null) return;
+
+        _deleteError = null;
+        _isDeleting = true;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_deleteCandidate.Id))
+            {
+                _deleteError = "Session id mangler";
+                return;
+            }
+
+            var res = await CoachingService.DeleteSessionAsCoachAsync(_deleteCandidate.Id);
+            if (!res.IsSuccessStatusCode)
+            {
+                _deleteError = $"Kunne ikke slette: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            CancelDelete();
+            await LoadSessions();
+        }
+        catch (Exception ex)
+        {
+            _deleteError = ex.Message;
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    RenderFragment SessionCard(CoachingSession.SessionDto session, bool showCustomer) => @<article class="session-card">
+        <div class="session-left">
+            <div class="session-date">@FormatDate(session.StartTime)</div>
+            <div class="session-time">@FormatTime(session.StartTime) - @FormatTime(session.EndTime)</div>
+        </div>
 
         @if (showCustomer)
         {
-            <p style="margin-top:6px; font-size:13px;">
-                <strong>Kunde:</strong>
-                @(
-                    !string.IsNullOrEmpty(session.UserId) &&
-                    _users.TryGetValue(session.UserId, out var user)
-                        ? user.Username
-                        : "Ukendt kunde"
-                )
-            </p>
+            <div class="session-mid">
+                <div class="customer-chip">
+                    <div class="customer-ava">@GetCustomerInitial(session.UserId)</div>
+                    <div class="customer-name">@GetCustomerName(session.UserId)</div>
+                </div>
+            </div>
 
-            <button @onclick="() => ShowDetails(session)"
-                    style="
-                        margin-top:10px;
-                        background:#2563eb;
-                        color:white;
-                        border:none;
-                        padding:8px 14px;
-                        border-radius:999px;
-                        font-size:13px;
-                        font-weight:600;">
-                Se detaljer
-            </button>
+            <div class="session-actions">
+                <button class="small-btn" type="button" @onclick="() => ShowDetails(session)">Se detaljer</button>
+                <button class="small-btn danger" type="button" disabled="true" title="Kan ikke slettes endnu">
+                    Slet
+                </button>
+            </div>
         }
-    </div>;
+        else
+        {
+            <div class="session-mid">
+                <div class="session-tag">Bookbar</div>
+            </div>
+
+            <div class="session-actions">
+                <button class="small-btn danger" type="button" @onclick="() => AskDelete(session)">
+                    Slet
+                </button>
+            </div>
+        }
+    </article>;
 }

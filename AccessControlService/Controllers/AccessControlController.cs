@@ -58,31 +58,46 @@ public class AccessControlController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetAvailableLockersById(string lockerRoomId)
     {
+        if (lockerRoomId == null)
+        {
+            return BadRequest();
+        }
 
         var availableLockers = await _accessControlRepository.GetAllAvailableLockers(lockerRoomId);
         return Ok(availableLockers);
     }
 
 
-    //LOCK A LOCKER AND ASSIGN IT TO A USER
-    [HttpPut("{lockerRoomId}/{lockerId}/{userId}")]
+        //LOCK A LOCKER AND ASSIGN IT TO A USER
+        [HttpPut("{lockerRoomId}/{lockerId}/{userId}")]
     [Authorize]
-    public async Task<IActionResult> LockLocker(
-        string lockerRoomId, string lockerId, string userId)
-    {
-        var locker = await _accessControlRepository.LockLocker(lockerRoomId, lockerId, userId);
-        return Ok(locker);
-    }
+        public async Task<IActionResult> LockLocker(
+            string lockerRoomId, string lockerId, string userId)
+        {
+            if (lockerRoomId == null)
+            {
+                return BadRequest("LockerRoomId is required");
+            }
+            var locker = await _accessControlRepository.LockLocker(lockerRoomId, lockerId, userId);
+            return Ok(locker);
+        }
 
 
-    // UNLOCK A LOCKER AND REMOVE USER ASSIGNMENT
-        [HttpPut("{lockerRoomId}/{lockerId}/{userid}/open")]
+        // UNLOCK A LOCKER AND REMOVE USER ASSIGNMENT
+        [HttpPut("{lockerRoomId}/{lockerId}/{userId}/open")]
         [Authorize]
         public async Task<IActionResult> OpenLocker(string lockerRoomId, string lockerId, string userId)
         {
             var locker = await _accessControlRepository.UnlockLocker(lockerRoomId, lockerId, userId);
+            if (locker == null)
+            {
+                return NotFound("Locker not found or already locked");
+            }
             return Ok(locker);
+            
         }
+        
+        // Get Crowd
         [HttpGet("crowd")]
         [Authorize]
         public async Task<IActionResult> GetCrowd()

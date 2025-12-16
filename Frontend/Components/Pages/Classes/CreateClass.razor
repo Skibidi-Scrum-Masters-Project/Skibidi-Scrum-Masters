@@ -5,170 +5,315 @@
 @inject NavigationManager Nav
 @using System.Net.Http.Json
 @using FitLifeFitness.Components.Layout
-
 @using FitlifeFitness.Models
-@using Microsoft.AspNetCore.Components
 @using System
 @using System.Linq
 
-<div class="create-class-container">
-    <div class="create-class-screen">
-    <button class="secondary-btn classes-back" @onclick="GoToClasses">Tilbage</button>
-    <h2>Opret nyt hold</h2>
+<section class="create-class-page">
+    <header class="create-header">
+        <button type="button" class="back-btn" @onclick="GoToClasses" disabled="@isSubmitting">
+            <span class="back-arrow">←</span>
+            Tilbage
+        </button>
 
-    @if (errorMessage != null)
-    {
-        <p class="error">@errorMessage</p>
-    }
-
-    <EditForm Model="newClassModel" OnValidSubmit="HandleValidSubmit">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <div class="form-row">
-            <label>Navn</label>
-            <InputText class="input" @bind-Value="newClassModel.Name" />
-        </div>
-
-        <div class="form-row">
-            <label>Beskrivelse</label>
-            <InputTextArea class="input textarea" @bind-Value="newClassModel.Description" />
-        </div>
-
-        <div class="form-row two-col">
-            <div>
-                <label>Start (dato & tid)</label>
-                <input class="input" type="datetime-local" @bind="newClassModel.StartTime" />
-            </div>
-            <div>
-                <label>Varighed (min)</label>
-                <InputNumber class="input" @bind-Value="newClassModel.Duration" />
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Opret nyt hold</h1>
+                <p class="hero-subtitle">Udfyld detaljer og opret holdet</p>
             </div>
         </div>
+    </header>
 
-        <div class="form-row two-col">
-            <div>
-                <label>Kategori</label>
-                <InputSelect class="input" @bind-Value="newClassModel.Category">
-                    @foreach (Category c in Enum.GetValues(typeof(Category)).Cast<Category>())
+    <main class="create-body">
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="alert alert-error">
+                <span class="alert-icon">⚠️</span>
+                <span>@errorMessage</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            <div class="alert alert-success">
+                <span class="alert-icon">✓</span>
+                <span>@successMessage</span>
+            </div>
+        }
+
+        <EditForm Model="newClassModel" OnValidSubmit="HandleValidSubmit" class="class-form">
+            <DataAnnotationsValidator />
+
+            <section class="form-section">
+                <div class="section-title">
+                    <span class="title-icon">🧾</span>
+                    Basis
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="className">Navn</label>
+                    <label class="input-shell shell-click" for="className">
+                        <input id="className"
+                               class="form-input"
+                               @bind="newClassModel.Name"
+                               disabled="@isSubmitting"
+                               autocomplete="off"
+                               placeholder="Fx Morning Yoga" />
+                    </label>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="classDesc">Beskrivelse</label>
+                    <label class="input-shell textarea-shell shell-click" for="classDesc">
+                        <textarea id="classDesc"
+                                  class="form-input form-textarea"
+                                  @bind="newClassModel.Description"
+                                  disabled="@isSubmitting"
+                                  placeholder="Hvad kan deltagerne forvente"></textarea>
+                    </label>
+                </div>
+            </section>
+
+            <section class="form-section">
+                <div class="section-title">
+                    <span class="title-icon">⏱️</span>
+                    Tid og niveau
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label class="input-label" for="classStart">Start</label>
+                        <label class="input-shell shell-click" for="classStart">
+                            <input id="classStart"
+                                   class="form-input dt-input"
+                                   type="datetime-local"
+                                   @bind="newClassModel.StartTime"
+                                   disabled="@isSubmitting" />
+                        </label>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="classDuration">Varighed i minutter</label>
+                        <label class="input-shell shell-click" for="classDuration">
+                            <input id="classDuration"
+                                   class="form-input number-input"
+                                   type="number"
+                                   inputmode="numeric"
+                                   min="1"
+                                   step="1"
+                                   @bind="newClassModel.Duration"
+                                   disabled="@isSubmitting"
+                                   placeholder="60" />
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label class="input-label" for="classCategory">Kategori</label>
+                        <label class="input-shell shell-click" for="classCategory">
+                            <select id="classCategory"
+                                    class="form-input form-select"
+                                    @bind="newClassModel.Category"
+                                    disabled="@isSubmitting">
+                                @foreach (Category c in Enum.GetValues(typeof(Category)).Cast<Category>())
+                                {
+                                    <option value="@c">@c</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="classIntensity">Intensitet</label>
+                        <label class="input-shell shell-click" for="classIntensity">
+                            <select id="classIntensity"
+                                    class="form-input form-select"
+                                    @bind="newClassModel.Intensity"
+                                    disabled="@isSubmitting">
+                                @foreach (Intensity i in Enum.GetValues(typeof(Intensity)).Cast<Intensity>())
+                                {
+                                    <option value="@i">@i</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-section">
+                <div class="section-title">
+                    <span class="title-icon">👥</span>
+                    Kapacitet og opsætning
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label class="input-label" for="classCap">Max deltagere</label>
+                        <label class="input-shell shell-click" for="classCap">
+                            <input id="classCap"
+                                   class="form-input number-input"
+                                   type="number"
+                                   inputmode="numeric"
+                                   min="1"
+                                   step="1"
+                                   @bind="newClassModel.MaxCapacity"
+                                   disabled="@isSubmitting"
+                                   placeholder="10" />
+                        </label>
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="classCenter">Center</label>
+                        <label class="input-shell shell-click" for="classCenter">
+                            <input id="classCenter"
+                                   class="form-input"
+                                   @bind="newClassModel.CenterId"
+                                   disabled="@isSubmitting"
+                                   autocomplete="off"
+                                   placeholder="Fx 1" />
+                        </label>
+                    </div>
+                </div>
+
+                <div class="toggle-row">
+                    <button type="button"
+                            class="toggle-btn"
+                            @onclick="ToggleIsActive"
+                            disabled="@isSubmitting"
+                            aria-pressed="@newClassModel.IsActive">
+                        <span class="toggle-dot">@((newClassModel.IsActive) ? "✓" : "○")</span>
+                        <span class="toggle-text">
+                            <span class="toggle-title">Aktiv</span>
+                            <span class="toggle-sub">Holdet vises for brugere</span>
+                        </span>
+                    </button>
+
+                    <button type="button"
+                            class="toggle-btn"
+                            @onclick="ToggleSeatBooking"
+                            disabled="@isSubmitting"
+                            aria-pressed="@newClassModel.SeatBookingEnabled">
+                        <span class="toggle-dot">@((newClassModel.SeatBookingEnabled) ? "✓" : "○")</span>
+                        <span class="toggle-text">
+                            <span class="toggle-title">Sædebooking</span>
+                            <span class="toggle-sub">Pladser kan vælges</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <ValidationSummary />
+
+            <div class="actions">
+                <button type="submit" class="submit-btn" disabled="@isSubmitting">
+                    @if (isSubmitting)
                     {
-                        <option value="@c">@c</option>
+                        <span class="btn-spinner">⏳</span>
+                        <span>Opretter hold...</span>
                     }
-                </InputSelect>
-            </div>
-            <div>
-                <label>Intensitet</label>
-                <InputSelect class="input" @bind-Value="newClassModel.Intensity">
-                    @foreach (Intensity i in Enum.GetValues(typeof(Intensity)).Cast<Intensity>())
+                    else
                     {
-                        <option value="@i">@i</option>
+                        <span class="btn-icon">✓</span>
+                        <span>Opret hold</span>
                     }
-                </InputSelect>
+                </button>
+
+                <button type="button" class="cancel-btn" @onclick="GoToClasses" disabled="@isSubmitting">
+                    Annuller
+                </button>
             </div>
-        </div>
-
-        <div class="form-row">
-            <label>Max deltagere</label>
-            <InputNumber class="input" @bind-Value="newClassModel.MaxCapacity" />
-        </div>
-
-        <div class="form-row two-col">
-            <div>
-                <label>Aktiv</label>
-                <InputCheckbox class="checkbox" @bind-Value="newClassModel.IsActive" />
-            </div>
-            <div>
-                <label>Sædebooking</label>
-                <InputCheckbox class="checkbox" @bind-Value="newClassModel.SeatBookingEnabled" />
-            </div>
-        </div>
-
-        <div class="form-row instructor-row">
-            <label>Instruktør (du)</label>
-            <InputText class="input" @bind-Value="newClassModel.InstructorId" readonly />
-        </div>
-
-        <div class="form-actions">
-            <button class="primary-btn" type="submit">Opret hold</button>
-            <button class="secondary-btn" type="button" @onclick="GoToClasses">Annuller</button>
-        </div>
-    </EditForm>
-
-    <style>
-        .create-class-container{max-height:calc(100vh - 80px);overflow:auto;padding:12px}
-        .create-class-screen{max-width:820px;margin:24px auto;padding:20px;background:#fff;border-radius:8px;box-shadow:0 4px 18px rgba(0,0,0,0.06)}
-        .create-class-screen h2{margin-bottom:12px}
-        .form-row{margin-bottom:12px;display:flex;flex-direction:column}
-        .two-col{display:flex;gap:12px}
-        .two-col > div{flex:1}
-        label{font-weight:600;margin-bottom:6px;color:#333}
-        .input{width:100%;padding:8px;border:1px solid #e1e1e1;border-radius:6px}
-        .textarea{min-height:100px}
-        .checkbox{width:18px;height:18px}
-        .form-actions{display:flex;gap:8px;margin-top:16px}
-        .primary-btn{background:#0078d4;color:#fff;border:none;padding:10px 14px;border-radius:6px}
-        .secondary-btn{background:transparent;border:1px solid #d1d1d1;padding:8px 12px;border-radius:6px}
-        .classes-back{margin-bottom:12px}
-        .instructor-row .input[readonly]{background:#f5f5f5}
-        @@media (max-width:600px) { .two-col { flex-direction: column; } }
-    </style>
-    </div>
-</div>
+        </EditForm>
+    </main>
+</section>
 
 @code {
+    
+    private string? LoggedInUserId { get; set; }
+
     private FitnessClass newClassModel = new FitnessClass()
     {
         Name = string.Empty,
         Description = string.Empty,
-        StartTime = DateTime.Now,
+        StartTime = DateTime.Now.AddMinutes(15),
         Duration = 60,
         MaxCapacity = 10,
         CenterId = "1",
         Category = Category.Yoga,
-        Intensity = Intensity.Medium
+        Intensity = Intensity.Medium,
+        IsActive = true,
+        SeatBookingEnabled = false
     };
     private string? jwt;
 
     private string? errorMessage;
+    private string? successMessage;
+    private bool isSubmitting;
 
     private void GoToClasses() => Nav.NavigateTo("/classes");
 
     protected override async Task OnInitializedAsync()
     {
         jwt = await TokenService.GetTokenAsync();
-        var userId = await TokenService.GetUserIdAsync();
-        if (!string.IsNullOrEmpty(userId))
+        LoggedInUserId = await TokenService.GetUserIdAsync();
+        if (!string.IsNullOrEmpty(LoggedInUserId))
         {
-            newClassModel.InstructorId = userId;
+            newClassModel.InstructorId = LoggedInUserId;
         }
     }
 
+    private void ToggleIsActive() => newClassModel.IsActive = !newClassModel.IsActive;
+
+    private void ToggleSeatBooking() => newClassModel.SeatBookingEnabled = !newClassModel.SeatBookingEnabled;
+
     private async Task HandleValidSubmit()
     {
+        errorMessage = null;
+        successMessage = null;
+
+        if (newClassModel.Duration <= 0)
+        {
+            errorMessage = "Varighed skal være større end 0.";
+            return;
+        }
+
+        if (newClassModel.MaxCapacity <= 0)
+        {
+            errorMessage = "Max deltagere skal være større end 0.";
+            return;
+        }
+
+        isSubmitting = true;
+
         try
         {
+            newClassModel.InstructorId = LoggedInUserId;
             var response = await ClassService.CreateClassAsync(newClassModel,jwt!);
+
             if (response.IsSuccessStatusCode)
             {
-                // Navigate to coach view for the new class if API returns id, otherwise go to classes
                 var created = await response.Content.ReadFromJsonAsync<FitnessClass>();
+
                 if (created != null && !string.IsNullOrEmpty(created.Id))
                 {
                     Nav.NavigateTo($"/classes/coach/{created.Id}");
+                    return;
                 }
-                else
-                {
-                    Nav.NavigateTo("/classes");
-                }
+
+                successMessage = "Hold oprettet.";
+                Nav.NavigateTo("/classes");
+                return;
             }
-            else
-            {
-                errorMessage = "Kunne ikke oprette holdet.";
-            }
+
+            errorMessage = "Kunne ikke oprette holdet.";
         }
         catch (Exception ex)
         {
             errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSubmitting = false;
         }
     }
 }

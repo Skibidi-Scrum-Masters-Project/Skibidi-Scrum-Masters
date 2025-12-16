@@ -113,6 +113,28 @@ public class AnalyticsController : ControllerBase
         return Ok(classTrainingResult);
     }
     
+    [HttpGet("dashboard/{userId}")]
+    public async Task<IActionResult> GetDashboard(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return BadRequest("UserId required.");
+
+        var dto = await _analyticsRepository.GetDashboardResult(userId);
+        return Ok(dto);
+    }
+    
+    [HttpGet("compare/month/{userId}")]
+    public async Task<IActionResult> GetCompareForMonth(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return BadRequest("UserId required.");
+
+        var dto = await _analyticsRepository.GetCompareResultForCurrentMonth(userId);
+        return Ok(dto);
+    }
+
+
+    
     
     
     

@@ -16,5 +16,9 @@ public interface IAnalyticsRepository
    public Task<List<SoloTrainingResultsDTO>> GetSoloTrainingResult(string userId);
 
    public Task<List<ClassResultDTO>> GetClassResult(string userId);
+   
+   public Task<AnalyticsDashboardDTO> GetDashboardResult(string userId);
+   
+   Task<AnalyticsCompareDTO> GetCompareResultForCurrentMonth(string userId);
 
 }; 

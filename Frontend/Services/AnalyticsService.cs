@@ -26,4 +26,15 @@ public class AnalyticsService
     {
         return await _httpClient.GetAsync($"/api/analytics/solotrainingresult/{userId}");
     }
+    
+    // ny: samlet dashboard
+    public async Task<HttpResponseMessage> GetDashboardAsync(string userId)
+    {
+        return await _httpClient.GetAsync($"/api/analytics/dashboard/{userId}");
+    }
+    
+    public async Task<HttpResponseMessage> GetCompareMonthAsync(string userId)
+    {
+        return await _httpClient.GetAsync($"/api/analytics/compare/month/{userId}");
+    }
 }
