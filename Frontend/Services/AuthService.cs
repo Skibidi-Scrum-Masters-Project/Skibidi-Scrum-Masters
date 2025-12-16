@@ -27,9 +27,10 @@ public class AuthService
         return await _http.PostAsJsonAsync("/api/auth/register", new { email, password, name });
     }
     
-    public async Task LogoutAsync()
+    public async Task LogoutAsync(string userId)
     {
         await _tokenService.ClearAsync();
+        await _http.PostAsync($"/api/auth/logout/{userId}", null);
     }
     
     // Helper method to add token to requests

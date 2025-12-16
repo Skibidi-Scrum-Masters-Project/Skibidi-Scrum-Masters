@@ -1,5 +1,6 @@
 using FitLifeFitness.Components;
 using FitLifeFitness.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -27,6 +28,11 @@ builder.Services.AddScoped<ProtectedLocalStorage>();
 // Application Services (Scoped per circuit)
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthHeaderHandler>();
+// Authentication/Authorization for Blazor components
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<AuthenticationStateProvider, TokenAuthenticationStateProvider>();
+// Also register the concrete provider so components can inject the concrete type directly
+builder.Services.AddScoped<TokenAuthenticationStateProvider>();
 
 // API Base URL Configuration
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] 

@@ -1,8 +1,11 @@
-@page "/"
+
 @page "/login"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
 @layout PhoneLayoutWithoutNav
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.TokenAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @using System.ComponentModel.DataAnnotations
 @using System.Net.Http.Json
@@ -74,6 +77,8 @@
             Fortsæt til dashboard
         </button>
 
+        <button type="button" class="ghost" @onclick="OnLogoutClicked">Log ud (test)</button>
+
     </main>
 </section>
 
@@ -99,7 +104,7 @@
 
                 if (result != null)
                 {
-                    await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username, result.User.Role);
+                    await TokenService.SaveTokenAsync(result.Token, result.User.Id!, result.User.Username, result.User.Role, result.RefreshToken);
 
                     try
                     {
@@ -108,7 +113,26 @@
                     }
                     catch { }
 
-                    Nav.NavigateTo("/dashboard", forceLoad: false);
+                    // Notify authentication state provider so AuthorizeRouteView updates
+                    try
+                    {
+                        await AuthStateProvider.NotifyAuthenticationStateChangedAsync();
+                    }
+                    catch { }
+
+                    // Await the provider to report authenticated (avoids polling and races)
+                    try
+                    {
+                        var ok = await AuthStateProvider.WaitForAuthenticationAsync(TimeSpan.FromSeconds(3));
+                    }
+                    catch { }
+
+                    try
+                    {
+                        await InvokeAsync(() => Nav.NavigateTo("/dashboard", forceLoad: false));
+                    }
+                    catch (TaskCanceledException) { }
+                    catch { }
                     return;
                 }
             }
@@ -146,6 +170,29 @@
     }
 
     private void GoToCreateUser() => Nav.NavigateTo("/create-user");
+
+    private async Task OnLogoutClicked()
+    {
+
+        try
+        {
+            var LoggedInUserId = await TokenService.GetUserIdAsync();
+            await AuthService.LogoutAsync(LoggedInUserId!);
+        }
+        catch { }
+
+        try
+        {
+            AuthStateProvider.MarkUserLoggedOut();
+        }
+        catch { }
+        try
+        {
+            await InvokeAsync(() => Nav.NavigateTo("/login", forceLoad: false));
+        }
+        catch (TaskCanceledException) { }
+        catch { }
+    }
 
     public class LoginModel
     {

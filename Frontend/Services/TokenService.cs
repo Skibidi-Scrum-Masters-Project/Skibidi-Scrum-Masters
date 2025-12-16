@@ -9,13 +9,14 @@ public class TokenService
     private const string UserIdKey = "userId";
     private const string UsernameKey = "username";
     private const string UserRoleKey = "userRole";
+    private const string RefreshTokenKey = "refreshToken";
 
     public TokenService(ProtectedLocalStorage localStorage)
     {
         _localStorage = localStorage;
     }
 
-    public async Task SaveTokenAsync(string token, string userId, string username, UserRole  role)
+    public async Task SaveTokenAsync(string token, string userId, string username, UserRole  role, string refreshToken)
     {
         try
         {
@@ -23,6 +24,7 @@ public class TokenService
             await _localStorage.SetAsync(UserIdKey, userId);
             await _localStorage.SetAsync(UsernameKey, username);
             await _localStorage.SetAsync(UserRoleKey, role.ToString());
+            await _localStorage.SetAsync(RefreshTokenKey, refreshToken);
 
 
             // Clear any pending in-memory values on success
@@ -30,6 +32,7 @@ public class TokenService
             _pendingUserId = null;
             _pendingUsername = null;
             _pendingUserRole = null;
+            _pendingRefreshToken = null;
         }
         catch (InvalidOperationException)
         {
@@ -38,6 +41,7 @@ public class TokenService
             _pendingUserId = userId;
             _pendingUsername = username;
             _pendingUserRole = role;
+            _pendingRefreshToken = refreshToken;
         }
     }
 
@@ -102,6 +106,19 @@ public class TokenService
             return null;
         }
     }
+    public async Task<string?> GetRefreshTokenAsync()
+    {
+        if (!string.IsNullOrEmpty(_pendingRefreshToken)) return _pendingRefreshToken;
+        try
+        {
+            var result = await _localStorage.GetAsync<string>(RefreshTokenKey);
+            return result.Success ? result.Value : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
     public async Task ClearAsync()
     {
         try
@@ -110,6 +127,7 @@ public class TokenService
             await _localStorage.DeleteAsync(UserIdKey);
             await _localStorage.DeleteAsync(UsernameKey);
             await _localStorage.DeleteAsync(UserRoleKey);
+            await _localStorage.DeleteAsync(RefreshTokenKey);
         }
         catch (InvalidOperationException)
         {
@@ -120,6 +138,7 @@ public class TokenService
         _pendingUserId = null;
         _pendingUsername = null;
         _pendingUserRole = null;
+        _pendingRefreshToken = null;
     }
 
     // In-memory buffer for values that couldn't be persisted because JS interop is not available.
@@ -127,6 +146,7 @@ public class TokenService
     private string? _pendingUserId;
     private string? _pendingUsername;
     private UserRole? _pendingUserRole;
+    private string? _pendingRefreshToken;
 
     // Attempt to persist any pending values to ProtectedLocalStorage.
     public async Task FlushPendingAsync()
@@ -139,16 +159,18 @@ public class TokenService
             if (_pendingToken != null) await _localStorage.SetAsync(TokenKey, _pendingToken);
             if (_pendingUserId != null) await _localStorage.SetAsync(UserIdKey, _pendingUserId);
             if (_pendingUsername != null) await _localStorage.SetAsync(UsernameKey, _pendingUsername);
-            if (_pendingUserRole != null) await _localStorage.SetAsync(UserRoleKey, _pendingUserRole.ToString());
+            if (_pendingUserRole != null) await _localStorage.SetAsync(UserRoleKey, _pendingUserRole.ToString()!);
+            if (_pendingRefreshToken != null) await _localStorage.SetAsync(RefreshTokenKey, _pendingRefreshToken);
 
             _pendingToken = null;
             _pendingUserId = null;
             _pendingUsername = null;
             _pendingUserRole = null;
+            _pendingRefreshToken = null;
         }
         catch (InvalidOperationException)
         {
             // Still not available; caller may retry later
         }
     }
-}
+}   
