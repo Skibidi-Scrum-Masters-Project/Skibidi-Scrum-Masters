@@ -127,6 +127,7 @@
         Category = Category.Yoga,
         Intensity = Intensity.Medium
     };
+    private string? jwt;
 
     private string? errorMessage;
 
@@ -145,7 +146,7 @@
     {
         try
         {
-            var response = await ClassService.CreateClassAsync(newClassModel);
+            var response = await ClassService.CreateClassAsync(newClassModel,jwt!);
             if (response.IsSuccessStatusCode)
             {
                 // Navigate to coach view for the new class if API returns id, otherwise go to classes

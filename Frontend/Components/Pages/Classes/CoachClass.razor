@@ -2,6 +2,7 @@
 @layout PhoneLayout
 @inject FitLifeFitness.Services.ClassService ClassService
 @inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.AuthService _authservice
 @inject NavigationManager Nav
 @inject Microsoft.JSInterop.IJSRuntime JS
 @using System.Net.Http.Json
@@ -43,6 +44,7 @@
             </ul>
         }
 
+
         <h3>Waitlist</h3>
         @if (!fitnessClass.WaitlistUserIds.Any())
         {
@@ -66,8 +68,19 @@
 </div>
 
 <style>
-    .coach-actions{display:flex;gap:8px;margin-top:16px}
-    .danger-btn{background:#d9534f;color:#fff;border:none;padding:10px 14px;border-radius:6px}
+    .coach-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px
+    }
+
+    .danger-btn {
+        background: #d9534f;
+        color: #fff;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 6px
+    }
 </style>
 
 @code {
@@ -77,9 +90,23 @@
     private FitnessClass? fitnessClass;
     private bool isLoading = true;
     private bool loadError = false;
+    private string? jwt;
+    private string? username;
+    private bool _loaded;
 
     protected override async Task OnInitializedAsync()
     {
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        jwt = await TokenService.GetTokenAsync();
+        username = await TokenService.GetUsernameAsync();
+        if(jwt == null)
+        {
+            await _authservice.LogoutAsync(username!);
+            Nav.NavigateTo("/login");
+        }
         if (string.IsNullOrEmpty(classId))
         {
             loadError = true;
@@ -89,7 +116,7 @@
 
         try
         {
-            var resp = await ClassService.GetClassByIdAsync(classId!);
+            var resp = await ClassService.GetClassByIdAsync(classId!, jwt!);
             if (resp.IsSuccessStatusCode)
             {
                 fitnessClass = await resp.Content.ReadFromJsonAsync<FitnessClass>();
@@ -107,6 +134,8 @@
         {
             isLoading = false;
         }
+
+        StateHasChanged();
     }
 
     private void GoToClasses() => Nav.NavigateTo("/classes");
@@ -122,7 +151,7 @@
         if (fitnessClass == null || string.IsNullOrEmpty(fitnessClass.Id)) return;
         try
         {
-            var resp = await ClassService.FinishClassAsync(fitnessClass.Id);
+            var resp = await ClassService.FinishClassAsync(fitnessClass.Id, jwt!);
             if (resp.IsSuccessStatusCode)
             {
                 Nav.NavigateTo("/classes");
@@ -156,7 +185,7 @@
 
             if (!confirmed) return;
 
-            var resp = await ClassService.DeleteClassAsync(fitnessClass.Id);
+            var resp = await ClassService.DeleteClassAsync(fitnessClass.Id, jwt!);
             if (resp.IsSuccessStatusCode)
             {
                 Nav.NavigateTo("/classes");

@@ -207,6 +207,7 @@
     private string ActiveFilter = "alle";
     private string? WaitlistFeedbackClassId;
     private string? WaitlistFeedbackMessage;
+    private string jwt = "";
 
     private List<CategoryFilter> Categories = new()
     {
@@ -238,7 +239,7 @@
 
     private async Task LoadAvailableClassesAsync()
     {
-        var response = await ClassService.GetAllAvailableClassesAsync(userId!);
+        var response = await ClassService.GetAllAvailableClassesAsync(userId!,jwt);
         if (response.IsSuccessStatusCode)
         {
             AvailableClasses = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new();
@@ -247,7 +248,7 @@
 
     private async Task LoadMyBookedClassesAsync()
     {
-        var response = await ClassService.GetClassesByUserIdAsync(userId!);
+        var response = await ClassService.GetClassesByUserIdAsync(userId!, jwt);
         if (response.IsSuccessStatusCode)
         {
             MyBookedClasses = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new();
@@ -342,7 +343,7 @@
         WaitlistFeedbackMessage = null;
         StateHasChanged();
 
-        var response = await ClassService.BookClassForUser(classId, userId!);
+        var response = await ClassService.BookClassForUserAsync(classId, userId!,jwt);
 
         if (response.IsSuccessStatusCode)
         {
