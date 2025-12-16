@@ -166,6 +166,7 @@
 
     private UserDto? _coachUser;
     private string _coachDisplayName = "Træner";
+    private string? jwt;
 
     private CoachingSession.BookingForm _booking = new()
     {
@@ -188,7 +189,7 @@
 
         try
         {
-            var response = await CoachingService.GetSessionByIdAsync(SessionId);
+            var response = await CoachingService.GetSessionByIdAsync(SessionId, jwt ?? "");
             if (!response.IsSuccessStatusCode)
             {
                 _session = null;
@@ -258,7 +259,7 @@
             _session.BookingForm = _booking;
             _session.BookingForm.CreatedAt = DateTime.UtcNow;
 
-            var response = await CoachingService.BookSessionAsync(_session);
+            var response = await CoachingService.BookSessionAsync(_session, jwt ?? "");
             if (!response.IsSuccessStatusCode)
             {
                 _error = $"Kunne ikke booke ({(int)response.StatusCode})";

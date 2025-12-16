@@ -464,7 +464,7 @@
                 return;
             }
 
-            var res = await CoachingService.DeleteSessionAsCoachAsync(_deleteCandidate.Id);
+            var res = await CoachingService.DeleteSessionAsCoachAsync(_deleteCandidate.Id, jwt ?? "");
             if (!res.IsSuccessStatusCode)
             {
                 _deleteError = $"Kunne ikke slette: {(int)res.StatusCode} {res.ReasonPhrase}";

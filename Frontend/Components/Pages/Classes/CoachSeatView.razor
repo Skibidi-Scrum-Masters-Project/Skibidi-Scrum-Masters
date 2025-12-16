@@ -96,9 +96,11 @@
     private string ErrorMessage { get; set; } = string.Empty;
 
     private List<SeatRow> SeatRows { get; set; } = new();
+        private string jwt = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync() ?? string.Empty;
         var userId = await TokenService.GetUserIdAsync();
         if (string.IsNullOrEmpty(userId))
         {
@@ -119,7 +121,7 @@
 
         try
         {
-            var response = await ClassService.GetClassByIdAsync(ClassId);
+            var response = await ClassService.GetClassByIdAsync(ClassId, jwt);
             if (!response.IsSuccessStatusCode)
             {
                 ErrorMessage = "Kunne ikke hente holdet.";

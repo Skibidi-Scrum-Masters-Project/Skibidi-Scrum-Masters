@@ -224,14 +224,6 @@
         StateHasChanged();
     }
 
-    private async Task LoadClassesAsync()
-    {
-        if (string.IsNullOrEmpty(userId))
-            return;
-
-        userRole = await TokenService.GetUserRoleAsync();
-        await LoadClassesAsync();
-    }
 
     private async Task LoadClassesAsync()
     {
@@ -248,8 +240,8 @@
 
             HttpResponseMessage response =
                 userRole == UserRole.Coach
-                    ? await ClassService.GetClassesByCoachIdAsync(userId)
-                    : await ClassService.GetClassesByUserIdAsync(userId);
+                    ? await ClassService.GetClassesByCoachIdAsync(userId, jwt)
+                    : await ClassService.GetClassesByUserIdAsync(userId, jwt);
 
             if (!response.IsSuccessStatusCode)
             {

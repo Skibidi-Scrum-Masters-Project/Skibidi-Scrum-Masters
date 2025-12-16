@@ -51,7 +51,7 @@
                         <p class="error-title">Noget gik galt</p>
                         <p class="error-message">Kunne ikke hente trænere. Prøv igen.</p>
 
-                        <button class="ghost-btn" type="button" @onclick="Reload">
+                        <button class="ghost-btn" type="button" >
                             Prøv igen
                         </button>
                     </div>
@@ -222,7 +222,7 @@
     {
         try
         {
-            var res = await CoachingService.GetAvailableSessionsForCoachIdAsync(coachId);
+            var res = await CoachingService.GetAvailableSessionsForCoachIdAsync(coachId, Jwt ?? "");
             if (!res.IsSuccessStatusCode) return 0;
 
             var list = await res.Content.ReadFromJsonAsync<List<CoachingSession.SessionDto>>();
