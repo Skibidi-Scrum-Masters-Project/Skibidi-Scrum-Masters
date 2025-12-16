@@ -4,5 +4,5 @@ using AuthService.Models;
 public interface IAuthRepository
 {
     Task<LoginResponse?> Login(LoginRequest request);
-    string _GenerateJWT(UserDTO user);
+    string _GenerateJWT(User user);
 }

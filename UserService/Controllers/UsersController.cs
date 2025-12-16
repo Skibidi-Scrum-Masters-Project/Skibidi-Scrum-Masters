@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using FitnessApp.Shared.Models;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace UserService.Controllers;
 
@@ -11,21 +9,19 @@ namespace UserService.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
-    private readonly ILogger<UsersController> _logger;
 
-    public UsersController(IUserRepository userRepository, ILogger<UsersController>? logger = null)
+    public UsersController(IUserRepository userRepository)
     {
         _userRepository = userRepository;
-        _logger = logger ?? NullLogger<UsersController>.Instance;
     }
 
     [HttpGet]
-    // [Authorize(Roles = "Admin,Coach")]
-    public ActionResult<IEnumerable<UserDTO>> GetUsers()
+    [Authorize(Roles = "Admin,Coach")]
+    public ActionResult<IEnumerable<User>> GetUsers()
     {
         try
         {
-            List<UserDTO> users = _userRepository.GetAllUsers();
+            List<User> users = _userRepository.GetAllUsers();
             return Ok(users);
         }
         catch (Exception ex)
@@ -34,9 +30,9 @@ public class UsersController : ControllerBase
         }
     }
     [HttpPost]
+    [Authorize]
     public ActionResult<User> CreateUser(User user)
     {
-        _logger.LogInformation("Creating a new user with username: {Username}", user.Username);
         try
         {
             User createdUser = _userRepository.CreateUser(user);
@@ -60,7 +56,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpGet("username/{username}")]
-    public ActionResult<UserDTO> GetUserByUsername(string username)
+    public ActionResult<User> GetUserByUsername(string username)
     {
         try
         {
@@ -76,25 +72,8 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
-        [HttpGet("username/{username}/secure")]
-    public ActionResult<User> GetUserByUsernameSecure(string username)
-    {
-        try
-        {
-            var user = _userRepository.GetUserByUsernameSecure(username);
-            if (user == null)
-            {
-                return NotFound(new { error = "User not found", message = $"User with username '{username}' does not exist" });
-            }
-            return Ok(user);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
-        }
-    }
     [HttpGet("{id}")]
-    public ActionResult<UserDTO> GetUserById(string id)
+    public ActionResult<User> GetUserById(string id)
     {
         try
         {
@@ -128,7 +107,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpPut("{id}")]
-    public ActionResult<UserDTO> UpdateUser(User updatedUser)
+    public ActionResult<User> UpdateUser(User updatedUser)
     {
         try
         {
@@ -138,7 +117,7 @@ public class UsersController : ControllerBase
                 return NotFound(new { error = "User not found", message = $"User with ID '{updatedUser.Id}' does not exist" });
             }
 
-            UserDTO user = _userRepository.UpdateUser(updatedUser);
+            User user = _userRepository.UpdateUser(updatedUser);
             return Ok(user);
         }
         catch (ArgumentException ex)
@@ -151,7 +130,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpGet("role/{role}")]
-    public ActionResult<List<UserDTO>> GetUsersByRole(Role role)
+    public ActionResult<List<User>> GetUsersByRole(Role role)
     {
         try
         {
