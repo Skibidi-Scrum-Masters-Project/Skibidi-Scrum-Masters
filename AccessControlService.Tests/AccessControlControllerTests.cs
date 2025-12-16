@@ -240,23 +240,28 @@ public class AccessControlControllerTests
     }
 
     [TestMethod]
-    public async Task LockLocker_NullUserId_ReturnsOk()
+    public async Task LockLocker_NullUserId_ReturnsOkWithNull()
     {
         // Arrange
         var lockerRoomId = "507f1f77bcf86cd799439018";
         var lockerId = "L1";
         string userId = null!;
-        var locker = new Locker { LockerId = lockerId, UserId = userId, IsLocked = true };
 
-        _mockRepository.Setup(repo => repo.LockLocker(lockerRoomId, lockerId, userId))
-            .ReturnsAsync(locker);
+        _mockRepository
+            .Setup(repo => repo.LockLocker(lockerRoomId, lockerId, userId))
+            .ReturnsAsync((Locker?)null);
 
         // Act
         var result = await _controller.LockLocker(lockerRoomId, lockerId, userId);
 
         // Assert
         Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult);
+        Assert.IsNull(okResult.Value);
     }
+
 
     #endregion
 
