@@ -1,76 +1,102 @@
 @page "/locker"
 @using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Models
+@using FitLifeFitness.Services
+@inject AccessControlService AccessControlService
+@inject TokenService TokenService
 @layout PhoneLayout
-@using Microsoft.AspNetCore.Components
 
 <div class="locker-screen">
+    <h2>Locker test</h2>
 
-    <h2 class="locker-title">Digital hængelås</h2>
-    <p class="locker-subtitle">Vælg skab og lås op med din app.</p>
+    @if (isLoading)
+    {
+        <p>Indlæser lockers…</p>
+    }
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <p style="color:red">@error</p>
+    }
+    else if (!Lockers.Any())
+    {
+        <p>Ingen lockers fundet</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var locker in Lockers)
+            {
+                <li>
+                    <strong>LockerId:</strong> @locker.LockerId <br />
+                    <strong>Status:</strong> @(locker.IsLocked ? "Låst" : "Ledig") <br />
+                    <strong>UserId:</strong> @locker.UserId
 
-    <div class="locker-card">
-        <div class="locker-icon-area">
-            <div class="locker-circle @(IsLocked ? "locked" : "unlocked")">
-                <span class="locker-emoji">@(!IsLocked ? "🔓" : "🔒")</span>
-            </div>
-            <p class="locker-status-text">
-                Status: <strong>@(IsLocked ? "Låst" : "Åben")</strong>
-            </p>
-        </div>
-
-        <div class="locker-form">
-            <label for="lockerNumber">Skabsnummer</label>
-            <input id="lockerNumber"
-                   class="locker-input"
-                   @bind="LockerNumber"
-                   placeholder="Fx 57" />
-        </div>
-
-        <div class="locker-buttons">
-            <button class="primary-btn locker-btn" @onclick="OpenLocker">
-                Åbn skab
-            </button>
-
-            <button class="secondary-btn locker-btn" @onclick="LockLocker">
-                Lås skab
-            </button>
-        </div>
-
-        @if (!string.IsNullOrWhiteSpace(Message))
-        {
-            <p class="locker-message">@Message</p>
-        }
-    </div>
+                    @if (!locker.IsLocked)
+                    {
+                        <button @onclick="() => LockLocker(locker)">
+                            Lock
+                        </button>
+                    }
+                </li>
+                <hr />
+            }
+        </ul>
+    }
 </div>
 
 @code {
-    private string LockerNumber { get; set; } = string.Empty;
-    private bool IsLocked { get; set; } = true;
-    private string Message { get; set; } = string.Empty;
+    private List<Locker> Lockers = new();
+    private bool isLoading = true;
+    private string? error;
 
-    private void OpenLocker()
+    private string lockerRoomId = "694132d584029a38d3635884";
+    private string? userId;
+
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(LockerNumber))
-        {
-            Message = "Indtast et skabsnummer for at åbne.";
-            return;
-        }
-
-        // TODO: kald jeres locker-backend her (openlocker)
-        IsLocked = false;
-        Message = $"Skab {LockerNumber} er åbnet.";
+        userId = await TokenService.GetUserIdAsync();
+        await LoadLockers();
     }
 
-    private void LockLocker()
+    private async Task LoadLockers()
     {
-        if (string.IsNullOrWhiteSpace(LockerNumber))
+        try
         {
-            Message = "Indtast et skabsnummer for at låse.";
-            return;
-        }
+            isLoading = true;
+            error = null;
 
-        // TODO: kald jeres locker-backend her (locklocker)
-        IsLocked = true;
-        Message = $"Skab {LockerNumber} er låst.";
+            var res = await AccessControlService.GetAvailableLockersAsync(lockerRoomId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                error = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            Lockers =
+                await res.Content.ReadFromJsonAsync<List<Locker>>()
+                ?? new List<Locker>();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LockLocker(Locker locker)
+    {
+        if (locker.LockerId == null || userId == null)
+            return;
+
+        await AccessControlService.LockLockerAsync(
+            lockerRoomId,
+            locker.LockerId,
+            userId);
+
+        await LoadLockers(); // refresh list
     }
 }
