@@ -14,6 +14,7 @@ public class SoloTrainingController : ControllerBase
         _soloTrainingRepository = soloTrainingRepository;
     }
     [HttpPost("create/program")]
+    [Authorize("Coach,Admin")]
     public async Task<ActionResult<WorkoutProgram>> CreateWorkoutProgram([FromBody] WorkoutProgram workoutProgram)
     {
         if (workoutProgram == null)
@@ -34,6 +35,7 @@ public class SoloTrainingController : ControllerBase
     }
 
     [HttpPost("{userId}/{programId}")]
+    [Authorize]
     public async Task<ActionResult<SoloTrainingSession>> CreateSoloTraining(string userId, string programId, [FromBody] SoloTrainingSession soloTraining)
     {
         if (soloTraining == null)
@@ -58,6 +60,7 @@ public class SoloTrainingController : ControllerBase
        
     }
     [HttpGet("{userId}")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<SoloTrainingSession>>> GetAllSoloTrainingsForUser(string userId)
     {
         if (string.IsNullOrEmpty(userId))
@@ -77,6 +80,7 @@ public class SoloTrainingController : ControllerBase
     }
 
     [HttpGet("recent/{userId}")]
+    [Authorize]
     public async Task<ActionResult<SoloTrainingSession>> GetMostRecentSoloTrainingForUser(string userId)
     {
         if (string.IsNullOrEmpty(userId))
@@ -102,6 +106,7 @@ public class SoloTrainingController : ControllerBase
     }
 
     [HttpDelete("{trainingId}")]
+    [Authorize]
     public async Task<IActionResult> DeleteSoloTraining(string trainingId)
     {
         if (string.IsNullOrEmpty(trainingId))
@@ -120,6 +125,7 @@ public class SoloTrainingController : ControllerBase
         }
     }
     [HttpGet("programs")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<WorkoutProgram>>> GetAllWorkoutPrograms()
     {
         try
@@ -133,6 +139,7 @@ public class SoloTrainingController : ControllerBase
         }
     }
     [HttpGet("programs/{programId}")]
+    [Authorize]
     public async Task<ActionResult<WorkoutProgram>> GetWorkoutProgramById(string programId)
     {
         if (string.IsNullOrEmpty(programId))
@@ -151,6 +158,7 @@ public class SoloTrainingController : ControllerBase
         }
     }
     [HttpGet("recent/{userId}/{programId}")]
+    [Authorize]
     public async Task<ActionResult<SoloTrainingSession>> GetMostRecentSoloTrainingForUserAndProgram(string userId, string programId)
     {
         if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(programId))

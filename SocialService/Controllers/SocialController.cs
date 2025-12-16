@@ -60,6 +60,7 @@ public class SocialController : ControllerBase
 
     
     [HttpPost("{userId}/sendFriendrequest/{receiverId}")]
+    [Authorize]
     public async Task<ActionResult<Friendship>> SendFriendRequestAsync(string userId, string receiverId)
     {
         if (userId == receiverId)
@@ -96,6 +97,7 @@ public class SocialController : ControllerBase
 
 
     [HttpPut("declineRequest/{userId}/{receiverId}")]
+    [Authorize]
     public async Task<IActionResult> DeclineFriendRequestAsync(string userId, string receiverId)
     {
         if (userId == receiverId)
@@ -131,6 +133,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("{userId}/friends")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<Friendship>>> GetAllFriends(string userId)
     {
 
@@ -160,6 +163,7 @@ public class SocialController : ControllerBase
     }
     
     [HttpGet("{userId}/friends/{receiverId}")]
+    [Authorize]
     public async Task<ActionResult<Friendship>> GetFriendById(string userId, string receiverId)
     {
         try
@@ -194,6 +198,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpDelete("{userId}/cancel/{receiverId}")]
+    [Authorize]
     public async Task<IActionResult> CancelFriendRequest(string userId, string receiverId)
     {
         try
@@ -208,6 +213,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("friendrequests/outgoing/{userId}")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<Friendship>?>> GetOutgoingFriendRequests(string userId)
     {
         var friendRequests = await _socialRepository.GetOutgoingFriendRequestsAsync(userId);
@@ -219,6 +225,7 @@ public class SocialController : ControllerBase
     }
     
     [HttpGet("friendrequests/incoming/{userId}")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<Friendship>?>> GetAllIncomingFriendRequests(string userId)
     {
         var friendRequests = await _socialRepository.GetAllIncomingFriendRequests(userId);
@@ -231,6 +238,7 @@ public class SocialController : ControllerBase
     
     
     [HttpPut("accept/{userId}/{receiverId}")]
+    [Authorize]
     public async Task<IActionResult> AcceptFriendRequestAsync(string userId, string receiverId)
     {
         if (userId == receiverId)
@@ -267,6 +275,7 @@ public class SocialController : ControllerBase
 
 
     [HttpPost("PostAPost")]
+    [Authorize]
     public Task<Post> PostAPost([FromBody]Post post)
     {
         var createdPost = _socialRepository.PostAPost(post);
@@ -276,6 +285,7 @@ public class SocialController : ControllerBase
 
 
     [HttpDelete("RemoveAPost/{postId}")]
+    [Authorize]
     public Task<Post> RemoveAPost(string postId)
     {
         return _socialRepository.RemoveAPost(postId);
@@ -283,6 +293,7 @@ public class SocialController : ControllerBase
 
     
     [HttpPut("EditAPost")]
+    [Authorize]
     public async Task<ActionResult<Post>> EditAPost([FromBody] Post post)
     {
         try
@@ -298,6 +309,7 @@ public class SocialController : ControllerBase
 
 
     [HttpPut("AddACommentToPost/{postId}")]
+    [Authorize]
     public async Task<ActionResult<Post>> AddACommentToPost(string postId, [FromBody]Comment comment)
     {
         try
@@ -315,6 +327,7 @@ public class SocialController : ControllerBase
 
 
     [HttpDelete("RemoveACommentFromPost/{postId}/{commentId}")]
+    [Authorize]
     public async Task<ActionResult<Post>> RemoveCommentFromPost(string postId, string commentId)
     {
         try
@@ -329,6 +342,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpPut("EditComment/{postId}")]
+    [Authorize]
     public async Task<ActionResult<Post>> EditComment(string postId, [FromBody] Comment comment)
     {
         try
@@ -350,6 +364,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("SeeAllCommentForPost/{postId}")] 
+    [Authorize]
     public async Task<IEnumerable<Comment>> SeeAllCommentForPost(string postId) 
     { 
         var listOfCommentsForPost = await _socialRepository.SeeAllCommentForPostId(postId); 
@@ -357,6 +372,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("SeeAllPostsForUser/{userId}")]
+    [Authorize]
     public async Task<IEnumerable<Post>> SeeAllPostsForUser(string userId)
     {
         var listOfPostForUser = await _socialRepository.SeeAllPostsForUser(userId);
@@ -366,6 +382,7 @@ public class SocialController : ControllerBase
 
 
     [HttpGet("SeeAllDraftPostsForUser/{userId}")]
+    [Authorize]
     public async Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId)
     {
         var listOfDraftPosts = await _socialRepository.SeeAllDraftPostsForUser(userId);
@@ -375,6 +392,7 @@ public class SocialController : ControllerBase
 
 
     [HttpPut("ChangeDraftStatusForPost/{postId}")]
+    [Authorize]
     public async Task<Post> ChangeDraftStatusForPost(string postId)
     {
         var post = await _socialRepository.ChangeDraftStatusForPost(postId);
@@ -384,6 +402,7 @@ public class SocialController : ControllerBase
     
     
     [HttpGet("SeeAllFriendsPosts/{userId}")]
+    [Authorize]
     public async Task<IEnumerable<Post>> SeeAllFriendsPosts(string userId)
     {
         var posts = await _socialRepository.SeeAllFriendsPosts(userId);
@@ -392,6 +411,7 @@ public class SocialController : ControllerBase
     }
 
     [HttpGet("SeeSpecficPostByPostId/{postId}")]
+    [Authorize]
     public async Task<Post> SeeSpecficPostForPostId(string postId)
     {
         var post =  await _socialRepository.SeeSpecficPostByPostId(postId);

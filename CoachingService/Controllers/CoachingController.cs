@@ -18,6 +18,7 @@ public class CoachingController : ControllerBase
 
    
     [HttpGet("AllSessions")]
+    [Authorize]
     public ActionResult<IEnumerable<Session>> GetAllSessions()
     {
         try
@@ -33,6 +34,7 @@ public class CoachingController : ControllerBase
 
    
     [HttpPut("Session")]
+    [Authorize]
     public ActionResult<Session> BookSession([FromBody] Session session)
     {
         try
@@ -60,6 +62,7 @@ public class CoachingController : ControllerBase
     }
     
     [HttpGet("Session/{id}")]
+    [Authorize]
     public ActionResult<Session> GetSessionById(string id)
     {
         try
@@ -78,6 +81,7 @@ public class CoachingController : ControllerBase
     }
     
     [HttpPut("CancelSession/{id}")]
+    [Authorize]
     public ActionResult<Session> CancelSession(string id)
     {
         try
@@ -96,6 +100,7 @@ public class CoachingController : ControllerBase
     }
     
     [HttpPut("CompleteSession/{id}")]
+    [Authorize]
     public ActionResult<Session> CompleteSession(string id)
     {
         try
@@ -116,6 +121,7 @@ public class CoachingController : ControllerBase
     
     //Kun for Coach
     [HttpPost("MakeSessionAsCoach")]
+    [Authorize(Roles = "Coach,Admin")]
     public ActionResult<Session> CreateSession([FromBody] Session session)
     {
         var created = _coachingRepository.CreateSession(session);
@@ -124,6 +130,7 @@ public class CoachingController : ControllerBase
     }
 
     [HttpDelete("RemoveSessionAsCoach/{id}")]
+    [Authorize(Roles = "Coach,Admin")]
     public ActionResult<Session> DeleteSession(string id)
     {
         var deleted = _coachingRepository.DeleteSession(id);
@@ -132,6 +139,7 @@ public class CoachingController : ControllerBase
     }
     
     [HttpGet("AvailableSessions")]
+    [Authorize]
     public ActionResult<IEnumerable<Session>> GetAvailableSessions()
     {
         var sessions = _coachingRepository.GetAllAvaliableCoachSessions();
@@ -140,6 +148,7 @@ public class CoachingController : ControllerBase
     }
     
     [HttpGet("AvailableSessions/{coachId}")]
+    [Authorize]
     public ActionResult<IEnumerable<Session>> GetAvailableSessionsForCoachId(string coachId)
     {
         var sessions = _coachingRepository.GetAllAvailableCoachSessionsForCoachId(coachId);
@@ -148,6 +157,7 @@ public class CoachingController : ControllerBase
     }
 
     [HttpGet("AllSessions/{coachId}")]
+    [Authorize]
     public ActionResult<IEnumerable<Session>> GetAllSessionsByCoachId(string coachId)
     {
         var sessions = _coachingRepository.GetAllSessionsByCoachId(coachId);
