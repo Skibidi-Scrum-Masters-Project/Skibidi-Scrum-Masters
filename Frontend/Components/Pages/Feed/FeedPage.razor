@@ -19,10 +19,7 @@
                     <p class="page-sub">Se opslag fra dit fællesskab, @Username</p>
                 </div>
 
-                <div class="page-right">
-                    <button class="icon-btn" type="button" @onclick="Reload" aria-label="Reload">⟳</button>
-                    <button class="icon-btn" type="button" @onclick="GoToProfile" aria-label="Profil">@UserInitial</button>
-                </div>
+                <div class="page-right"> <button class="icon-btn" type="button" @onclick="Reload" aria-label="Reload"> ⟳ </button> </div>
             </div>
 
             <div class="feed-tabs" role="tablist" aria-label="Feed tabs">
@@ -453,8 +450,7 @@
             sharingPostId = null;
         }
     }
-
-    private void GoToProfile() => Nav.NavigateTo("/profile");
+    
 
     private static string GetInitial(string? name)
     {

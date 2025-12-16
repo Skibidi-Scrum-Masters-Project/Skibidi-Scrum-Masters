@@ -18,20 +18,9 @@ public class Exercise
     public List<Set> Sets { get; set; } = new List<Set>();
 }
 
-public enum ExerciseType
-{
-    BenchPress,
-    Squat,
-    Deadlift,
-    PullUp,
-    PushUp
-}
 
-public class Set
-{
-    public int Repetitions { get; set; }
-    public double Weight { get; set; }
-}
+
+
 public enum TrainingTypes
 {
     Cardio,

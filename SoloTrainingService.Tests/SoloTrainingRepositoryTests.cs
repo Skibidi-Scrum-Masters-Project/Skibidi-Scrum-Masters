@@ -41,13 +41,13 @@ public class SoloTrainingRepositoryTests
         var session = new SoloTrainingSession
         {
             Date = DateTime.UtcNow,
-            TrainingType = TrainingType.UpperBody,
+
             DurationMinutes = 45,
             Exercises = new List<Exercise>()
         };
 
         // Act
-        var result = await _repository.CreateSoloTraining(userId, session);
+        var result = await _repository.CreateSoloTraining(userId, session, "program1");
 
         // Assert (return value)
         Assert.AreEqual(userId, result.UserId);

@@ -1,21 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
-namespace FitnessApp.Shared.Models
+namespace FitLifeFitness.Models
 {
-    public class Exercise
+    public class WorkoutProgramDTO
     {
-        [Required]
-        [BsonElement("exerciseType")]
-        public ExerciseType ExerciseType { get; set; }
-        [Required]
-        public double Volume { get; set; }
-        public List<Set> Sets { get; set; } = new List<Set>();
+
+        public string? Id { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Description { get; set; } = string.Empty;
+
+        public List<ExerciseType> ExerciseTypes { get; set; } = new List<ExerciseType>();
     }
-    public enum ExerciseType
+        public enum ExerciseType
     {
         // Chest
         BenchPress,

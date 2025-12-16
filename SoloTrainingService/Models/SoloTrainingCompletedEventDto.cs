@@ -9,8 +9,9 @@ public sealed class SoloTrainingCompletedEvent
     public string SoloTrainingSessionId { get; set; } = default!;
 
     public DateTime Date { get; set; }
-    public string TrainingType { get; set; } = string.Empty;
+    public string? WorkoutProgramName { get; set; }
     public int DurationMinutes { get; set; }
 
     public int ExerciseCount { get; set; }
+    public string? TrainingType { get; set; }
 }

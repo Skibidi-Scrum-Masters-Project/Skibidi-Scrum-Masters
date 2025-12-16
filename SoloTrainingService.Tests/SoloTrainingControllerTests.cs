@@ -25,12 +25,12 @@ public class SoloTrainingControllerTests
         var userId = "user123";
         var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
 
-        _mockRepository
-            .Setup(r => r.CreateSoloTraining(userId, It.IsAny<SoloTrainingSession>()))
-            .ReturnsAsync(session);
+            _mockRepository
+                .Setup(r => r.CreateSoloTraining(userId, It.IsAny<SoloTrainingSession>(), It.IsAny<string>()))
+                .ReturnsAsync(session);
 
         // Act
-        var result = await _controller.CreateSoloTraining(userId, session);
+            var result = await _controller.CreateSoloTraining(userId, "program1", session);
 
         // Assert
         var okResult = result.Result as OkObjectResult;
@@ -46,12 +46,12 @@ public class SoloTrainingControllerTests
         var userId = "user123";
         var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
 
-        _mockRepository
-            .Setup(r => r.CreateSoloTraining(userId, It.IsAny<SoloTrainingSession>()))
-            .ThrowsAsync(new Exception("DB error"));
+            _mockRepository
+                .Setup(r => r.CreateSoloTraining(userId, It.IsAny<SoloTrainingSession>(), It.IsAny<string>()))
+                .ThrowsAsync(new Exception("DB error"));
 
         // Act
-        var result = await _controller.CreateSoloTraining(userId, session);
+            var result = await _controller.CreateSoloTraining(userId, "program1", session);
 
         // Assert
         var objectResult = result.Result as ObjectResult;
@@ -68,7 +68,7 @@ public class SoloTrainingControllerTests
         var session = new SoloTrainingSession { UserId = "", Date = DateTime.UtcNow };
 
         // Act
-        var result = await _controller.CreateSoloTraining(userId!, session);
+        var result = await _controller.CreateSoloTraining(userId!, "program1", session);
 
         // Assert
         var badRequest = result.Result as BadRequestObjectResult;
@@ -84,7 +84,7 @@ public class SoloTrainingControllerTests
         SoloTrainingSession? session = null;
 
         // Act
-        var result = await _controller.CreateSoloTraining(userId, session!);
+            var result = await _controller.CreateSoloTraining(userId, "program1", session!);
 
         // Assert
         var badRequest = result.Result as BadRequestObjectResult;
@@ -245,15 +245,14 @@ public class SoloTrainingControllerTests
             var session = new SoloTrainingSession
             {
                 Date = DateTime.UtcNow,
-                TrainingType = TrainingType.UpperBody,
                 DurationMinutes = 30,
                 Exercises = new()
             };
 
-            _mockRepository.Setup(r => r.CreateSoloTraining(userId, It.IsAny<SoloTrainingSession>()))
-                .ReturnsAsync(session);
+                _mockRepository.Setup(r => r.CreateSoloTraining(userId, It.IsAny<SoloTrainingSession>(), It.IsAny<string>()))
+                    .ReturnsAsync(session);
 
-            var result = await _controller.CreateSoloTraining(userId, session);
+                var result = await _controller.CreateSoloTraining(userId, "program1", session);
 
             var ok = result.Result as OkObjectResult;
             Assert.IsNotNull(ok);
