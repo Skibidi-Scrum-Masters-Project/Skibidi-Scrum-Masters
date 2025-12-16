@@ -1,11 +1,15 @@
-using System.ComponentModel.DataAnnotations;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace SocialService.Models;
 
 public class Comment
 {
-    public int commentId  { get; set; }
-    public int authorId{ get; set; }
-    public DateTime commentDate { get; set; }
-    public string commentText { get; set; }
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? Id { get; set; }
+
+    public string AuthorId { get; set; }
+    public string AuthorName { get; set; }
+    public DateTime CommentDate { get; set; }
+    public string CommentText { get; set; }
 }

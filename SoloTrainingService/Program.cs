@@ -104,6 +104,7 @@ builder.Services
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddSingleton(new HttpClient());
 
 // Register MongoDB
 builder.Services.AddSingleton<IMongoClient>(serviceProvider =>
@@ -119,7 +120,7 @@ builder.Services.AddScoped<IMongoDatabase>(serviceProvider =>
 });
 
 // Register repositories
-builder.Services.AddScoped<ISoloTrainingRepository, SoloTrainingRepository>();
+builder.Services.AddHttpClient<ISoloTrainingRepository, SoloTrainingRepository>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

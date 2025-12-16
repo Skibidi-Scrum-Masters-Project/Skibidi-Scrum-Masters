@@ -1,0 +1,500 @@
+@page "/feedpage"
+@layout PhoneLayout
+@using FitLifeFitness.Services
+@using FitLifeFitness.Models
+@using System.Net.Http.Json
+@using FitLifeFitness.Components.Layout
+@inject SocialService SocialService
+@inject TokenService TokenService
+@inject NavigationManager Nav
+
+<div class="feedpage">
+
+    <main class="feed-body">
+        <section class="feed-shell">
+
+            <div class="page-head">
+                <div class="page-left">
+                    <h1 class="page-title">Feed</h1>
+                    <p class="page-sub">Se opslag fra dit fællesskab, @Username</p>
+                </div>
+
+                <div class="page-right"> <button class="icon-btn" type="button" @onclick="Reload" aria-label="Reload"> ⟳ </button> </div>
+            </div>
+
+            <div class="feed-tabs" role="tablist" aria-label="Feed tabs">
+                <button class="tab @(activeFeedTab == "all" ? "active" : "")"
+                        @onclick='() => SwitchTab("all")'
+                        type="button"
+                        role="tab"
+                        aria-selected="@(activeFeedTab == "all")">
+                    Alle
+                </button>
+
+                <button class="tab @(activeFeedTab == "ready" ? "active" : "")"
+                        @onclick='() => SwitchTab("ready")'
+                        type="button"
+                        role="tab"
+                        aria-selected="@(activeFeedTab == "ready")">
+                    Klar til deling
+                </button>
+
+                <button class="create-btn" type="button" @onclick="OpenComposer">
+                    Nyt opslag
+                </button>
+            </div>
+
+            @if (isFeedLoading)
+            {
+                <div class="state-card">
+                    <div class="state-title">Loader feed</div>
+                    <div class="state-sub">Et øjeblik</div>
+                </div>
+            }
+            else if (!string.IsNullOrWhiteSpace(feedError))
+            {
+                <div class="state-card error">
+                    <div class="state-title">Noget gik galt</div>
+                    <div class="state-sub">@feedError</div>
+                </div>
+            }
+            else if (activeFeedTab == "ready" && readyToShareItems.Count == 0)
+            {
+                <div class="state-card">
+                    <div class="state-title">Ingen træninger klar til deling endnu</div>
+                    <div class="state-sub">Når du gennemfører en træning kan du dele den herfra</div>
+                </div>
+            }
+            else if (activeFeedTab == "all" && feedItems.Count == 0)
+            {
+                <div class="state-card">
+                    <div class="state-title">Ingen opslag endnu</div>
+                    <div class="state-sub">Der er ikke noget i feedet lige nu</div>
+                </div>
+            }
+            else
+            {
+                <div class="post-list">
+
+                    @foreach (var item in VisibleItems)
+                    {
+                        if (activeFeedTab == "ready")
+                        {
+                            <article class="workout-card"
+                                     role="button"
+                                     tabindex="0"
+                                     @onclick="() => LookAtOneSpecficPost(item.Id)">
+
+                                <div class="row-top">
+                                    <div class="row-left">
+                                        <div class="pill">Klar til deling</div>
+                                        <div class="row-sub">@FormatWhen(item.PostDate)</div>
+                                    </div>
+                                </div>
+
+                                <div class="row-title">@item.PostTitle</div>
+                                <div class="row-muted">@GetWorkoutSubtitle(item)</div>
+
+                                <div class="chips">
+                                    <span class="chip">@GetTypeLabel(item.Type)</span>
+                                    @if (item.WorkoutStats?.DurationSeconds is not null)
+                                    {
+                                        <span class="chip">@GetDurationMinutes(item) min</span>
+                                    }
+                                    @if (item.WorkoutStats?.Calories is not null)
+                                    {
+                                        <span class="chip">@item.WorkoutStats!.Calories kcal</span>
+                                    }
+                                </div>
+
+                                <div class="row-text">@item.PostContent</div>
+
+                                <div class="post-footer">
+                                    <div class="pf-left">
+                                        <span class="pf-item">Kommentarer: @GetCommentCount(item.Id)</span>
+                                    </div>
+                                </div>
+
+                                <div class="row-actions">
+                                    <button class="row-primary"
+                                            type="button"
+                                            @onclick:stopPropagation="true"
+                                            @onclick="() => ShareWorkout(item)"
+                                            disabled="@isSharing">
+                                        @(isSharing && sharingPostId == item.Id ? "Deler..." : "Del")
+                                    </button>
+                                </div>
+                            </article>
+                        }
+                        else
+                        {
+                            <article class="post-card"
+                                     role="button"
+                                     tabindex="0"
+                                     @onclick="() => LookAtOneSpecficPost(item.Id)">
+
+                                <div class="post-top">
+                                    <div class="post-head">
+                                        <div class="post-avatar">@GetInitial(GetDisplayName(item))</div>
+                                        <div class="post-meta">
+                                            <div class="post-name">@GetDisplayName(item)</div>
+                                            <div class="post-sub">@FormatWhen(item.PostDate)</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(item.PostTitle))
+                                {
+                                    <div class="post-title">@item.PostTitle</div>
+                                }
+
+                                <div class="post-text">@item.PostContent</div>
+
+                                <div class="post-footer">
+                                    <div class="pf-left">
+                                        <span class="pf-item">Kommentarer: @GetCommentCount(item.Id)</span>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    }
+
+                </div>
+            }
+
+        </section>
+    </main>
+
+    @if (showComposer)
+    {
+        <div class="composer-backdrop" role="presentation" @onclick="CloseComposer">
+            <div class="composer-sheet" role="dialog" aria-modal="true" @onclick:stopPropagation="true">
+
+                <div class="composer-handle"></div>
+
+                <div class="composer-head">
+                    <div class="composer-title">Nyt opslag</div>
+                    <button class="menu-btn" type="button" @onclick="CloseComposer" aria-label="Close">✕</button>
+                </div>
+
+                <div class="composer-body">
+
+                    <label class="composer-label">Titel</label>
+                    <input class="composer-input"
+                           placeholder="Skriv en titel"
+                           @bind="Title"
+                           maxlength="50" />
+
+                    <label class="composer-label">Tekst</label>
+                    <textarea class="composer-textarea"
+                              placeholder="Skriv noget til fællesskabet"
+                              @bind="newPostText"
+                              maxlength="240"></textarea>
+
+                    <div class="composer-hint">@newPostText.Length / 240</div>
+
+                    @if (!string.IsNullOrWhiteSpace(createError))
+                    {
+                        <div class="composer-hint error-text">@createError</div>
+                    }
+                </div>
+
+                <div class="composer-foot">
+                    <button class="primary"
+                            type="button"
+                            @onclick="CreatePost"
+                            disabled="@IsCreateDisabled">
+                        Slå op
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    private string? LoggedInUserId { get; set; }
+    private string? Username { get; set; }
+    private string UserInitial => GetInitial(Username);
+
+    private string activeFeedTab = "all";
+
+    private bool isFeedLoading;
+    private string feedError = string.Empty;
+
+    private List<Post> feedItems = new();
+    private List<Post> readyToShareItems = new();
+
+    private List<Post> VisibleItems => activeFeedTab == "ready" ? readyToShareItems : feedItems;
+
+    private bool showComposer;
+
+    private string Title = string.Empty;
+    private string newPostText = string.Empty;
+
+    private string createError = string.Empty;
+    private bool isCreating;
+
+    private bool isSharing;
+    private string? sharingPostId;
+
+    private readonly Dictionary<string, int> commentCounts = new();
+
+    private bool IsCreateDisabled =>
+        isCreating ||
+        string.IsNullOrWhiteSpace(Title) ||
+        Title.Trim().Length < 2 ||
+        string.IsNullOrWhiteSpace(newPostText) ||
+        newPostText.Trim().Length < 2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoggedInUserId = await TokenService.GetUserIdAsync();
+        Username = await TokenService.GetUsernameAsync();
+        await LoadFeedAsync();
+    }
+
+    private async Task LoadFeedAsync()
+    {
+        isFeedLoading = true;
+        feedError = string.Empty;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            {
+                feedError = "Kunne ikke finde bruger id. Log ind igen.";
+                return;
+            }
+
+            if (activeFeedTab == "ready")
+                readyToShareItems.Clear();
+            else
+                feedItems.Clear();
+
+            var res =
+                activeFeedTab == "ready"
+                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId)
+                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                feedError = $"Feed fejlede: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            var data = await res.Content.ReadFromJsonAsync<List<Post>>() ?? new List<Post>();
+
+            if (activeFeedTab == "ready")
+                readyToShareItems = data;
+            else
+                feedItems = data;
+
+            await LoadCommentCountsAsync(VisibleItems);
+        }
+        catch (Exception ex)
+        {
+            feedError = $"Der skete en fejl: {ex.Message}";
+        }
+        finally
+        {
+            isFeedLoading = false;
+        }
+    }
+
+    private async Task LoadCommentCountsAsync(List<Post> posts)
+    {
+        commentCounts.Clear();
+
+        var ids = posts
+            .Select(x => x.Id)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct()
+            .ToList();
+
+        foreach (var id in ids)
+        {
+            try
+            {
+                var res = await SocialService.SeeAllCommentForPostAsync(id!);
+
+                if (!res.IsSuccessStatusCode)
+                {
+                    commentCounts[id!] = 0;
+                    continue;
+                }
+
+                var comments = await res.Content.ReadFromJsonAsync<List<Comment>>() ?? new List<Comment>();
+                commentCounts[id!] = comments.Count;
+            }
+            catch
+            {
+                commentCounts[id!] = 0;
+            }
+        }
+    }
+
+    private int GetCommentCount(string? postId)
+    {
+        if (string.IsNullOrWhiteSpace(postId)) return 0;
+        return commentCounts.TryGetValue(postId, out var commentSize) ? commentSize : 0;
+    }
+
+    private async Task SwitchTab(string tab)
+    {
+        if (activeFeedTab == tab) return;
+        activeFeedTab = tab;
+        await LoadFeedAsync();
+    }
+
+    private async Task Reload() => await LoadFeedAsync();
+
+    private void OpenComposer()
+    {
+        if (activeFeedTab == "ready")
+            activeFeedTab = "all";
+
+        showComposer = true;
+        Title = string.Empty;
+        newPostText = string.Empty;
+        createError = string.Empty;
+    }
+
+    private void CloseComposer()
+    {
+        showComposer = false;
+        Title = string.Empty;
+        newPostText = string.Empty;
+        createError = string.Empty;
+    }
+
+    private void LookAtOneSpecficPost(string postId)
+    {
+        if (string.IsNullOrWhiteSpace(postId)) return;
+        Nav.NavigateTo($"/post/{postId}");
+    }
+
+    private async Task CreatePost()
+    {
+        if (IsCreateDisabled) return;
+
+        try
+        {
+            createError = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            {
+                createError = "Kunne ikke finde bruger id. Log ind igen.";
+                return;
+            }
+
+            isCreating = true;
+
+            var payload = new Post
+            {
+                UserId = LoggedInUserId,
+                UserName = Username,
+                PostTitle = Title.Trim(),
+                PostContent = newPostText.Trim()
+            };
+
+            var res = await SocialService.PostAPostAsync(payload);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                createError = $"Kunne ikke oprette opslag: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            showComposer = false;
+            Title = string.Empty;
+            newPostText = string.Empty;
+
+            activeFeedTab = "all";
+            await LoadFeedAsync();
+        }
+        catch (Exception ex)
+        {
+            createError = $"Der skete en fejl: {ex.Message}";
+        }
+        finally
+        {
+            isCreating = false;
+        }
+    }
+
+    private async Task ShareWorkout(Post post)
+    {
+        if (string.IsNullOrWhiteSpace(post.Id)) return;
+
+        isSharing = true;
+        sharingPostId = post.Id;
+
+        try
+        {
+            var res = await SocialService.ChangeDraftStatusForPostAsync(post.Id);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                feedError = $"Kunne ikke dele træning: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            await LoadFeedAsync();
+        }
+        finally
+        {
+            isSharing = false;
+            sharingPostId = null;
+        }
+    }
+    
+
+    private static string GetInitial(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        return name.Trim().Substring(0, 1).ToUpperInvariant();
+    }
+
+    private static string GetTypeLabel(PostType type) => type == PostType.Workout ? "Workout" : "Generic";
+
+    private static int GetDurationMinutes(Post post)
+    {
+        var seconds = post.WorkoutStats?.DurationSeconds ?? 0;
+        if (seconds <= 0) return 0;
+        return (int)Math.Round(seconds / 60.0);
+    }
+
+    private static string GetWorkoutSubtitle(Post post)
+    {
+        if (post.Type != PostType.Workout) return "";
+        var mins = GetDurationMinutes(post);
+        var cals = post.WorkoutStats?.Calories ?? 0;
+
+        if (mins > 0 && cals > 0) return $"{mins} min · {cals} kcal";
+        if (mins > 0) return $"{mins} min";
+        if (cals > 0) return $"{cals} kcal";
+        return "";
+    }
+
+    private static string FormatWhen(DateTime dt)
+    {
+        if (dt == default) return "";
+        return dt.ToString("dd-MM-yyyy HH:mm");
+    }
+
+    private static string GetDisplayName(Post post)
+    {
+        if (!string.IsNullOrWhiteSpace(post.UserName))
+            return post.UserName.Trim();
+
+        if (!string.IsNullOrWhiteSpace(post.UserId))
+            return $"Bruger {post.UserId[..Math.Min(6, post.UserId.Length)]}";
+
+        return "Bruger";
+    }
+    
+    
+}

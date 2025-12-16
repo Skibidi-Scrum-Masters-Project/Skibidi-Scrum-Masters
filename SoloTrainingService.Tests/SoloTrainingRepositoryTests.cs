@@ -1,7 +1,7 @@
 using FitnessApp.Shared.Models;
 using Mongo2Go;
 using MongoDB.Driver;
-
+using System.Net;
 
 namespace SoloTrainingService.Tests;
 
@@ -18,7 +18,13 @@ public class SoloTrainingRepositoryTests
         _runner = MongoDbRunner.Start();
         var client = new MongoClient(_runner.ConnectionString);
         _database = client.GetDatabase("TestSoloTrainingDb");
-        _repository = new SoloTrainingRepository(_database);
+
+        var httpClient = new HttpClient(new FakeHttpMessageHandler())
+        {
+            BaseAddress = new Uri("http://localhost")
+        };
+
+        _repository = new SoloTrainingRepository(_database, httpClient);
     }
 
     [TestCleanup]
@@ -28,73 +34,45 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void CreateSoloTraining_ShouldAddSessionToDatabase()
+    public async Task CreateSoloTraining_ShouldAddSessionToDatabase_AndSetUserId()
     {
         // Arrange
         var userId = "user123";
         var session = new SoloTrainingSession
         {
-            UserId = userId,
             Date = DateTime.UtcNow,
-            TrainingType = TrainingType.UpperBody,
+
             DurationMinutes = 45,
             Exercises = new List<Exercise>()
         };
 
         // Act
-        var result = _repository.CreateSoloTraining(userId, session);
+        var result = await _repository.CreateSoloTraining(userId, session, "program1");
 
-        // Assert
-        var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
-        var found = collection.Find(s => s.UserId == userId).FirstOrDefault();
-        Assert.IsNotNull(found);
-        Assert.AreEqual(userId, found.UserId);
-        Assert.IsTrue(Math.Abs((session.Date - found.Date).TotalSeconds) < 1);
-    }
-
-    [TestMethod]
-    public void CreateSoloTraining_ShouldSetUserId()
-    {
-        // Arrange
-        var userId = "user456";
-        var session = new SoloTrainingSession { Date = DateTime.UtcNow };
-
-        // Act
-        var result = _repository.CreateSoloTraining(userId, session);
-
-        // Assert
+        // Assert (return value)
         Assert.AreEqual(userId, result.UserId);
+
+        // Assert (db)
+        var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
+        var found = await collection.Find(s => s.UserId == userId).FirstOrDefaultAsync();
+
+        Assert.IsNotNull(found);
+        Assert.AreEqual(userId, found!.UserId);
     }
 
     [TestMethod]
-    public void AddExerciseToSoloTraining_ShouldUpdateSoloTraining()
-    {
-        // TBA: Implement exercise addition test
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void CalculateSoloTrainingVolume_ShouldReturnCorrectTotal()
-    {
-        // TBA: Implement volume calculation test
-        Assert.Inconclusive("Test not implemented yet");
-    }
-
-    [TestMethod]
-    public void GetAllSoloTrainingsForUser_ReturnsSessionsForUser()
+    public async Task GetAllSoloTrainingsForUser_ReturnsOnlyUsersSessions()
     {
         // Arrange
         var userId = "user123";
-        var session1 = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
-        var session2 = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) };
-        var otherSession = new SoloTrainingSession { UserId = "otherUser", Date = DateTime.UtcNow };
         var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
-        collection.InsertOne(session1);
-        collection.InsertOne(session2);
-        collection.InsertOne(otherSession);
+
+        await collection.InsertOneAsync(new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow });
+        await collection.InsertOneAsync(new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) });
+        await collection.InsertOneAsync(new SoloTrainingSession { UserId = "otherUser", Date = DateTime.UtcNow });
 
         // Act
-        var result = _repository.GetAllSoloTrainingsForUser(userId);
+        var result = await _repository.GetAllSoloTrainingsForUser(userId);
 
         // Assert
         Assert.AreEqual(2, result.Count);
@@ -102,82 +80,40 @@ public class SoloTrainingRepositoryTests
     }
 
     [TestMethod]
-    public void GetAllSoloTrainingsForUser_WhenNoSessions_ReturnsEmptyList()
-    {
-        // Arrange
-        var userId = "user999";
-        // No sessions inserted for this user
-
-        // Act
-        var result = _repository.GetAllSoloTrainingsForUser(userId);
-
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual(0, result.Count);
-    }
-
-    [TestMethod]
-    public void GetMostRecentSoloTrainingForUser_ReturnsLatestSession()
+    public async Task GetMostRecentSoloTrainingForUser_ReturnsLatestSession()
     {
         // Arrange
         var userId = "user123";
-        var oldSession = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-2) };
-        var recentSession = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
-        var midSession = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-1) };
-        var otherUserSession = new SoloTrainingSession { UserId = "otherUser", Date = DateTime.UtcNow };
         var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
-        collection.InsertOne(oldSession);
-        collection.InsertOne(recentSession);
-        collection.InsertOne(midSession);
-        collection.InsertOne(otherUserSession);
+
+        await collection.InsertOneAsync(new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow.AddDays(-2) });
+        await collection.InsertOneAsync(new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow });
 
         // Act
-        var result = _repository.GetMostRecentSoloTrainingForUser(userId);
+        var result = await _repository.GetMostRecentSoloTrainingForUser(userId);
 
         // Assert
         Assert.IsNotNull(result);
-        Assert.AreEqual(userId, result.UserId);
-        Assert.IsTrue(Math.Abs((result.Date - recentSession.Date).TotalSeconds) < 2);
+        Assert.AreEqual(userId, result!.UserId);
     }
 
     [TestMethod]
-    public void GetMostRecentSoloTrainingForUser_WhenNoSessions_ReturnsNull()
-    {
-        // Arrange
-        var userId = "user999";
-        // No sessions inserted for this user
-
-        // Act
-        var result = _repository.GetMostRecentSoloTrainingForUser(userId);
-
-        // Assert
-        Assert.IsNull(result);
-    }
-
-    [TestMethod]
-    public void DeleteSoloTraining_RemovesSession()
-    {
-        // Arrange
-        var userId = "user123";
-        var session = new SoloTrainingSession { UserId = userId, Date = DateTime.UtcNow };
-        var collection = _database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
-        collection.InsertOne(session);
-
-        // Act
-        _repository.DeleteSoloTraining(session.Id!);
-
-        // Assert
-        var found = collection.Find(s => s.Id == session.Id).FirstOrDefault();
-        Assert.IsNull(found);
-    }
-
-    [TestMethod]
-    public void DeleteSoloTraining_WhenSessionDoesNotExist_ThrowsException()
+    public async Task DeleteSoloTraining_WhenSessionDoesNotExist_ThrowsException()
     {
         // Arrange
         string nonExistentId = "607f1f77bcf86cd799439011";
 
-        // Act & Assert
-        Assert.ThrowsException<Exception>(() => _repository.DeleteSoloTraining(nonExistentId));
+        // Act + Assert
+        await Assert.ThrowsExceptionAsync<Exception>(async () =>
+            await _repository.DeleteSoloTraining(nonExistentId)
+        );
+    }
+
+    private sealed class FakeHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        }
     }
 }

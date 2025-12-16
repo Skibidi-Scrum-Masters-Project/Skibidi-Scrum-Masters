@@ -1,0 +1,102 @@
+@page "/locker"
+@using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Models
+@using FitLifeFitness.Services
+@inject AccessControlService AccessControlService
+@inject TokenService TokenService
+@layout PhoneLayout
+
+<div class="locker-screen">
+    <h2>Locker test</h2>
+
+    @if (isLoading)
+    {
+        <p>Indlæser lockers…</p>
+    }
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <p style="color:red">@error</p>
+    }
+    else if (!Lockers.Any())
+    {
+        <p>Ingen lockers fundet</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var locker in Lockers)
+            {
+                <li>
+                    <strong>LockerId:</strong> @locker.LockerId <br />
+                    <strong>Status:</strong> @(locker.IsLocked ? "Låst" : "Ledig") <br />
+                    <strong>UserId:</strong> @locker.UserId
+
+                    @if (!locker.IsLocked)
+                    {
+                        <button @onclick="() => LockLocker(locker)">
+                            Lock
+                        </button>
+                    }
+                </li>
+                <hr />
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private List<Locker> Lockers = new();
+    private bool isLoading = true;
+    private string? error;
+
+    private string lockerRoomId = "694132d584029a38d3635884";
+    private string? userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = await TokenService.GetUserIdAsync();
+        await LoadLockers();
+    }
+
+    private async Task LoadLockers()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            var res = await AccessControlService.GetAvailableLockersAsync(lockerRoomId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                error = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            Lockers =
+                await res.Content.ReadFromJsonAsync<List<Locker>>()
+                ?? new List<Locker>();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LockLocker(Locker locker)
+    {
+        if (locker.LockerId == null || userId == null)
+            return;
+
+        await AccessControlService.LockLockerAsync(
+            lockerRoomId,
+            locker.LockerId,
+            userId);
+
+        await LoadLockers(); // refresh list
+    }
+}

@@ -9,19 +9,22 @@ namespace FitnessApp.Shared.Models
 {
     public class SoloTrainingSession
     {
-         [BsonId]
+        [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
         [BsonElement("_id")]
         public string? Id { get; set; }
-       
+        [Required]
+        [BsonElement("workoutProgramId")]
+        public string? WorkoutProgramId { get; set; }
+        [Required]
+        [BsonElement("workoutProgramName")]
+        public string? WorkoutProgramName { get; set; }
+
         [BsonElement("userId")]
         public string UserId { get; set; } = string.Empty;
         [Required]
         [BsonElement("date")]
         public DateTime Date { get; set; }
-        [Required]
-        [BsonElement("trainingType")]
-        public TrainingType TrainingType { get; set; }
         [BsonElement("durationMinutes")]
         public int DurationMinutes { get; set; }
         [Required]

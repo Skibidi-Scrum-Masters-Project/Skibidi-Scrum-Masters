@@ -1,335 +1,378 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
+using Mongo2Go;
 using MongoDB.Driver;
 using CoachingService.Models;
-using CoachingService;
 using System;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace CoachingService.Tests
 {
     [TestClass]
     public class CoachingRepositoryTests
     {
-        private Mock<IMongoCollection<Session>> _mockCollection = null!;
-        private Mock<IMongoDatabase> _mockDatabase = null!;
+        private MongoDbRunner _runner = null!;
+        private IMongoDatabase _database = null!;
         private CoachingRepository _repository = null!;
+        private IMongoCollection<Session> _sessionsCollection = null!; // Added for direct setup
 
         [TestInitialize]
         public void Setup()
         {
-            _mockCollection = new Mock<IMongoCollection<Session>>();
-            _mockDatabase = new Mock<IMongoDatabase>();
+            _runner = MongoDbRunner.Start();
 
-            _mockDatabase.Setup(db => db.GetCollection<Session>("Sessions", null))
-                .Returns(_mockCollection.Object);
+            var client = new MongoClient(_runner.ConnectionString);
+            _database = client.GetDatabase("test_coachingservice_db");
+            _sessionsCollection = _database.GetCollection<Session>("Sessions"); // Initialize collection
 
-            _repository = new CoachingRepository(_mockDatabase.Object);
+            _repository = new CoachingRepository(_database);
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            _runner?.Dispose();
         }
 
 
-        // BookSession Tests
+        // --- BookSession Tests 
+
         [TestMethod]
-        public void BookSession_ValidSession_InsertsIntoCollection()
+        public void BookSession_ValidSession_UpdatesStatusUserIdAndBookingForm()
         {
             // Arrange
-            var session = new Session
+            const string userIdToBook = "user-abc";
+
+            var initialSession = new Session
             {
+                CoachId = "coach-1",
                 StartTime = DateTime.UtcNow,
                 EndTime = DateTime.UtcNow.AddHours(1),
-                BookingForm = new BookingForm
-                {
-                    CreatedAt = DateTime.UtcNow,
-                    Goals = "Improve stamina",
-                    Notes = "Focus on breathing",
-                    Experience = Experience.Øvet
-                },
+                CurrentStatus = Session.Status.Available
+            };
+            _sessionsCollection.InsertOne(initialSession);
+
+            var bookingForm = new BookingForm()
+            {
+                CreatedAt = DateTime.UtcNow,
+                Goals = "Test goals",
+                Notes = "Test notes",
+                Experience = Experience.Begynder
+            };
+
+            var sessionToBook = new Session
+            {
+                Id = initialSession.Id,
+                UserId = userIdToBook,
+                BookingForm = bookingForm
+            };
+
+            // Act
+            var result = _repository.BookSession(sessionToBook);
+
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual(Session.Status.Planned, result.CurrentStatus);
+            Assert.AreEqual(userIdToBook, result.UserId);
+            Assert.IsNotNull(result.BookingForm);
+            Assert.AreEqual("Test goals", result.BookingForm.Goals);
+
+            // Verify DB
+            var stored = _sessionsCollection.Find(s => s.Id == initialSession.Id).First();
+            Assert.AreEqual(Session.Status.Planned, stored.CurrentStatus);
+            Assert.AreEqual(userIdToBook, stored.UserId);
+            Assert.IsNotNull(stored.BookingForm);
+        }
+
+
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void BookSession_SessionNotFound_Throws()
+        {
+            // Arrange
+            var nonExistentSession = new Session
+            {
+                Id = "000000000000000000000000",
+                UserId = "user-id"
+            };
+
+            // Act
+            _repository.BookSession(nonExistentSession);
+            
+            // Assert: Throws InvalidOperationException("Session not found.")
+        }
+        
+        [TestMethod]
+        [ExpectedException(typeof(InvalidOperationException))]
+        public void BookSession_SessionNotAvailable_Throws()
+        {
+            // Arrange
+            // Create a session that is already Planned (or any status other than Available)
+            var plannedSession = new Session
+            {
+                CoachId = "coach-1",
                 CurrentStatus = Session.Status.Planned
             };
-
-            // Act
-            var result = _repository.BookSession(session);
-
-            // Assert
-            _mockCollection.Verify(c => c.InsertOne(session, null, default), Times.Once);
-            Assert.AreEqual(session, result);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void BookSession_NullSession_ThrowsArgumentNullException()
-        {
-            // Act
-            _repository.BookSession(null!);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void BookSession_EndTimeBeforeStartTime_ThrowsArgumentException()
-        {
-            // Arrange
-            var invalidSession = new Session
+            _sessionsCollection.InsertOne(plannedSession);
+            
+            // Create the input session object
+            var sessionToBook = new Session
             {
-                StartTime = DateTime.UtcNow,
-                EndTime = DateTime.UtcNow.AddMinutes(-30)
+                Id = plannedSession.Id, 
+                UserId = "user-id"    
             };
 
             // Act
-            _repository.BookSession(invalidSession);
-        }
-
-        [TestMethod]
-        public void BookSession_BookingFormWithoutCreatedAt_SetsCreatedAt()
-        {
-            // Arrange
-            var session = new Session
-            {
-                StartTime = DateTime.UtcNow,
-                EndTime = DateTime.UtcNow.AddHours(1),
-                BookingForm = new BookingForm
-                {
-                    Goals = "Improve stamina",
-                    Notes = "Focus on breathing",
-                    Experience = Experience.Begynder,
-                    CreatedAt = default // not set
-                }
-            };
-
-            // Act
-            var result = _repository.BookSession(session);
-
-            // Assert
-            Assert.AreNotEqual(default(DateTime), result.BookingForm.CreatedAt);
-        }
-
-        [TestMethod]
-        public void BookSession_DefaultStatus_SetsPlanned()
-        {
-            // Arrange
-            var session = new Session
-            {
-                StartTime = DateTime.UtcNow,
-                EndTime = DateTime.UtcNow.AddHours(1),
-                BookingForm = new BookingForm
-                {
-                    CreatedAt = DateTime.UtcNow,
-                    Goals = "Improve stamina",
-                    Notes = "Focus on breathing",
-                    Experience = Experience.Ekspert
-                },
-                CurrentStatus = default // not set
-            };
-
-            // Act
-            var result = _repository.BookSession(session);
-
-            // Assert
-            Assert.AreEqual(Session.Status.Planned, result.CurrentStatus);
+            _repository.BookSession(sessionToBook);
+            
+            // Assert: Throws InvalidOperationException("Session is not available to be booked.")
         }
 
 
-        // GetAllSessions Tests
+        // --- GetAllSessions Tests 
+
 
         [TestMethod]
-        public void GetAllSessions_ReturnsListOfSessions()
+        public void GetAllSessions_ReturnsSessions()
         {
             // Arrange
-            var sessions = new List<Session>
-            {
-                new Session { StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1) },
-                new Session { StartTime = DateTime.UtcNow.AddHours(2), EndTime = DateTime.UtcNow.AddHours(3) }
-            };
-
-            // Mock cursor to simulate MongoDB results
-            var mockCursor = new Mock<IAsyncCursor<Session>>();
-            mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<System.Threading.CancellationToken>()))
-                .Returns(true)
-                .Returns(false);
-            mockCursor.SetupGet(c => c.Current).Returns(sessions);
-
-            _mockCollection.Setup(c => c.FindSync(
-                    It.IsAny<FilterDefinition<Session>>(),
-                    It.IsAny<FindOptions<Session, Session>>(),
-                    default))
-                .Returns(mockCursor.Object);
-
+            _sessionsCollection.InsertOne(new Session { CurrentStatus = Session.Status.Planned, CoachId = "C1" });
+            _sessionsCollection.InsertOne(new Session { CurrentStatus = Session.Status.Available, CoachId = "C2" });
+            
             // Act
             var result = _repository.GetAllSessions();
 
             // Assert
-            Assert.IsNotNull(result);
             Assert.AreEqual(2, result.Count());
         }
 
         [TestMethod]
-        public void GetAllSessions_EmptyCollection_ReturnsEmptyList()
+        public void GetAllSessions_EmptyDatabase_ReturnsEmptyList()
         {
-            // Arrange
-            var emptySessions = new List<Session>();
-
-            var mockCursor = new Mock<IAsyncCursor<Session>>();
-            mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<System.Threading.CancellationToken>()))
-                .Returns(false);
-            mockCursor.SetupGet(c => c.Current).Returns(emptySessions);
-
-            _mockCollection.Setup(c => c.FindSync(
-                    It.IsAny<FilterDefinition<Session>>(),
-                    It.IsAny<FindOptions<Session, Session>>(),
-                    default))
-                .Returns(mockCursor.Object);
-
+            // Arrange (Database is empty)
+            
             // Act
             var result = _repository.GetAllSessions();
-
+            
             // Assert
-            Assert.IsNotNull(result);
             Assert.AreEqual(0, result.Count());
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(Exception))]
-        public void GetAllSessions_RepositoryThrowsException_PropagatesException()
-        {
-            // Arrange
-            _mockCollection.Setup(c => c.FindSync(
-                    It.IsAny<FilterDefinition<Session>>(),
-                    It.IsAny<FindOptions<Session, Session>>(),
-                    default))
-                .Throws(new Exception("Database error"));
 
-            // Act
-            _repository.GetAllSessions(); // should throw }
+        // --- GetSessionById Tests 
 
-        }
-
-
-        //GetSessionById Tests
 
         [TestMethod]
         public void GetSessionById_ValidId_ReturnsSession()
         {
+            // Arrange
             var session = new Session
-                { Id = "123", StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1) };
+            {
+                CurrentStatus = Session.Status.Available
+            };
+            _sessionsCollection.InsertOne(session);
 
-            var mockCursor = new Mock<IAsyncCursor<Session>>();
-            mockCursor.SetupSequence(c => c.MoveNext(default))
-                .Returns(true)
-                .Returns(false);
-            mockCursor.SetupGet(c => c.Current).Returns(new List<Session> { session });
+            // Act
+            var fetched = _repository.GetSessionById(session.Id!);
 
-            _mockCollection.Setup(c => c.FindSync(
-                    It.IsAny<FilterDefinition<Session>>(),
-                    It.IsAny<FindOptions<Session, Session>>(),
-                    default))
-                .Returns(mockCursor.Object);
-
-            var result = _repository.GetSessionById("123");
-
-            Assert.IsNotNull(result);
-            Assert.AreEqual("123", result.Id);
+            // Assert
+            Assert.IsNotNull(fetched);
+            Assert.AreEqual(session.Id, fetched.Id);
         }
 
         [TestMethod]
-        public void GetSessionById_InvalidId_ReturnsNull()
+        public void GetSessionById_NotFound_ReturnsNull()
         {
-            var mockCursor = new Mock<IAsyncCursor<Session>>();
-            mockCursor.SetupSequence(c => c.MoveNext(default))
-                .Returns(false);
-            mockCursor.SetupGet(c => c.Current).Returns(new List<Session>());
-
-            _mockCollection.Setup(c => c.FindSync(
-                    It.IsAny<FilterDefinition<Session>>(),
-                    It.IsAny<FindOptions<Session, Session>>(),
-                    default))
-                .Returns(mockCursor.Object);
-
-            var result = _repository.GetSessionById("999");
-
+            // Arrange (Non-existent ID)
+            
+            // Act
+            var result = _repository.GetSessionById("000000000000000000000000"); 
+            
+            // Assert
             Assert.IsNull(result);
         }
 
 
-        //CancelSession Tests
+        // --- CancelSession Tests 
+
+        [TestMethod]
+        public void CancelSession_ValidId_StatusUpdated()
+        {
+            // Arrange
+            var session = new Session
+            {
+                CurrentStatus = Session.Status.Planned
+            };
+            _sessionsCollection.InsertOne(session);
+
+            // Act
+            var updated = _repository.CancelSession(session.Id!);
+
+            // Assert
+            Assert.AreEqual(Session.Status.Cancelled, updated.CurrentStatus);
+
+            // Verify in database
+            var fetched = _repository.GetSessionById(session.Id!);
+            Assert.AreEqual(Session.Status.Cancelled, fetched!.CurrentStatus);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentNullException))]
+        public void CancelSession_NotFound_Throws()
+        {
+            // Act
+            _repository.CancelSession("000000000000000000000001");
+            
+            // Assert: Throws ArgumentNullException("Session not found")
+        }
+
+
+        // --- CompleteSession Tests 
+
+        [TestMethod]
+        public void CompleteSession_ValidId_UpdatesStatusToCompleted()
+        {
+            // Arrange
+            var session = new Session
+            {
+                CurrentStatus = Session.Status.Planned
+            };
+            _sessionsCollection.InsertOne(session);
+
+            // Act
+            var completed = _repository.CompleteSession(session.Id!);
+
+            // Assert
+            Assert.IsNotNull(completed);
+            Assert.AreEqual(Session.Status.Completed, completed.CurrentStatus);
+
+            // Verify in database
+            var fetched = _repository.GetSessionById(session.Id!);
+            Assert.IsNotNull(fetched);
+            Assert.AreEqual(Session.Status.Completed, fetched.CurrentStatus);
+        }
         
         [TestMethod]
-public void CancelSession_ValidId_UpdatesStatusToCancelled()
-{
-    var session = new Session
-    {
-        Id = "123",
-        StartTime = DateTime.UtcNow,
-        EndTime = DateTime.UtcNow.AddHours(1),
-        CurrentStatus = Session.Status.Planned
-    };
+        [ExpectedException(typeof(ArgumentNullException))]
+        public void CompleteSession_NotFound_Throws()
+        {
+            // Act
+            _repository.CompleteSession("000000000000000000000002");
+            
+            // Assert: Throws ArgumentNullException("Session not found")
+        }
+        
+        
+        // --- CreateSession Tests
 
-    var mockCursor = new Mock<IAsyncCursor<Session>>();
-    mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>()))
-              .Returns(true)
-              .Returns(false);
-    mockCursor.SetupGet(c => c.Current).Returns(new List<Session> { session });
+        [TestMethod]
+        public void CreateSession_ValidSession_InsertsIntoDatabaseAndReturnsSessionWithId()
+        {
+            // Arrange
+            var session = new Session { CoachId = "C1", CurrentStatus = Session.Status.Available };
 
-    _mockCollection.Setup(c => c.FindSync(
-        It.IsAny<FilterDefinition<Session>>(),
-        It.IsAny<FindOptions<Session, Session>>(),
-        It.IsAny<CancellationToken>()))
-        .Returns(mockCursor.Object);
+            // Act
+            var result = _repository.CreateSession(session);
 
-    var result = _repository.CancelSession("123");
+            // Assert
+            Assert.IsNotNull(result.Id);
+            
+            // Verify in database
+            var stored = _sessionsCollection.Find(s => s.Id == result.Id).FirstOrDefault();
+            Assert.IsNotNull(stored);
+            Assert.AreEqual("C1", stored.CoachId);
+        }
+        
+        
+        // --- DeleteSession Tests 
+        
+        [TestMethod]
+        public void DeleteSession_ValidId_DeletesFromDatabaseAndReturnsDeletedSession()
+        {
+            // Arrange
+            var session = new Session { CurrentStatus = Session.Status.Planned };
+            _sessionsCollection.InsertOne(session);
 
-    Assert.IsNotNull(result);
-    Assert.AreEqual(Session.Status.Cancelled, result.CurrentStatus);
+            // Act
+            var deleted = _repository.DeleteSession(session.Id!);
 
-    _mockCollection.Verify(c => c.ReplaceOne(
-        It.IsAny<FilterDefinition<Session>>(),
-        It.Is<Session>(s => s.CurrentStatus == Session.Status.Cancelled),
-        It.IsAny<ReplaceOptions>(),
-        It.IsAny<CancellationToken>()),
-        Times.Once);
-}
+            // Assert
+            Assert.IsNotNull(deleted);
+            
+            // Verify deletion in database
+            var stored = _sessionsCollection.Find(s => s.Id == session.Id).FirstOrDefault();
+            Assert.IsNull(stored);
+        }
 
-[TestMethod]
-[ExpectedException(typeof(ArgumentNullException))]
-public void CancelSession_SessionNotFound_ThrowsArgumentNullException()
-{
-    var mockCursor = new Mock<IAsyncCursor<Session>>();
-    mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>()))
-              .Returns(false);
-    mockCursor.SetupGet(c => c.Current).Returns(new List<Session>());
+        [TestMethod]
+        public void DeleteSession_NotFound_ReturnsNull()
+        {
+            // Act
+            var deleted = _repository.DeleteSession("000000000000000000000003");
 
-    _mockCollection.Setup(c => c.FindSync(
-        It.IsAny<FilterDefinition<Session>>(),
-        It.IsAny<FindOptions<Session, Session>>(),
-        It.IsAny<CancellationToken>()))
-        .Returns(mockCursor.Object);
+            // Assert
+            Assert.IsNull(deleted);
+        }
+        
+        
+        // --- GetAllAvaliableCoachSessions Tests 
+        
+        [TestMethod]
+        public void GetAllAvaliableCoachSessions_ReturnsOnlyAvailableSessions()
+        {
+            // Arrange
+            _sessionsCollection.InsertOne(new Session { CurrentStatus = Session.Status.Available }); // Should be returned
+            _sessionsCollection.InsertOne(new Session { CurrentStatus = Session.Status.Planned });   // Should NOT be returned
+            _sessionsCollection.InsertOne(new Session { CurrentStatus = Session.Status.Available }); // Should be returned
+            
+            // Act
+            var result = _repository.GetAllAvaliableCoachSessions();
 
-    _repository.CancelSession("not-found-id"); // should throw
-}
+            // Assert
+            Assert.AreEqual(2, result.Count);
+            Assert.IsTrue(result.All(s => s.CurrentStatus == Session.Status.Available));
+        }
 
-[TestMethod]
-[ExpectedException(typeof(Exception))]
-public void CancelSession_ReplaceOneFails_ThrowsException()
-{
-    var session = new Session { Id = "123", CurrentStatus = Session.Status.Planned };
+        
+        // --- GetAllAvailableCoachSessionsForCoachId Tests
+        
+        [TestMethod]
+        public void GetAllAvailableCoachSessionsForCoachId_ReturnsFilteredAvailableSessions()
+        {
+            // Arrange
+            const string targetCoachId = "target-coach";
+            
+            _sessionsCollection.InsertOne(new Session { CoachId = targetCoachId, CurrentStatus = Session.Status.Available }); // Return
+            _sessionsCollection.InsertOne(new Session { CoachId = "other-coach", CurrentStatus = Session.Status.Available });  // Ignore (wrong coach)
+            _sessionsCollection.InsertOne(new Session { CoachId = targetCoachId, CurrentStatus = Session.Status.Planned });    // Ignore (wrong status)
+            
+            // Act
+            var result = _repository.GetAllAvailableCoachSessionsForCoachId(targetCoachId);
 
-    var mockCursor = new Mock<IAsyncCursor<Session>>();
-    mockCursor.SetupSequence(c => c.MoveNext(It.IsAny<CancellationToken>()))
-              .Returns(true)
-              .Returns(false);
-    mockCursor.SetupGet(c => c.Current).Returns(new List<Session> { session });
+            // Assert
+            Assert.AreEqual(1, result.Count);
+            Assert.IsTrue(result.All(s => s.CoachId == targetCoachId && s.CurrentStatus == Session.Status.Available));
+        }
+        
+        
+        // --- GetAllSessionsByCoachId Tests
+        
+        [TestMethod]
+        public void GetAllSessionsByCoachId_ReturnsAllSessionsForSpecifiedCoach()
+        {
+            // Arrange
+            const string targetCoachId = "coach-A";
+            
+            _sessionsCollection.InsertOne(new Session { CoachId = targetCoachId, CurrentStatus = Session.Status.Planned });    // Return
+            _sessionsCollection.InsertOne(new Session { CoachId = "coach-B", CurrentStatus = Session.Status.Available });       // Ignore (wrong coach)
+            _sessionsCollection.InsertOne(new Session { CoachId = targetCoachId, CurrentStatus = Session.Status.Completed });  // Return
 
-    _mockCollection.Setup(c => c.FindSync(
-        It.IsAny<FilterDefinition<Session>>(),
-        It.IsAny<FindOptions<Session, Session>>(),
-        It.IsAny<CancellationToken>()))
-        .Returns(mockCursor.Object);
+            // Act
+            var result = _repository.GetAllSessionsByCoachId(targetCoachId);
 
-    _mockCollection.Setup(c => c.ReplaceOne(
-        It.IsAny<FilterDefinition<Session>>(),
-        It.IsAny<Session>(),
-        It.IsAny<ReplaceOptions>(),                // disambiguate
-        It.IsAny<CancellationToken>()))
-        .Throws(new Exception("Database error"));
-
-    _repository.CancelSession("123"); // should throw
-}
+            // Assert
+            Assert.AreEqual(2, result.Count);
+            Assert.IsTrue(result.All(s => s.CoachId == targetCoachId));
+        }
     }
 }

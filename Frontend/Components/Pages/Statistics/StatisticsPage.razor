@@ -1,0 +1,166 @@
+@page "/statistics"
+
+@using FitLifeFitness.Models
+@using FitLifeFitness.Services
+@using FitLifeFitness.Components.Layout
+
+@layout PhoneLayout
+
+@inject TokenService TokenService
+@inject AnalyticsService AnalyticsService
+
+<div class="stats-screen">
+    <h2 class="stats-title">Statistik</h2>
+
+    @if (isLoading)
+    {
+        <p>Indlæser statistik…</p>
+    }
+    else if (!string.IsNullOrEmpty(feedError))
+    {
+        <p style="color:red">@feedError</p>
+    }
+    else
+    {
+        @foreach (var c in ClassResults)
+        {
+            <div style="border-bottom:1px solid #ccc; margin-bottom:8px">
+                <p><b>ClassId:</b> @c.ClassId</p>
+                <p><b>UserId:</b> @c.UserId</p>
+                <p><b>Category:</b> @c.Category</p>
+                <p><b>Calories:</b> @c.CaloriesBurned</p>
+                <p><b>Watt:</b> @c.Watt</p>
+                <p><b>Duration:</b> @c.DurationMin min</p>
+                <p><b>Date:</b> @c.Date</p>
+                <p><b>EventId:</b> @c.EventId</p>
+            </div>
+        }
+    }
+
+    <hr />
+
+    <h3>✅ Solo training results</h3>
+
+    @if (SoloTrainingResults.Count == 0)
+    {
+        <p>Ingen solo training results</p>
+    }
+    else
+    {
+        @foreach (var s in SoloTrainingResults)
+        {
+            <div style="border-bottom:1px solid #ccc; margin-bottom:8px">
+                <p><b>UserId:</b> @s.UserId</p>
+                <p><b>Date:</b> @s.Date</p>
+                <p><b>TrainingType:</b> @s.TrainingType</p>
+                <p><b>Duration:</b> @s.DurationMinutes min</p>
+
+                <p><b>Exercises:</b></p>
+                <ul>
+                    @foreach (var ex in s.Exercises)
+                    {
+                        <li>
+                            @ex.ExerciseType –
+                            Volume: @ex.Volume
+
+                            <ul>
+                                @foreach (var set in ex.Sets)
+                                {
+                                    <li>
+                                        Reps: @set.Repetitions |
+                                        Weight: @set.Weight
+                                    </li>
+                                }
+                            </ul>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    }
+
+    <hr />
+
+    <h3>✅ Crowd count</h3>
+
+    <p><b>Antal i centeret:</b> @CrowdCount</p>
+    }
+</div>
+
+@code {
+
+   
+    private string? LoggedInUserId;
+    private bool isLoading = true;
+    private string? feedError;
+
+    // Modeller klar til brug
+    private List<ClassResultDTO> ClassResults = new();
+    private List<SoloTrainingResultsDTO> SoloTrainingResults = new();
+    private int CrowdCount;
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+        LoggedInUserId = await TokenService.GetUserIdAsync();
+        await LoadStatisticsAsync();
+    }
+
+    
+    private async Task LoadStatisticsAsync()
+    {
+        isLoading = true;
+        feedError = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            {
+                feedError = "UserId mangler";
+                return;
+            }
+
+            //  CLASS RESULTS 
+            var classRes =
+                await AnalyticsService.GetClassResultsAsync(LoggedInUserId);
+
+            if (classRes.IsSuccessStatusCode)
+            {
+                ClassResults =
+                    await classRes.Content
+                        .ReadFromJsonAsync<List<ClassResultDTO>>()
+                    ?? new();
+            }
+
+            //  SOLO TRAINING 
+            var soloRes =
+                await AnalyticsService.GetSoloTrainingResultsAsync(LoggedInUserId);
+
+            if (soloRes.IsSuccessStatusCode)
+            {
+                SoloTrainingResults =
+                    await soloRes.Content
+                        .ReadFromJsonAsync<List<SoloTrainingResultsDTO>>()
+                    ?? new();
+            }
+
+                //  CROWD 
+                var crowdRes =
+                    await AnalyticsService.GetCrowdCountAsync();
+
+                if (crowdRes.IsSuccessStatusCode)
+                {
+                    CrowdCount =
+                        await crowdRes.Content.ReadFromJsonAsync<int>();
+                }
+        }
+        catch (Exception ex)
+        {
+            feedError = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

@@ -1,0 +1,374 @@
+@page "/classes/book"
+@layout PhoneLayout
+@inject FitLifeFitness.Services.AuthService AuthService
+@inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.ClassService ClassService
+@inject FitLifeFitness.Services.SocialService SocialService
+@inject NavigationManager Nav
+@using System.ComponentModel.DataAnnotations
+@using FitLifeFitness.Components.Layout
+@using System.Net.Http.Json
+@using FitlifeFitness.Models
+@using Frontend.Models
+@using Microsoft.AspNetCore.Components
+
+<section class="book-screen">
+    <button class="secondary-btn book-back" @onclick="GoBack">Tilbage</button>
+
+    <div class="book-body">
+        <header class="book-hero">
+            <h2 class="book-title">Book hold</h2>
+            <p class="book-subtitle">Find det perfekte hold til dig</p>
+        </header>
+
+        @if (MyBookedClasses.Any())
+        {
+            <div class="my-bookings">
+                <div class="my-bookings-header">
+                    <span class="booking-icon">📅</span>
+                    <h3 class="my-bookings-title">Mine bookinger</h3>
+                </div>
+                <div class="my-bookings-list">
+                    @foreach (var booking in MyBookedClasses.Take(3))
+                    {
+                        <div class="my-booking-card">
+                            <div class="my-booking-info">
+                                <div class="my-booking-name">@booking.Name</div>
+                                <div class="my-booking-meta">
+                                    @booking.Date.ToString("dd/MM") • @booking.Time
+                                </div>
+                            </div>
+                            <button class="my-booking-btn" @onclick="() => GoToBooking(booking.Id)">
+                                Se hold
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="search-filter-section">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text"
+                       class="search-input"
+                       placeholder="Søg efter hold..."
+                       @bind="SearchQuery"
+                       @bind:event="oninput" />
+            </div>
+
+            <div class="category-filters">
+                @foreach (var category in Categories)
+                {
+                    <button class="category-filter @(ActiveFilter == category.Id ? "active" : "")"
+                            @onclick="() => SetFilter(category.Id)">
+                        <span>@category.Icon</span>
+                        <span>@category.Label</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="book-list">
+            @foreach (var c in FilteredClasses)
+            {
+                var isFull = c.BookingList.Count >= c.MaxCapacity;
+                var capacityRatio = (double)c.BookingList.Count / c.MaxCapacity;
+                var capacityColor = GetCapacityColor(capacityRatio);
+                var isPopular = capacityRatio >= 0.7;
+                var friendsInClass = GetFriendsInClass(c);
+
+                <div class="book-card-container">
+                    <article class="book-card-new @(isFull ? "full" : "available")">
+
+                        <div class="card-badges">
+                            @if (isPopular && !isFull)
+                            {
+                                <span class="badge popular">🔥 Populært</span>
+                            }
+                            @if (isFull)
+                            {
+                                <span class="badge full-badge">Fuldt booket</span>
+                            }
+                        </div>
+
+                        <div class="card-header">
+                            <div class="category-icon-box">
+                                @GetCategoryIcon(c.Category)
+                            </div>
+
+                            <div class="card-main-info">
+                                <div class="card-title-row">
+                                    <h3 class="card-name">@c.Name</h3>
+
+                                    <button class="favorite-btn @(Favorites.Contains(c.Id) ? "active" : "")"
+                                            @onclick="() => ToggleFavorite(c.Id)"
+                                            @onclick:stopPropagation>
+                                        ❤️
+                                    </button>
+                                </div>
+
+                                <div class="card-meta">
+                                    <span>@c.Date.ToString("dd/MM") • @c.Time</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-info-grid">
+                            <div class="info-box">
+                                <span class="info-icon">📈</span>
+                                <div class="info-content">
+                                    <div class="info-label">Kategori</div>
+                                    <div class="info-value">@c.Category.ToString()</div>
+                                </div>
+                            </div>
+
+                            <div class="info-box">
+                                <span class="info-icon">💪</span>
+                                <div class="info-content">
+                                    <div class="info-label">Intensitet</div>
+                                    <div class="info-value">@c.Intensity.ToString()</div>
+                                </div>
+                            </div>
+
+                            @if (friendsInClass > 0)
+                            {
+                                <div class="info-box friends">
+                                    <span class="info-icon">👥</span>
+                                    <div class="info-content">
+                                        <div class="info-label">Dine venner</div>
+                                        <div class="info-value friends-value">@friendsInClass deltager</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="capacity-section">
+                            <div class="capacity-header">
+                                <span class="capacity-label">Ledige pladser</span>
+                                <span class="capacity-count" style="color: @capacityColor">
+                                    @c.BookingList.Count/@c.MaxCapacity
+                                </span>
+                            </div>
+                            <div class="capacity-bar-bg">
+                                <div class="capacity-bar-fill"
+                                     style="width: @(capacityRatio * 100)%; background: @capacityColor"></div>
+                            </div>
+                        </div>
+
+                        @if (isFull)
+                        {
+                            <button type="button"
+                                    class="class-waitlist-btn"
+                                    @onclick="async () => await BookClassForUserAsync(c.Id)"
+                                    @onclick:stopPropagation>
+                                Meld dig på ventelisten
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="class-book-btn"
+                                    @onclick="@(() => HandleBookingClick(c))"
+                                    @onclick:stopPropagation>
+                                Book nu →
+                            </button>
+                        }
+                    </article>
+
+                    @if (WaitlistFeedbackClassId == c.Id && !string.IsNullOrEmpty(WaitlistFeedbackMessage))
+                    {
+                        <div class="waitlist-feedback @(WaitlistFeedbackMessage.Contains("galt") ? "error" : "success")">
+                            @WaitlistFeedbackMessage
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (!FilteredClasses.Any())
+            {
+                <div class="no-results">
+                    <span class="no-results-icon">🔍</span>
+                    <p class="no-results-text">Ingen hold fundet</p>
+                    <p class="no-results-hint">Prøv at justere dine filtre eller søgning</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private string? userId;
+    private List<FitnessClass> AvailableClasses = new();
+    private List<FitnessClass> MyBookedClasses = new();
+    private List<Friendship> MyFriendships = new();
+    private HashSet<string?> Favorites = new();
+    private string SearchQuery = "";
+    private string ActiveFilter = "alle";
+    private string? WaitlistFeedbackClassId;
+    private string? WaitlistFeedbackMessage;
+
+    private List<CategoryFilter> Categories = new()
+    {
+        new CategoryFilter { Id = "alle", Label = "Alle", Icon = "🏃" },
+        new CategoryFilter { Id = "yoga", Label = "Yoga", Icon = "🧘" },
+        new CategoryFilter { Id = "spinning", Label = "Spinning", Icon = "🚴" },
+        new CategoryFilter { Id = "pilates", Label = "Pilates", Icon = "🤸" },
+        new CategoryFilter { Id = "crossfit", Label = "Crossfit", Icon = "💪" },
+    };
+
+    private IEnumerable<FitnessClass> FilteredClasses =>
+        AvailableClasses
+            .Where(c => ActiveFilter == "alle" || c.Category.ToString().Equals(ActiveFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(c => string.IsNullOrEmpty(SearchQuery) || c.Name.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = await TokenService.GetUserIdAsync();
+        if (string.IsNullOrEmpty(userId))
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await LoadAvailableClassesAsync();
+        await LoadMyBookedClassesAsync();
+        await LoadMyFriendshipsAsync();
+    }
+
+    private async Task LoadAvailableClassesAsync()
+    {
+        var response = await ClassService.GetAllAvailableClassesAsync(userId!);
+        if (response.IsSuccessStatusCode)
+        {
+            AvailableClasses = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new();
+        }
+    }
+
+    private async Task LoadMyBookedClassesAsync()
+    {
+        var response = await ClassService.GetClassesByUserIdAsync(userId!);
+        if (response.IsSuccessStatusCode)
+        {
+            MyBookedClasses = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new();
+        }
+    }
+
+    private async Task LoadMyFriendshipsAsync()
+    {
+        var response = await SocialService.GetAllFriendsAsync(userId!);
+        if (response.IsSuccessStatusCode)
+        {
+            MyFriendships = await response.Content.ReadFromJsonAsync<List<Friendship>>() ?? new();
+        }
+    }
+
+    private void SetFilter(string filterId) => ActiveFilter = filterId;
+
+    private void ToggleFavorite(string? classId)
+    {
+        if (classId == null) return;
+
+        if (Favorites.Contains(classId))
+            Favorites.Remove(classId);
+        else
+            Favorites.Add(classId);
+    }
+
+    private int GetFriendsInClass(FitnessClass fitnessClass)
+    {
+        if (MyFriendships == null || !MyFriendships.Any()) return 0;
+
+        var friendIds = MyFriendships
+            .Select(f => f.SenderId == userId ? f.ReceiverId : f.SenderId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToHashSet();
+
+        return fitnessClass.BookingList.Count(booking => friendIds.Contains(booking.UserId));
+    }
+
+    private string GetCapacityColor(double ratio)
+    {
+        if (ratio >= 1.0) return "rgb(235, 72, 72)";
+        if (ratio >= 0.8) return "rgb(255, 193, 7)";
+        return "rgb(36, 195, 106)";
+    }
+
+    private string GetCategoryIcon(Category category) =>
+        category switch
+        {
+            Category.Yoga => "🧘",
+            Category.Spinning => "🚴",
+            Category.Pilates => "🤸",
+            Category.Crossfit => "💪",
+            _ => "🏃"
+        };
+
+    private void OnCardClick(FitnessClass c)
+    {
+        var isFull = c.BookingList.Count >= c.MaxCapacity;
+        if (isFull) return;
+
+        HandleBookingClick(c);
+    }
+
+    private void HandleBookingClick(FitnessClass c)
+    {
+        if (c.SeatBookingEnabled)
+            ChooseSeat(c.Id);
+        else
+            GoToBooking(c.Id);
+    }
+
+    private void ChooseSeat(string? classId)
+    {
+        if (classId == null) return;
+        Nav.NavigateTo($"/classes/seat/{classId}");
+    }
+
+    private void GoBack() => Nav.NavigateTo("/classes");
+
+    private void GoToBooking(string? classId)
+    {
+        if (classId == null) return;
+        Nav.NavigateTo($"/classes/book/{classId}");
+    }
+
+    private async Task BookClassForUserAsync(string? classId)
+    {
+        if (classId == null) return;
+
+        WaitlistFeedbackClassId = null;
+        WaitlistFeedbackMessage = null;
+        StateHasChanged();
+
+        var response = await ClassService.BookClassForUser(classId, userId!);
+
+        if (response.IsSuccessStatusCode)
+        {
+            WaitlistFeedbackClassId = classId;
+            WaitlistFeedbackMessage = "Du er nu på ventelisten! 🎉";
+
+            await LoadAvailableClassesAsync();
+
+            StateHasChanged();
+            await Task.Delay(3000);
+            WaitlistFeedbackClassId = null;
+            WaitlistFeedbackMessage = null;
+        }
+        else
+        {
+            WaitlistFeedbackClassId = classId;
+            WaitlistFeedbackMessage = "Noget gik galt. Prøv igen.";
+        }
+
+        StateHasChanged();
+    }
+
+    private class CategoryFilter
+    {
+        public string Id { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string Icon { get; set; } = "";
+    }
+}
