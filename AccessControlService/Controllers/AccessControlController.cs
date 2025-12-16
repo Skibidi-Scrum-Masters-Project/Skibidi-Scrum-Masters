@@ -95,10 +95,6 @@ public class AccessControlController : ControllerBase
         public async Task<IActionResult> GetCrowd()
         {
             var crowd = await _accessControlRepository.GetCrowd();
-            if (crowd == null)
-            {
-                return NotFound("Crowd not found");
-            }
             return Ok(crowd);
         }
     
