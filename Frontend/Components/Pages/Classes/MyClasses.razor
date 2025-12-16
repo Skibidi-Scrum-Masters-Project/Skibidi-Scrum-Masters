@@ -1,94 +1,201 @@
 @page "/classes"
 @layout PhoneLayout
-@inject FitLifeFitness.Services.AuthService AuthService
-@inject FitLifeFitness.Services.TokenService TokenService
-@inject FitLifeFitness.Services.ClassService ClassService
-@inject NavigationManager Nav
-@inject Microsoft.JSInterop.IJSRuntime JS
-@using System.ComponentModel.DataAnnotations
-@using FitLifeFitness.Components.Layout
 @using System.Net.Http.Json
+@using System.Globalization
+@using FitLifeFitness.Components.Layout
 @using FitLifeFitness.Models
 @using FitlifeFitness.Models
 @using Microsoft.AspNetCore.Components
 
-<section class="classes-screen">
-    <button class="secondary-btn classes-back" @onclick="GoToDashboard">Tilbage</button>
+@inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.ClassService ClassService
+@inject NavigationManager Nav
 
-    <header class="classes-hero">
-        <h2 class="classes-title">Mine hold</h2>
-        <p class="classes-subtitle">Se dine kommende holdbookinger.</p>
-    </header>
+<div class="myclasses" @onclick="CloseAllMenus">
 
-    <p class="classes-user">Bruger-id: @(userId ?? "ikke logget ind")</p>
+    <main class="myclasses-body">
+        <section class="myclasses-shell">
 
-    @if (!MyClassesList.Any())
-    {
-        <div class="classes-empty">Du har ingen bookede hold endnu.</div>
-    }
-    else
-    {
-        <div class="classes-list">
-            @foreach (FitnessClass c in MyClassesList)
-            {
-                <article class="class-card" @onclick="() => GoToBooking(c)">
-                    <div class="class-main">
-                        <p class="class-name">@c.Name</p>
-                        <p class="class-meta">@c.Date.ToString("dd/MM") • @c.Time</p>
-                        <p class="class-location">@c.Location</p>
+            <div class="page-head">
+                <div class="page-left">
+                    <button class="back-btn" type="button" @onclick:stopPropagation="true" @onclick="GoToDashboard" aria-label="Tilbage">
+                        <span class="back-ico">←</span>
+                    </button>
+
+                    <div class="page-text">
+                        <h1 class="page-title">@PageTitle</h1>
+                        <p class="page-sub">@PageSubtitle</p>
                     </div>
+                </div>
 
-                    <div class="class-status-area">
-                        <span class="class-status">@c.Category.ToString()</span>
+                <div class="page-right" style="position:relative;">
+                    <button class="icon-btn"
+                            type="button"
+                            aria-label="Menu"
+                            @onclick:stopPropagation="true"
+                            @onclick="ToggleMenu">
+                        ⋯
+                    </button>
 
-                        @{
-                            var waitIndex = -1;
-                            var waitCount = 0;
-                            if (!string.IsNullOrEmpty(userId) && c.WaitlistUserIds != null)
+                    @if (openMenu)
+                    {
+                        <div class="menu-dropdown" @onclick:stopPropagation="true">
+                            <button class="menu-item" type="button" @onclick="Reload" disabled="@isLoading">
+                                Opdater
+                            </button>
+
+                            @if (userRole == UserRole.Coach)
                             {
-                                waitIndex = c.WaitlistUserIds.IndexOf(userId);
-                                waitCount = c.WaitlistUserIds.Count;
+                                <button class="menu-item" type="button" @onclick="GoToCreate">
+                                    Opret nyt hold
+                                </button>
                             }
-                        }
+                            else
+                            {
+                                <button class="menu-item" type="button" @onclick="GoToBook">
+                                    Book nyt hold
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
 
-                        @if (waitIndex >= 0)
-                        {
-                            <span class="class-waitlist">På venteliste #@((waitIndex + 1)) af @waitCount</span>
-                        }
-
-                        <button class="class-cancel" @onclick:stopPropagation @onclick="() => CancelClassBooking(c.Id!)">Afbryd</button>
-                    </div>
-                </article>
+            @if (isLoading)
+            {
+                <div class="state-card">
+                    <div class="state-title">Indlæser hold</div>
+                    <div class="state-sub">Et øjeblik</div>
+                </div>
             }
-        </div>
-    }
+            else if (!string.IsNullOrWhiteSpace(loadError))
+            {
+                <div class="state-card error">
+                    <div class="state-title">Noget gik galt</div>
+                    <div class="state-sub">@loadError</div>
+                </div>
+            }
+            else if (VisibleClasses.Count == 0)
+            {
+                <div class="state-card">
+                    <div class="state-title">@EmptyTitle</div>
+                    <div class="state-sub">@EmptySubtitle</div>
+                </div>
+            }
+            else
+            {
+                <div class="toolbar">
+                    <div class="search">
+                        <span class="search-ico">⌕</span>
+                        <input class="search-input"
+                               placeholder="Søg i hold..."
+                               @bind="search"
+                               @bind:event="oninput" />
+                    </div>
+                </div>
 
-    @if (userRole == UserRole.Coach)
-    {
-        <button class="primary-btn classes-cta" @onclick="GoToCreate">
-            Opret nyt hold
-        </button>
-    }
-    else
-    {
-        <button class="primary-btn classes-cta" @onclick="GoToBook">
-            Book nyt hold
-        </button>
-    }
-</section>
+                <div class="date-groups">
+                    @foreach (var g in GroupedClasses)
+                    {
+                        <section class="date-group">
+                            <div class="date-head">
+                                <div class="date-title">@FormatDateHeader(g.Key)</div>
+                                <div class="date-count">@g.Count() hold</div>
+                            </div>
+
+                            <div class="classes-list">
+                                @foreach (var c in g)
+                                {
+                                    <article class="class-card" role="button" tabindex="0" @onclick="() => GoToBooking(c)">
+                                        <div class="class-top">
+                                            <div class="class-left">
+                                                <div class="class-name">@c.Name</div>
+                                                <div class="class-meta">@c.Time</div>
+                                                <div class="class-location">Center: @c.Location</div>
+                                            </div>
+
+                                            <div class="class-right">
+                                                <span class="pill green">@c.Category</span>
+                                                <span class="pill yellow">@c.Intensity</span>
+                                            </div>
+                                        </div>
+
+                                        @if (ShowWaitlistBadge(c))
+                                        {
+                                            <div class="waitlist-badge">
+                                                Du er på venteliste som nummer @(GetWaitIndex(c) + 1) af @GetWaitCount(c)
+                                            </div>
+                                        }
+
+                                        <div class="class-bottom">
+                                            <div class="class-bottom-left">
+                                                <span class="mini-pill">@CapacityText(c)</span>
+                                            </div>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+
+            <div class="cta-row">
+                @if (userRole == UserRole.Coach)
+                {
+                    <button class="primary-btn cta-btn" type="button" @onclick="GoToCreate">
+                        Opret nyt hold
+                    </button>
+                }
+                else
+                {
+                    <button class="primary-btn cta-btn" type="button" @onclick="GoToBook">
+                        Book nyt hold
+                    </button>
+                }
+            </div>
+
+        </section>
+    </main>
+</div>
 
 @code {
-
     private string? userId;
     private UserRole? userRole;
+
+    private bool isLoading;
+    private string loadError = string.Empty;
+
     private List<FitnessClass> MyClassesList = new();
-    private bool isCancelling = false;
+
+    private string search = string.Empty;
+
+    private bool openMenu;
+
+    private readonly CultureInfo da = CultureInfo.GetCultureInfo("da-DK");
+
+    private string PageTitle => "Mine hold";
+    private string PageSubtitle => userRole == UserRole.Coach ? "Se dine hold som coach." : "Se dine kommende holdbookinger.";
+
+    private string EmptyTitle => userRole == UserRole.Coach ? "Ingen hold endnu" : "Ingen bookinger endnu";
+    private string EmptySubtitle => userRole == UserRole.Coach
+        ? "Du har ikke oprettet nogle hold endnu."
+        : "Du har ingen bookede hold endnu.";
+
+    private List<FitnessClass> VisibleClasses =>
+        MyClassesList
+            .Where(c => MatchesSearch(c, search))
+            .OrderBy(c => c.Date)
+            .ThenBy(c => c.Time)
+            .ToList();
+
+    private IEnumerable<IGrouping<DateOnly, FitnessClass>> GroupedClasses =>
+        VisibleClasses.GroupBy(c => c.Date);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // If token was buffered during prerender, attempt to persist it now
             await TokenService.FlushPendingAsync();
         }
     }
@@ -96,49 +203,89 @@
     protected override async Task OnInitializedAsync()
     {
         userId = await TokenService.GetUserIdAsync();
-        if (string.IsNullOrEmpty(userId))
+        if (string.IsNullOrWhiteSpace(userId))
         {
-            // Not logged in, redirect to login
             Nav.NavigateTo("/login");
             return;
         }
 
         userRole = await TokenService.GetUserRoleAsync();
-        HttpResponseMessage response;
-        if (userRole == UserRole.Coach)
-        {
-            response = await ClassService.GetClassesByCoachIdAsync(userId);
-        }
-        else
-        {
-            // Default/member behavior: load classes booked by the user
-            response = await ClassService.GetClassesByUserIdAsync(userId);
-        }
+        await LoadClassesAsync();
+    }
 
-        if (response.IsSuccessStatusCode)
+    private async Task LoadClassesAsync()
+    {
+        isLoading = true;
+        loadError = string.Empty;
+
+        try
         {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                loadError = "Kunne ikke finde bruger id. Log ind igen.";
+                return;
+            }
+
+            HttpResponseMessage response =
+                userRole == UserRole.Coach
+                    ? await ClassService.GetClassesByCoachIdAsync(userId)
+                    : await ClassService.GetClassesByUserIdAsync(userId);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                loadError = $"Kunne ikke hente hold. Status: {(int)response.StatusCode}";
+                return;
+            }
+
             MyClassesList = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
-            MyClassesList = MyClassesList.OrderBy(c => c.Date).ThenBy(c => c.Time).ToList();
         }
+        catch (Exception ex)
+        {
+            loadError = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task Reload()
+    {
+        openMenu = false;
+        await LoadClassesAsync();
+    }
+
+    private void ToggleMenu()
+    {
+        openMenu = !openMenu;
+    }
+
+    private void CloseAllMenus()
+    {
+        openMenu = false;
     }
 
     private void GoToCreate()
     {
-        // Navigate to the class creation page (page not implemented yet)
+        openMenu = false;
         Nav.NavigateTo("/classes/create");
     }
 
     private void GoToBook()
     {
-        // Navigate to the general class booking page
+        openMenu = false;
         Nav.NavigateTo("/classes/book");
+    }
+
+    private void GoToDashboard()
+    {
+        Nav.NavigateTo("/dashboard");
     }
 
     private void GoToBooking(FitnessClass c)
     {
-        if (c == null || string.IsNullOrEmpty(c.Id)) return;
+        if (c == null || string.IsNullOrWhiteSpace(c.Id)) return;
 
-        // Coaches should be taken to their coach view for the class
         if (userRole == UserRole.Coach)
         {
             Nav.NavigateTo($"/classes/coach/{c.Id}");
@@ -155,45 +302,46 @@
         }
     }
 
-    private void GoToDashboard()
+    private static bool MatchesSearch(FitnessClass c, string needle)
     {
-        Nav.NavigateTo("/dashboard");
+        if (string.IsNullOrWhiteSpace(needle)) return true;
+
+        var n = needle.Trim().ToLowerInvariant();
+        var hay =
+            $"{c.Name} {c.Location} {c.Category} {c.Intensity} {c.Date:dd/MM} {c.Time}"
+                .ToLowerInvariant();
+
+        return hay.Contains(n);
     }
 
-    private async Task CancelClassBooking(string classId)
+    private bool ShowWaitlistBadge(FitnessClass c)
     {
-        if (string.IsNullOrEmpty(userId)) return;
-        isCancelling = true;
-        var response = await ClassService.CancelClassBookingForUserAsync(classId, userId);
-        if (response.IsSuccessStatusCode)
-        {
-            // Refresh the list using the same role-based endpoint as on init
-            HttpResponseMessage refreshed;
-            var roleToUse = userRole ?? await TokenService.GetUserRoleAsync();
-            if (roleToUse == UserRole.Coach)
-            {
-                refreshed = await ClassService.GetClassesByCoachIdAsync(userId);
-            }
-            else
-            {
-                refreshed = await ClassService.GetClassesByUserIdAsync(userId);
-            }
-            if (refreshed.IsSuccessStatusCode)
-            {
-                MyClassesList = await refreshed.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
-                MyClassesList = MyClassesList.OrderBy(c => c.Date).ThenBy(c => c.Time).ToList();
-            }
-        }
-        isCancelling = false;
-        StateHasChanged();
+        if (string.IsNullOrWhiteSpace(userId)) return false;
+        if (c.WaitlistUserIds == null) return false;
+        return c.WaitlistUserIds.Contains(userId);
     }
 
-    public class MyClassModel
+    private int GetWaitIndex(FitnessClass c)
     {
-        public string Name { get; set; } = "";
-        public DateOnly Date { get; set; }
-        public string Time { get; set; } = "";
-        public string Location { get; set; } = "";
-        public string Status { get; set; } = "";
+        if (string.IsNullOrWhiteSpace(userId)) return -1;
+        if (c.WaitlistUserIds == null) return -1;
+        return c.WaitlistUserIds.IndexOf(userId);
+    }
+
+    private int GetWaitCount(FitnessClass c) => c.WaitlistUserIds?.Count ?? 0;
+
+    private static string CapacityText(FitnessClass c)
+    {
+        var booked = c.BookingList?.Count ?? 0;
+        var max = c.MaxCapacity;
+        if (max <= 0) return "Kapacitet n/a";
+        return $"{booked}/{max} pladser";
+    }
+
+    private string FormatDateHeader(DateOnly d)
+    {
+        var dt = d.ToDateTime(TimeOnly.MinValue);
+        var s = dt.ToString("dddd dd.MM", da);
+        return char.ToUpperInvariant(s[0]) + s.Substring(1);
     }
 }

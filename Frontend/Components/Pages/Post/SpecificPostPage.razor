@@ -7,12 +7,13 @@
 @using System.Net.Http.Json
 @inject TokenService TokenService
 @inject SocialService SocialService
+@inject NavigationManager Nav
 
-<div class="postpage">
+<div class="postpage" @onclick="CloseAllMenus">
 
     <header class="topbar">
         <div class="topbar-left">
-            <button class="back-btn" type="button" @onclick="GoBack" aria-label="Tilbage">
+            <button class="back-btn" type="button" @onclick:stopPropagation="true" @onclick="GoBack" aria-label="Tilbage">
                 <span class="back-ico">←</span>
             </button>
 
@@ -22,20 +23,20 @@
             </div>
         </div>
 
-        
         @if (post != null && IsPostOwner(post))
         {
             <div class="topbar-right" style="position:relative;">
                 <button class="icon-btn"
                         type="button"
                         aria-label="Menu"
+                        @onclick:stopPropagation="true"
                         @onclick="TogglePostMenu">
                     ⋯
                 </button>
 
                 @if (openPostMenu)
                 {
-                    <div class="comment-menu-dropdown" style="right:0;">
+                    <div class="comment-menu-dropdown" style="right:0;" @onclick:stopPropagation="true">
                         <button class="menu-item"
                                 type="button"
                                 @onclick="StartEditPost">
@@ -50,7 +51,6 @@
                 }
             </div>
         }
-
     </header>
 
     <main class="postpage-body">
@@ -121,7 +121,7 @@
 
                         @if (post.Type == PostType.Workout)
                         {
-                            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                            <div class="stats-grid">
                                 <div class="stat-card">
                                     <span class="stat-icon">💪</span>
                                     <span class="stat-value">@GetExercises(post)</span>
@@ -166,8 +166,8 @@
                     @if (isEditingPost)
                     {
                         <textarea class="comment-edit-input"
-                  @bind="editPostText"
-                  rows="5"></textarea>
+                                  @bind="editPostText"
+                                  rows="5"></textarea>
 
                         <div class="comment-edit-actions">
                             <button class="edit-btn edit-btn-cancel"
@@ -195,7 +195,7 @@
 
             <section class="comments-edge">
                 <div class="comments-head">
-                    <h2>Comments</h2>
+                    <h2>Kommentarer</h2>
                     <div class="comments-meta">
                         <span class="comments-count">@((post.Comments?.Count ?? 0))</span>
                     </div>
@@ -204,14 +204,14 @@
                 @if (post.Comments is null || post.Comments.Count == 0)
                 {
                     <div class="comments-empty">
-                        <div class="state-title">Ingen comments endnu</div>
+                        <div class="state-title">Ingen kommentarer endnu</div>
                         <div class="state-sub">Vær den første til at skrive noget</div>
                     </div>
                 }
                 else
                 {
                     <div class="comment-list">
-                        @foreach (var c in post.Comments)
+                        @foreach (var c in SortedComments)
                         {
                             <article class="comment-card">
                                 <div class="comment-avatar">@GetInitial(c.AuthorName)</div>
@@ -226,13 +226,14 @@
                                             <div style="position:relative;">
                                                 <button class="comment-menu-btn"
                                                         type="button"
+                                                        @onclick:stopPropagation="true"
                                                         @onclick="() => ToggleCommentMenu(c.Id!)">
                                                     ⋮
                                                 </button>
 
                                                 @if (!string.IsNullOrEmpty(openMenuCommentId) && openMenuCommentId == c.Id)
                                                 {
-                                                    <div class="comment-menu-dropdown">
+                                                    <div class="comment-menu-dropdown" @onclick:stopPropagation="true">
                                                         <button class="menu-item"
                                                                 type="button"
                                                                 @onclick="() => StartEditComment(c)">
@@ -287,11 +288,11 @@
 
     @if (post != null)
     {
-        <div class="comment-composer">
+        <div class="comment-composer" @onclick:stopPropagation="true">
             <div class="composer-inner">
                 <div class="composer-avatar">@GetInitial(Username)</div>
                 <input class="composer-input"
-                       placeholder="Skriv en comment..."
+                       placeholder="Skriv en kommentar..."
                        @bind="newCommentText" />
                 <button class="composer-send"
                         type="button"
@@ -303,7 +304,7 @@
         </div>
     }
 
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" @onclick:stopPropagation="true">
         <button class="bn-item" @onclick="GoToDashboard" type="button">⌂ Hjem</button>
         <button class="bn-item" @onclick="GoToTrainingPrograms" type="button">💪 Træning</button>
         <button class="bn-item" @onclick="GoToClasses" type="button">🗓️ Hold</button>
@@ -334,7 +335,7 @@
             </div>
         </div>
     }
-    
+
     @if (showDeletePostConfirm)
     {
         <div class="delete-confirm-overlay" @onclick="CancelDeletePost">
@@ -363,7 +364,6 @@
 
 @code {
     [Parameter] public string? PostId { get; set; }
-    [Inject] private NavigationManager Nav { get; set; } = default!;
     private ElementReference titleInputRef;
 
     private string? LoggedInUserId;
@@ -372,27 +372,30 @@
     private bool isLoading;
     private string error = string.Empty;
     private Post? post;
-    
-    private bool openPostMenu = false;
-    private bool isEditingPost = false;
+
+    private bool openPostMenu;
+    private bool isEditingPost;
     private string editPostTitle = string.Empty;
     private string editPostText = string.Empty;
-
 
     private string newCommentText = string.Empty;
 
     private string? openMenuCommentId;
     private string? editingCommentId;
     private string editCommentText = string.Empty;
-    
 
     private bool showDeleteConfirm;
     private bool showDeletePostConfirm;
-    
     private string? deleteCommentId;
-    
+
     private bool IsSendDisabled =>
         string.IsNullOrWhiteSpace(newCommentText) || newCommentText.Trim().Length < 2;
+
+    private List<Comment> SortedComments =>
+        post?.Comments?
+            .OrderByDescending(x => x.CommentDate)
+            .ToList()
+        ?? new List<Comment>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -433,16 +436,22 @@
 
     private bool IsPostOwner(Post p) =>
         string.Equals(p.UserId, LoggedInUserId, StringComparison.OrdinalIgnoreCase);
-    
+
     private bool IsCommentOwner(Comment c) =>
         string.Equals(c.AuthorId, LoggedInUserId, StringComparison.OrdinalIgnoreCase);
-    
-    
+
+    private void CloseAllMenus()
+    {
+        openPostMenu = false;
+        openMenuCommentId = null;
+    }
+
     private void TogglePostMenu()
     {
         openPostMenu = !openPostMenu;
+        openMenuCommentId = null;
     }
-    
+
     private async Task StartEditPost()
     {
         if (post == null) return;
@@ -452,17 +461,17 @@
         editPostText = post.PostContent ?? string.Empty;
         openPostMenu = false;
 
-        await Task.Yield(); // giver UI tid til at rendere input
+        await Task.Yield();
         await titleInputRef.FocusAsync();
     }
-    
+
     private void CancelEditPost()
     {
         isEditingPost = false;
         editPostTitle = string.Empty;
         editPostText = string.Empty;
     }
-    
+
     private async Task SaveEditPost()
     {
         if (post == null) return;
@@ -478,11 +487,11 @@
         var payload = new Post
         {
             Id = post.Id,
-            UserId = LoggedInUserId,                 
+            UserId = LoggedInUserId,
             PostTitle = editPostTitle.Trim(),
             PostContent = editPostText.Trim(),
             FitnessClassId = post.FitnessClassId,
-            WorkoutId = post.WorkoutId               
+            WorkoutId = post.WorkoutId
         };
 
         try
@@ -510,19 +519,17 @@
         }
     }
 
-    
-    
     private void ConfirmDeletePost()
     {
         showDeletePostConfirm = true;
-        openPostMenu  = false;
+        openPostMenu = false;
     }
-    
+
     private void CancelDeletePost()
     {
         showDeletePostConfirm = false;
     }
-    
+
     private async Task ExecuteDeletePost()
     {
         if (string.IsNullOrWhiteSpace(PostId)) return;
@@ -540,14 +547,18 @@
         error = $"Kunne ikke slette post: {(int)res.StatusCode} {res.ReasonPhrase}";
     }
 
-    private void ToggleCommentMenu(string id) =>
+    private void ToggleCommentMenu(string id)
+    {
         openMenuCommentId = openMenuCommentId == id ? null : id;
+        openPostMenu = false;
+    }
 
     private void StartEditComment(Comment c)
     {
         editingCommentId = c.Id;
         editCommentText = c.CommentText ?? "";
         openMenuCommentId = null;
+        openPostMenu = false;
     }
 
     private void CancelEdit()
@@ -559,6 +570,12 @@
     private async Task SaveEditComment()
     {
         if (PostId is null || editingCommentId is null) return;
+
+        if (string.IsNullOrWhiteSpace(LoggedInUserId) || string.IsNullOrWhiteSpace(Username))
+        {
+            error = "Du er ikke logget ind.";
+            return;
+        }
 
         var payload = new
         {
@@ -580,6 +597,7 @@
         deleteCommentId = id;
         showDeleteConfirm = true;
         openMenuCommentId = null;
+        openPostMenu = false;
     }
 
     private void CancelDelete()
@@ -604,6 +622,12 @@
     {
         if (PostId is null || IsSendDisabled) return;
 
+        if (string.IsNullOrWhiteSpace(LoggedInUserId) || string.IsNullOrWhiteSpace(Username))
+        {
+            error = "Du er ikke logget ind.";
+            return;
+        }
+
         var payload = new
         {
             AuthorId = LoggedInUserId,
@@ -625,7 +649,7 @@
     private void GoToFeed() => Nav.NavigateTo("/feedpage");
 
     private static string GetInitial(string? t) =>
-        string.IsNullOrWhiteSpace(t) ? "?" : t.Trim()[0].ToString().ToUpper();
+        string.IsNullOrWhiteSpace(t) ? "?" : t.Trim()[0].ToString().ToUpperInvariant();
 
     private static string GetDisplayName(Post p) =>
         !string.IsNullOrWhiteSpace(p.UserName) ? p.UserName : "Bruger";
@@ -637,8 +661,10 @@
         t == PostType.Workout ? "💪 Workout" : "📝 Generic";
 
     private static int GetExercises(Post p) => p.WorkoutStats?.ExerciseCount ?? 0;
+
     private static int GetDurationMinutes(Post p) =>
         (int)Math.Round((p.WorkoutStats?.DurationSeconds ?? 0) / 60.0);
+
     private static int GetCalories(Post p) => p.WorkoutStats?.Calories ?? 0;
 
     private static int GetIntensityPercent(Post p)
