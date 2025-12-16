@@ -242,7 +242,7 @@
         }
         jwt = await TokenService.GetTokenAsync() ?? string.Empty;
 
-        var friendsResp = await SocialService.GetAllFriendsAsync(userId);
+        var friendsResp = await SocialService.GetAllFriendsAsync(userId, jwt!);
         if (friendsResp.IsSuccessStatusCode)
         {
             FriendIds = await friendsResp.Content.ReadFromJsonAsync<List<Friendship>>() ?? new();
@@ -371,7 +371,7 @@
         {
             BookingMessage = "Din booking er annulleret.";
 
-            var fresh = await ClassService.GetClassByIdAsync(Id, jwt!);
+            var fresh = await ClassService.GetClassByIdAsync(Id!, jwt!);
             if (fresh.IsSuccessStatusCode)
             {
                 SelectedClass = await fresh.Content.ReadFromJsonAsync<FitnessClass>();

@@ -162,6 +162,7 @@
 
     private List<Post> feedItems = new();
     private bool _loaded = false;
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
@@ -179,6 +180,7 @@
         // NOW it's safe to access TokenService
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
+        jwt = await TokenService.GetTokenAsync();
 
         await LoadFeedAsync();
 
@@ -209,8 +211,8 @@
 
             var res =
                 activeFeedTab == "ready"
-                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId)
-                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId);
+                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId,jwt ?? "")
+                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId,jwt ?? "");
 
             if (!res.IsSuccessStatusCode)
             {
@@ -257,7 +259,7 @@
         return dt.ToString("dd-MM-yyyy HH:mm");
     }
 
-    void GoToTrainingPrograms() => Nav.NavigateTo("/training");
+    void GoToTrainingPrograms() => Nav.NavigateTo("/workouts");
     void GoToClasses() => Nav.NavigateTo("/classes");
     void GoToFeed() => Nav.NavigateTo("/feedpage");
     void GoToDashboard() => Nav.NavigateTo("/dashboard");

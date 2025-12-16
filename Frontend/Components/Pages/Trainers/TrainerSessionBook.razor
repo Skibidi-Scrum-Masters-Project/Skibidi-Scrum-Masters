@@ -108,6 +108,7 @@
     private CoachingSession.SessionDto? _session;
     private bool _isLoading = true;
     private string _confirmation = "";
+    private string ? Jwt { get; set; }
 
     private CoachingSession.BookingForm _booking = new()
     {
@@ -119,7 +120,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await CoachingService.GetSessionByIdAsync(SessionId);
+        Jwt = await TokenService.GetTokenAsync();
+
+        var response = await CoachingService.GetSessionByIdAsync(SessionId, Jwt ?? "");
         response.EnsureSuccessStatusCode();
 
         _session = await response.Content.ReadFromJsonAsync<CoachingSession.SessionDto>();
@@ -137,7 +140,7 @@
 
         _session.BookingForm = _booking;
 
-        var response = await CoachingService.BookSessionAsync(_session);
+        var response = await CoachingService.BookSessionAsync(_session, Jwt ?? "");
         response.EnsureSuccessStatusCode();
 
         _confirmation = "Booking bekræftet 🎉";

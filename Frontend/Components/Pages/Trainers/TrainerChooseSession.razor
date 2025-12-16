@@ -67,13 +67,14 @@
 
     private List<CoachingSession.SessionDto> _sessions = new();
     private bool _isLoading = true;
+    private string? Jwt { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
         _isLoading = true;
 
         var response =
-            await CoachingService.GetAvailableSessionsForCoachIdAsync(CoachId);
+            await CoachingService.GetAvailableSessionsForCoachIdAsync(CoachId, Jwt ?? "");
 
         response.EnsureSuccessStatusCode();
 

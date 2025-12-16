@@ -450,6 +450,7 @@
     [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
+    private string? jwt;
     public List<ExerciseDTO> PreviousExercises { get; set; } = new List<ExerciseDTO>();
     private List<ExerciseDTO> Exercises { get; set; } = new List<ExerciseDTO>();
     private SoloTrainingSessionDTO? Session { get; set; } = new SoloTrainingSessionDTO();
@@ -463,8 +464,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         string? userId = await TokenService.GetUserIdAsync();
-        HttpResponseMessage? response = await SoloTrainingService.GetWorkoutProgramByIdAsync(Id);
+        HttpResponseMessage? response = await SoloTrainingService.GetWorkoutProgramByIdAsync(Id, jwt ?? "");
         if (response.IsSuccessStatusCode)
         {
             WorkoutProgramDTO? program = await response.Content.ReadFromJsonAsync<WorkoutProgramDTO>();
@@ -496,7 +498,7 @@ new Set { Repetitions = 0, Weight = 0 }
         }
 
         HttpResponseMessage? response2 = await SoloTrainingService.GetMostRecentSoloTrainingForUserAndProgramAsync(userId ?? "",
-        Id);
+        Id, jwt ?? "");
         if (response2.IsSuccessStatusCode)
         {
             SoloTrainingSessionDTO? session = await response2.Content.ReadFromJsonAsync<SoloTrainingSessionDTO>();
@@ -742,7 +744,7 @@ new Set { Repetitions = 0, Weight = 0 }
         Session.Exercises = FinishedExercises;
 
         HttpResponseMessage? response = await SoloTrainingService.CreateSoloTrainingSessionAsync(Session.UserId,
-        Session.WorkoutProgramId!, Session);
+        Session.WorkoutProgramId!, Session, jwt ?? "");
         if (response.IsSuccessStatusCode)
         {
             // show short toast then redirect to dashboard

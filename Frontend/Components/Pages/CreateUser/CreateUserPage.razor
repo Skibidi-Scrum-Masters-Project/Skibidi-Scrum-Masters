@@ -201,6 +201,8 @@
             isAdmin = false;
         }
 
+        // do not need jwt here for creating users
+
         if (!isAdmin)
             createModel.Role = 0;
     }

@@ -233,14 +233,14 @@
             Nav.NavigateTo("/login");
             return;
         }
-
+        jwt = await TokenService.GetTokenAsync();
         await LoadFriendsAsync();
         await LoadClassAsync();
     }
 
     private async Task LoadFriendsAsync()
     {
-        var response = await SocialService.GetAllFriendsAsync(userId!);
+        var response = await SocialService.GetAllFriendsAsync(userId!, jwt!);
         if (response.IsSuccessStatusCode)
         {
             var friendships = await response.Content.ReadFromJsonAsync<List<Friendship>>() ?? new();

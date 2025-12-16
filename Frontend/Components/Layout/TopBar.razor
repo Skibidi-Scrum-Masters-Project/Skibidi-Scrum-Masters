@@ -43,6 +43,7 @@
     private string UserInitial => string.IsNullOrWhiteSpace(Username) ? "?" : Username.Substring(0, 1).ToUpperInvariant();
     private bool HasNotifications { get; set; }
     private bool _loaded = false;
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,7 +61,7 @@
         // NOW it's safe to access TokenService and make API calls
         Username = await TokenService.GetUsernameAsync();
         UserId = await TokenService.GetUserIdAsync();
-        
+        jwt = await TokenService.GetTokenAsync();
         await CheckForNotifications();
         
         StateHasChanged();
@@ -77,7 +78,7 @@
         
         try
         {
-            var res = await SocialService.GetIncomingFriendRequestsAsync(UserId);
+            var res = await SocialService.GetIncomingFriendRequestsAsync(UserId,jwt ?? "");
             
             if (!res.IsSuccessStatusCode)
             {

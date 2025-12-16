@@ -88,7 +88,7 @@
     private bool _isLoading = true;
     private bool _errorOccurred = false; 
     private string? LoggedInUserId { get; set; }
-
+    private string? Jwt { get; set; }
     
     public class CoachModel
     {
@@ -111,6 +111,7 @@
     
     protected override async Task OnInitializedAsync()
     {
+        Jwt = await TokenService.GetTokenAsync();
         _isLoading = true;
         _errorOccurred = false;
 
@@ -118,7 +119,7 @@
         {
             LoggedInUserId = await TokenService.GetUserIdAsync();
             
-            var sessionResponse = await CoachingService.GetAvailableSessionsAsync(); 
+            var sessionResponse = await CoachingService.GetAvailableSessionsAsync(Jwt ?? ""); 
             sessionResponse.EnsureSuccessStatusCode();
 
             var sessions = await sessionResponse.Content.ReadFromJsonAsync<IEnumerable<CoachingSession.SessionDto>>()

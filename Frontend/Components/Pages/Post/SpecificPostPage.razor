@@ -390,6 +390,7 @@
     private bool showDeletePostConfirm;
     
     private string? deleteCommentId;
+    private string? jwt; 
     
     private bool IsSendDisabled =>
         string.IsNullOrWhiteSpace(newCommentText) || newCommentText.Trim().Length < 2;
@@ -398,6 +399,7 @@
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
+        jwt = await TokenService.GetTokenAsync();
         await LoadPostAsync();
     }
 
@@ -412,7 +414,7 @@
                 return;
             }
 
-            var res = await SocialService.SeeSpecficPostByPostId(PostId);
+            var res = await SocialService.SeeSpecificPostByPostIdAsync(PostId, jwt ?? "");
             if (!res.IsSuccessStatusCode)
             {
                 error = "Kunne ikke hente post.";
@@ -487,7 +489,7 @@
 
         try
         {
-            var res = await SocialService.EditAPostAsync(payload);
+            var res = await SocialService.EditAPostAsync(payload, jwt ?? "");
 
             if (!res.IsSuccessStatusCode)
             {
@@ -527,7 +529,7 @@
     {
         if (string.IsNullOrWhiteSpace(PostId)) return;
 
-        var res = await SocialService.RemoveAPostAsync(PostId);
+        var res = await SocialService.RemoveAPostAsync(PostId, jwt ?? "");
 
         if (res.IsSuccessStatusCode)
         {
@@ -568,7 +570,7 @@
             CommentText = editCommentText.Trim()
         };
 
-        var res = await SocialService.EditCommentAsync(PostId, payload);
+        var res = await SocialService.EditCommentAsync(PostId, payload, jwt ?? "");
         if (res.IsSuccessStatusCode)
             post = await res.Content.ReadFromJsonAsync<Post>();
 
@@ -592,7 +594,7 @@
     {
         if (PostId is null || deleteCommentId is null) return;
 
-        var res = await SocialService.RemoveACommentFromPost(PostId, deleteCommentId);
+        var res = await SocialService.RemoveACommentFromPostAsync(PostId, deleteCommentId, jwt ?? "");
         if (res.IsSuccessStatusCode)
             post = await res.Content.ReadFromJsonAsync<Post>();
 
@@ -611,7 +613,7 @@
             CommentText = newCommentText.Trim()
         };
 
-        var res = await SocialService.AddACommentToPostAsync(PostId, payload);
+        var res = await SocialService.AddACommentToPostAsync(PostId, payload, jwt ?? "");
         if (res.IsSuccessStatusCode)
             post = await res.Content.ReadFromJsonAsync<Post>();
 

@@ -25,8 +25,7 @@ builder.Services.AddScoped<ProtectedLocalStorage>();
 
 // Application Services (Scoped per circuit)
 builder.Services.AddScoped<TokenService>();
-// HTTP message handlers should be registered as transient
-builder.Services.AddTransient<AuthHeaderHandler>();
+
 // Authentication/Authorization for Blazor components
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, TokenAuthenticationStateProvider>();
@@ -52,43 +51,43 @@ builder.Services.AddHttpClient<UserService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddHttpMessageHandler<AuthHeaderHandler>();
+});
 
 builder.Services.AddHttpClient<ClassService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddHttpMessageHandler<AuthHeaderHandler>();
+});
 
 builder.Services.AddHttpClient<SocialService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddHttpMessageHandler<AuthHeaderHandler>();
+});
 
 builder.Services.AddHttpClient<AccessControlService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddHttpMessageHandler<AuthHeaderHandler>();
+});
 
 builder.Services.AddHttpClient<AnalyticsService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddHttpMessageHandler<AuthHeaderHandler>();
+});
 
 builder.Services.AddHttpClient<CoachingService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddHttpMessageHandler<AuthHeaderHandler>();
+});
 
 builder.Services.AddHttpClient<SoloTrainingService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-}).AddHttpMessageHandler<AuthHeaderHandler>();
+});
 
 // Data Protection Configuration
 ConfigureDataProtection(builder.Services, builder.Configuration);

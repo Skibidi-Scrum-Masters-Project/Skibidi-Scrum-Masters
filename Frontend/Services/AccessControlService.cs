@@ -1,3 +1,6 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+
 namespace FitLifeFitness.Services;
 
 public class AccessControlService
@@ -10,28 +13,38 @@ public class AccessControlService
         _httpClient.BaseAddress = new Uri("http://localhost:4000");
     }
 
-    public async Task<HttpResponseMessage> OpenDoorAsync(string userId)
+    private void AddJwtHeader(string jwt)
     {
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+    }
+
+    public async Task<HttpResponseMessage> OpenDoorAsync(string userId, string jwt)
+    {
+        AddJwtHeader(jwt);
         return await _httpClient.PostAsync($"/api/accesscontrol/door/{userId}", null);
     }
 
-    public async Task<HttpResponseMessage> CloseDoorAsync(string userId)
+    public async Task<HttpResponseMessage> CloseDoorAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsync($"/api/accesscontrol/door/{userId}/close", null);
     }
 
-    public async Task<HttpResponseMessage> GetCrowdAsync()
+    public async Task<HttpResponseMessage> GetCrowdAsync(string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync("/api/accesscontrol/crowd");
     }
 
-    public async Task<HttpResponseMessage> GetAvailableLockersAsync(string lockerRoomId)
+    public async Task<HttpResponseMessage> GetAvailableLockersAsync(string lockerRoomId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/accesscontrol/{lockerRoomId}/available");
     }
 
-    public async Task<HttpResponseMessage> LockLockerAsync(string lockerRoomId, string lockerId, string userId)
+    public async Task<HttpResponseMessage> LockLockerAsync(string lockerRoomId, string lockerId, string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsync($"/api/accesscontrol/{lockerRoomId}/{lockerId}/{userId}", null);
     }
 }

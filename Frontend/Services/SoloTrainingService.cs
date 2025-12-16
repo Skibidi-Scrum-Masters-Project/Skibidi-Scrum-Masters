@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+
 namespace FitLifeFitness.Services;
 
 public class SoloTrainingService
@@ -8,39 +11,57 @@ public class SoloTrainingService
     {
         _httpClient = httpClient;
     }
-    public async Task<HttpResponseMessage> GetWorkoutPrograms()
+
+    private void AddJwtHeader(string jwt)
     {
-        return await _httpClient.GetAsync($"/api/solotraining/programs");
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
     }
-    public async Task<HttpResponseMessage> GetWorkoutProgramByIdAsync(string programId)
+
+    public async Task<HttpResponseMessage> GetWorkoutProgramsAsync(string jwt)
     {
+        AddJwtHeader(jwt);
+        return await _httpClient.GetAsync("/api/solotraining/programs");
+    }
+
+    public async Task<HttpResponseMessage> GetWorkoutProgramByIdAsync(string programId, string jwt)
+    {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/solotraining/programs/{programId}");
     }
 
-    public async Task<HttpResponseMessage> GetWorkoutsAsync(string userId)
+    public async Task<HttpResponseMessage> GetWorkoutsAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/solotraining/workouts/{userId}");
     }
 
-    public async Task<HttpResponseMessage> CreateWorkoutAsync(object workoutData)
+    public async Task<HttpResponseMessage> CreateWorkoutAsync(object workoutData, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PostAsJsonAsync("/api/solotraining/workouts", workoutData);
     }
 
-    public async Task<HttpResponseMessage> GetExercisesAsync()
+    public async Task<HttpResponseMessage> GetExercisesAsync(string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync("/api/solotraining/exercises");
     }
-    public async Task<HttpResponseMessage> GetMostRecentSoloTrainingForUserAndProgramAsync(string userId, string programId)
+
+    public async Task<HttpResponseMessage> GetMostRecentSoloTrainingForUserAndProgramAsync(string userId, string programId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/solotraining/recent/{userId}/{programId}");
     }
-    public async Task<HttpResponseMessage> CreateWorkoutProgramAsync(object programData)
+
+    public async Task<HttpResponseMessage> CreateWorkoutProgramAsync(object programData, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PostAsJsonAsync("/api/solotraining/create/program", programData);
     }
-    public async Task<HttpResponseMessage> CreateSoloTrainingSessionAsync(string userId, string programId, object soloTrainingData)
+
+    public async Task<HttpResponseMessage> CreateSoloTrainingSessionAsync(string userId, string programId, object soloTrainingData, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PostAsJsonAsync($"/api/solotraining/{userId}/{programId}", soloTrainingData);
     }
 }

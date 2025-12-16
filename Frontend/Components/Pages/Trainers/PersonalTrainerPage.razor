@@ -209,9 +209,11 @@
     private bool _showCreateModal = false;
     private DateTime _newStartTime;
     private DateTime _newEndTime;
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         await LoadSessions();
     }
     
@@ -228,7 +230,7 @@
         if (string.IsNullOrEmpty(coachId))
             return;
 
-        var response = await CoachingService.GetAllSessionsByCoachIdAsync(coachId);
+        var response = await CoachingService.GetAllSessionsByCoachIdAsync(coachId, jwt ?? "");
         response.EnsureSuccessStatusCode();
 
         var sessions =
@@ -291,7 +293,7 @@
             endTime = _newEndTime.ToUniversalTime()
         };
 
-        var response = await CoachingService.CreateSessionAsCoachAsync(payload);
+        var response = await CoachingService.CreateSessionAsCoachAsync(payload, jwt ?? "");
         response.EnsureSuccessStatusCode();
 
         _showCreateModal = false;

@@ -49,6 +49,8 @@
 @code {
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
+    [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
+    private string? jwt;
 
     private string Name { get; set; } = string.Empty;
     private string Description { get; set; } = string.Empty;
@@ -72,7 +74,7 @@
             ExerciseTypes = SelectedExerciseTypes
         };
 
-        var response = await SoloTrainingService.CreateWorkoutProgramAsync(program);
+        var response = await SoloTrainingService.CreateWorkoutProgramAsync(program, jwt ?? "");
         if (response.IsSuccessStatusCode)
         {
             Nav.NavigateTo("/workouts");
@@ -83,8 +85,9 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         AllExerciseTypes = Enum.GetValues(typeof(ExerciseType)).Cast<ExerciseType>().ToList();
     }
 

@@ -135,6 +135,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         var userId = await TokenService.GetUserIdAsync();
         if (!string.IsNullOrEmpty(userId))
         {
