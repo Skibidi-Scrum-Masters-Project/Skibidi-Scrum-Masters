@@ -64,7 +64,6 @@ public class SocialControllerTests
         );
 
         var result = await _controller.ClassWorkoutCompleted(dto);
-
         var bad = result as BadRequestObjectResult;
         Assert.IsNotNull(bad);
         Assert.AreEqual(StatusCodes.Status400BadRequest, bad.StatusCode);

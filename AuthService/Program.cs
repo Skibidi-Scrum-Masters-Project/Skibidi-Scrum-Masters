@@ -89,6 +89,7 @@ builder.Services.Configure<JwtSettings>(options =>
     options.Issuer = "FitnessApp";
     options.Audience = "FitnessApp-Users";
     options.ExpirationMinutes = 90;
+    options.ExpirationRefresh = 36000;
 });
 
 // Add JWT Authentication
