@@ -3,22 +3,26 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using System.Threading.Tasks;
 using SoloTrainingService.Models;
+using FitnessApp.SoloTrainingService.Models;
 
 
 public class SoloTrainingRepository : ISoloTrainingRepository
 {
     private readonly IMongoCollection<SoloTrainingSession> _SolotrainingCollection;
+    private readonly IMongoCollection<WorkoutProgram> _workoutProgramCollection;
     private readonly HttpClient _httpClient;
 
     public SoloTrainingRepository(IMongoDatabase database, HttpClient httpClient)
     {
         _SolotrainingCollection = database.GetCollection<SoloTrainingSession>("SoloTrainingSessions");
         _httpClient = httpClient;
+        _workoutProgramCollection = database.GetCollection<WorkoutProgram>("WorkoutPrograms");
     }
 
-    public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining)
+    public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining, string programId)
     {
         soloTraining.UserId = userId;
+        soloTraining.WorkoutProgramId = programId;
 
         await _SolotrainingCollection.InsertOneAsync(soloTraining);
 
@@ -43,7 +47,7 @@ public class SoloTrainingRepository : ISoloTrainingRepository
                 UserId = userId,
                 SoloTrainingSessionId = soloTraining.Id!,
                 Date = soloTraining.Date,
-                TrainingType = soloTraining.TrainingType.ToString(),
+                WorkoutProgramName = soloTraining.WorkoutProgramName,
                 DurationMinutes = soloTraining.DurationMinutes,
                 ExerciseCount = soloTraining.Exercises?.Count ?? 0
             };
@@ -63,6 +67,15 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         return soloTraining;
     }
 
+    public async Task<WorkoutProgram> CreateWorkoutProgram(WorkoutProgram workoutProgram)
+    {
+        if (workoutProgram.ExerciseTypes == null)
+        {
+         throw new ArgumentException("ExerciseTypes cannot be null.");
+        }
+        await _workoutProgramCollection.InsertOneAsync(workoutProgram);
+        return workoutProgram;
+    }
 
     public async Task DeleteSoloTraining(string trainingId)
     {
@@ -89,10 +102,34 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         return sessions ?? new List<SoloTrainingSession>();
     }
 
+    public async Task<List<WorkoutProgram>> GetAllWorkoutPrograms()
+    {
+        return await _workoutProgramCollection.Find(_ => true).ToListAsync();
+    }
+
     public async Task<SoloTrainingSession> GetMostRecentSoloTrainingForUser(string userId)
     {
         return await _SolotrainingCollection.Find(s => s.UserId == userId)
             .SortByDescending(s => s.Date)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<SoloTrainingSession?> GetMostRecentSoloTrainingForUserAndProgram(string userId, string programId)
+    {
+        var response = await _SolotrainingCollection.Find(s => s.UserId == userId && s.WorkoutProgramId == programId)
+            .SortByDescending(s => s.Date)
+            .FirstOrDefaultAsync();
+            if (response == null)
+            {
+                return new SoloTrainingSession();
+            }
+            return response;
+    }
+
+    public async Task<WorkoutProgram?> GetWorkoutProgramById(string programId)
+    {
+        var filter = Builders<WorkoutProgram>.Filter.Eq(p => p.Id, programId);
+        var response = await _workoutProgramCollection.Find(filter).FirstOrDefaultAsync();
+        return response;
     }
 }

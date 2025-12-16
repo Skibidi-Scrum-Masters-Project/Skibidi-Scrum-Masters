@@ -7,16 +7,23 @@ public class AnalyticsService
     public AnalyticsService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("http://localhost:4000");
     }
 
+    // GET crowd count
     public async Task<HttpResponseMessage> GetCrowdCountAsync()
     {
         return await _httpClient.GetAsync("/api/analytics/crowd");
     }
 
-    public async Task<HttpResponseMessage> GetClassAnalyticsAsync(string classId, string userId, double calories, string category, int duration, DateTime date)
+    // GET class training results
+    public async Task<HttpResponseMessage> GetClassResultsAsync(string userId)
     {
-        return await _httpClient.PostAsync($"/api/analytics/{classId}/{userId}/{calories}/{category}/{duration}/{date:yyyy-MM-dd}", null);
+        return await _httpClient.GetAsync($"/api/analytics/classresult/{userId}");
+    }
+
+    // GET solo training results
+    public async Task<HttpResponseMessage> GetSoloTrainingResultsAsync(string userId)
+    {
+        return await _httpClient.GetAsync($"/api/analytics/solotrainingresult/{userId}");
     }
 }
