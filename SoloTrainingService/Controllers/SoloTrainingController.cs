@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using FitnessApp.SoloTrainingService.Models;
+using Microsoft.AspNetCore.Authorization;
 namespace SoloTrainingService.Controllers;
 
 [ApiController]
@@ -14,7 +15,7 @@ public class SoloTrainingController : ControllerBase
         _soloTrainingRepository = soloTrainingRepository;
     }
     [HttpPost("create/program")]
-    [Authorize("Coach,Admin")]
+    [Authorize(Roles = "Coach,Admin")]
     public async Task<ActionResult<WorkoutProgram>> CreateWorkoutProgram([FromBody] WorkoutProgram workoutProgram)
     {
         if (workoutProgram == null)

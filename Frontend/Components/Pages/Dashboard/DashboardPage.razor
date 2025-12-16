@@ -1,6 +1,7 @@
 @page "/"
 @page "/dashboard"
 @layout PhoneLayout
+@rendermode InteractiveServer
 @using FitLifeFitness.Services
 @using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
@@ -160,13 +161,28 @@
     private string feedError = string.Empty;
 
     private List<Post> feedItems = new();
+    private bool _loaded = false;
 
     protected override async Task OnInitializedAsync()
     {
+        // DO NOT access TokenService or make API calls here!
+        // JS interop is not available during static rendering
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _loaded)
+            return;
+
+        _loaded = true;
+
+        // NOW it's safe to access TokenService
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
 
         await LoadFeedAsync();
+
+        StateHasChanged();
     }
 
     private async Task SwitchTab(string tab)
@@ -181,6 +197,7 @@
         isFeedLoading = true;
         feedError = string.Empty;
         feedItems.Clear();
+        StateHasChanged(); // Update UI to show loading state
 
         try
         {
@@ -210,6 +227,7 @@
         finally
         {
             isFeedLoading = false;
+            StateHasChanged();
         }
     }
 

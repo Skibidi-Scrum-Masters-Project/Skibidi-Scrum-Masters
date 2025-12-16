@@ -95,6 +95,7 @@
 
         try
         {
+            Console.WriteLine("=== LOGIN: Starting login process ===");
             var response = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
 
             if (response.IsSuccessStatusCode)
@@ -103,24 +104,35 @@
 
                 if (result != null)
                 {
-                    await TokenService.SaveTokenAsync(result.Token, result.User.Id!, result.User.Username, result.User.Role, result.RefreshToken);
+                    Console.WriteLine($"=== LOGIN: Received token for user {result.User.Username} ===");
+                    
+                    // Save token to localStorage
+                    await TokenService.SaveTokenAsync(
+                        result.Token, 
+                        result.User.Id!, 
+                        result.User.Username, 
+                        result.User.Role, 
+                        result.RefreshToken
+                    );
 
-                    try
-                    {
-                        await TokenService.FlushPendingAsync();
-                        await Task.Delay(50);
-                    }
-                    catch { }
+                    Console.WriteLine("=== LOGIN: Token saved, waiting 100ms ===");
+                    // Give localStorage a moment to persist
+                    await Task.Delay(100);
 
-                    // Notify authentication state provider so AuthorizeRouteView updates
+                    // Notify authentication state provider
                     try
                     {
                         await AuthStateProvider.NotifyAuthenticationStateChangedAsync();
+                        Console.WriteLine("=== LOGIN: Auth state notified ===");
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"!!! LOGIN: Auth state notification failed: {ex.Message}");
+                    }
 
-                    // Navigate with forceLoad to ensure authentication state is properly initialized
-                    Nav.NavigateTo("/dashboard", forceLoad: true);
+                    Console.WriteLine("=== LOGIN: Navigating to dashboard ===");
+                    // Navigate to dashboard
+                    Nav.NavigateTo("/dashboard", forceLoad: false);
                     return;
                 }
             }
@@ -134,14 +146,17 @@
         }
         catch (NavigationException)
         {
+            // Allow navigation exceptions to propagate
             throw;
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
+            Console.WriteLine($"!!! LOGIN: HTTP error: {ex.Message}");
             errorMessage = "Kunne ikke oprette forbindelse til serveren.";
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"!!! LOGIN: Unexpected error: {ex.Message}");
             errorMessage = "Der opstod en fejl. Prøv igen senere.";
         }
         finally
@@ -161,24 +176,30 @@
 
     private async Task OnLogoutClicked()
     {
-
         try
         {
             var LoggedInUserId = await TokenService.GetUserIdAsync();
-            await AuthService.LogoutAsync(LoggedInUserId!);
+            if (!string.IsNullOrEmpty(LoggedInUserId))
+            {
+                await AuthService.LogoutAsync(LoggedInUserId);
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Logout API call failed: {ex.Message}");
+        }
 
         try
         {
+            await TokenService.ClearAsync();
             AuthStateProvider.MarkUserLoggedOut();
         }
-        catch { }
-        try
+        catch (Exception ex)
         {
-            Nav.NavigateTo("/login", forceLoad: true);
+            Console.WriteLine($"Logout cleanup failed: {ex.Message}");
         }
-        catch { }
+        
+        Nav.NavigateTo("/login", forceLoad: true);
     }
 
     public class LoginModel

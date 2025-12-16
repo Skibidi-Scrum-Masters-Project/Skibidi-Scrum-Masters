@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using FitLifeFitness.Models;
+
 namespace FitLifeFitness.Services;
 
 public class TokenService
@@ -16,86 +17,103 @@ public class TokenService
         _localStorage = localStorage;
     }
 
-    public async Task SaveTokenAsync(string token, string userId, string username, UserRole  role, string refreshToken)
+    public async Task SaveTokenAsync(string token, string userId, string username, UserRole role, string refreshToken)
     {
+        Console.WriteLine("=== TokenService.SaveTokenAsync START ===");
+        Console.WriteLine($"Token: {token?.Substring(0, Math.Min(20, token?.Length ?? 0))}...");
+        Console.WriteLine($"UserId: {userId}");
+        Console.WriteLine($"Username: {username}");
+        Console.WriteLine($"Role: {role}");
+        Console.WriteLine($"RefreshToken: {refreshToken?.Substring(0, Math.Min(20, refreshToken?.Length ?? 0))}...");
+        
         try
         {
             await _localStorage.SetAsync(TokenKey, token);
+            Console.WriteLine("✓ Token saved");
+            
             await _localStorage.SetAsync(UserIdKey, userId);
+            Console.WriteLine("✓ UserId saved");
+            
             await _localStorage.SetAsync(UsernameKey, username);
+            Console.WriteLine("✓ Username saved");
+            
             await _localStorage.SetAsync(UserRoleKey, role.ToString());
+            Console.WriteLine("✓ UserRole saved");
+            
             await _localStorage.SetAsync(RefreshTokenKey, refreshToken);
+            Console.WriteLine("✓ RefreshToken saved");
 
-
-            // Clear any pending in-memory values on success
-            _pendingToken = null;
-            _pendingUserId = null;
-            _pendingUsername = null;
-            _pendingUserRole = null;
-            _pendingRefreshToken = null;
+            // Verify immediately
+            var verifyToken = await GetTokenAsync();
+            var verifyUserId = await GetUserIdAsync();
+            Console.WriteLine($"VERIFY - Token retrieved: {verifyToken?.Substring(0, Math.Min(20, verifyToken?.Length ?? 0))}...");
+            Console.WriteLine($"VERIFY - UserId retrieved: {verifyUserId}");
+            Console.WriteLine("=== TokenService.SaveTokenAsync SUCCESS ===");
         }
-        catch (InvalidOperationException)
+        catch (Exception ex)
         {
-            // JS interop isn't available (prerender). Buffer values in memory and try later.
-            _pendingToken = token;
-            _pendingUserId = userId;
-            _pendingUsername = username;
-            _pendingUserRole = role;
-            _pendingRefreshToken = refreshToken;
+            Console.WriteLine($"!!! TokenService.SaveTokenAsync FAILED: {ex.Message}");
+            Console.WriteLine($"!!! Exception Type: {ex.GetType().Name}");
+            Console.WriteLine($"!!! Stack: {ex.StackTrace}");
+            throw;
         }
     }
 
-    // Buffer token in memory without invoking JS interop (useful during prerendering).
-    // (removed) Use SaveTokenAsync which will buffer on interop failures
-
     public async Task<string?> GetTokenAsync()
     {
-        if (!string.IsNullOrEmpty(_pendingToken)) return _pendingToken;
         try
         {
+            Console.WriteLine("TokenService.GetTokenAsync called");
             var result = await _localStorage.GetAsync<string>(TokenKey);
+            Console.WriteLine($"GetTokenAsync result - Success: {result.Success}, HasValue: {!string.IsNullOrEmpty(result.Value)}");
             return result.Success ? result.Value : null;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"!!! GetTokenAsync error: {ex.Message}");
             return null;
         }
     }
 
     public async Task<string?> GetUserIdAsync()
     {
-        if (!string.IsNullOrEmpty(_pendingUserId)) return _pendingUserId;
         try
         {
+            Console.WriteLine("TokenService.GetUserIdAsync called");
             var result = await _localStorage.GetAsync<string>(UserIdKey);
+            Console.WriteLine($"GetUserIdAsync result - Success: {result.Success}, Value: {result.Value}");
             return result.Success ? result.Value : null;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"!!! GetUserIdAsync error: {ex.Message}");
             return null;
         }
     }
+
     public async Task<UserRole?> GetUserRoleAsync()
     {
-        if (_pendingUserRole != null) return _pendingUserRole;
         try
         {
+            Console.WriteLine("TokenService.GetUserRoleAsync called");
             var result = await _localStorage.GetAsync<string>(UserRoleKey);
             if (result.Success && Enum.TryParse<UserRole>(result.Value, out var role))
             {
+                Console.WriteLine($"GetUserRoleAsync result - Success: true, Role: {role}");
                 return role;
             }
+            Console.WriteLine($"GetUserRoleAsync result - Success: {result.Success}, ParseFailed: {!string.IsNullOrEmpty(result.Value)}");
             return null;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"!!! GetUserRoleAsync error: {ex.Message}");
             return null;
         }
     }
 
     public async Task<string?> GetUsernameAsync()
     {
-        if (!string.IsNullOrEmpty(_pendingUsername)) return _pendingUsername;
         try
         {
             var result = await _localStorage.GetAsync<string>(UsernameKey);
@@ -106,9 +124,9 @@ public class TokenService
             return null;
         }
     }
+
     public async Task<string?> GetRefreshTokenAsync()
     {
-        if (!string.IsNullOrEmpty(_pendingRefreshToken)) return _pendingRefreshToken;
         try
         {
             var result = await _localStorage.GetAsync<string>(RefreshTokenKey);
@@ -119,8 +137,10 @@ public class TokenService
             return null;
         }
     }
+
     public async Task ClearAsync()
     {
+        Console.WriteLine("=== TokenService.ClearAsync START ===");
         try
         {
             await _localStorage.DeleteAsync(TokenKey);
@@ -128,49 +148,11 @@ public class TokenService
             await _localStorage.DeleteAsync(UsernameKey);
             await _localStorage.DeleteAsync(UserRoleKey);
             await _localStorage.DeleteAsync(RefreshTokenKey);
+            Console.WriteLine("=== TokenService.ClearAsync SUCCESS ===");
         }
-        catch (InvalidOperationException)
+        catch (Exception ex)
         {
-            // If interop not available, still clear pending values
-        }
-
-        _pendingToken = null;
-        _pendingUserId = null;
-        _pendingUsername = null;
-        _pendingUserRole = null;
-        _pendingRefreshToken = null;
-    }
-
-    // In-memory buffer for values that couldn't be persisted because JS interop is not available.
-    private string? _pendingToken;
-    private string? _pendingUserId;
-    private string? _pendingUsername;
-    private UserRole? _pendingUserRole;
-    private string? _pendingRefreshToken;
-
-    // Attempt to persist any pending values to ProtectedLocalStorage.
-    public async Task FlushPendingAsync()
-    {
-        if (_pendingToken == null && _pendingUserId == null && _pendingUsername == null && _pendingUserRole == null)
-            return;
-
-        try
-        {
-            if (_pendingToken != null) await _localStorage.SetAsync(TokenKey, _pendingToken);
-            if (_pendingUserId != null) await _localStorage.SetAsync(UserIdKey, _pendingUserId);
-            if (_pendingUsername != null) await _localStorage.SetAsync(UsernameKey, _pendingUsername);
-            if (_pendingUserRole != null) await _localStorage.SetAsync(UserRoleKey, _pendingUserRole.ToString()!);
-            if (_pendingRefreshToken != null) await _localStorage.SetAsync(RefreshTokenKey, _pendingRefreshToken);
-
-            _pendingToken = null;
-            _pendingUserId = null;
-            _pendingUsername = null;
-            _pendingUserRole = null;
-            _pendingRefreshToken = null;
-        }
-        catch (InvalidOperationException)
-        {
-            // Still not available; caller may retry later
+            Console.WriteLine($"!!! ClearAsync error: {ex.Message}");
         }
     }
-}   
+}

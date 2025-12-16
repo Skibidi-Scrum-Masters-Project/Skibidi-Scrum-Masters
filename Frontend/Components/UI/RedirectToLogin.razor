@@ -1,19 +1,23 @@
-@inject NavigationManager Nav
+@namespace FitLifeFitness.Components.UI
+@inject NavigationManager Navigation
+
+<div class="redirect-to-login">
+    <p>Redirecting to login...</p>
+    <a href="@LoginUrl">Go to login</a>
+</div>
 
 @code {
-    private bool _navigated = false;
+    private string LoginUrl = "/login";
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnInitialized()
     {
-        if (!_navigated)
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+        if (!string.IsNullOrEmpty(relative))
         {
-            _navigated = true;
-            try
-            {
-                await InvokeAsync(() => Nav.NavigateTo("/login", forceLoad: false));
-            }
-            catch (TaskCanceledException) { }
-            catch { }
+            var returnUrl = "/" + relative;
+            LoginUrl = $"/login?returnUrl={System.Uri.EscapeDataString(returnUrl)}";
         }
+
+        Navigation.NavigateTo(LoginUrl, forceLoad: false);
     }
 }

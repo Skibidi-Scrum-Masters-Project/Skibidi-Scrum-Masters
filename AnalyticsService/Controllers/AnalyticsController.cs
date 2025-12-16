@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using AnalyticsService.Models;
+using Microsoft.AspNetCore.Authorization;
  
 
 namespace AnalyticsService.Controllers;

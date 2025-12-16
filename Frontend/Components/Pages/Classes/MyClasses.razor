@@ -1,4 +1,5 @@
 @page "/classes"
+@rendermode InteractiveServer
 @layout PhoneLayout
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
@@ -84,61 +85,76 @@
     private List<FitnessClass> MyClassesList = new();
     private bool isCancelling = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // If token was buffered during prerender, attempt to persist it now
-            await TokenService.FlushPendingAsync();
-        }
-    }
+    private bool _loaded; // prevents double execution
 
     protected override async Task OnInitializedAsync()
     {
-        userId = await TokenService.GetUserIdAsync();
-        if (string.IsNullOrEmpty(userId))
-        {
-            // Not logged in, redirect to login
-            Nav.NavigateTo("/login");
+        // DO NOT call authenticated APIs here
+        // This runs before ProtectedLocalStorage is available
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _loaded)
             return;
-        }
+
+        _loaded = true;
+
+        // Ensure buffered login data is persisted
+
+
+        // Load auth state
+        userId = await TokenService.GetUserIdAsync();
+     
 
         userRole = await TokenService.GetUserRoleAsync();
+
+        await LoadClassesAsync();
+
+        StateHasChanged();
+    }
+
+    private async Task LoadClassesAsync()
+    {
+        if (string.IsNullOrEmpty(userId))
+            return;
+
         HttpResponseMessage response;
+
         if (userRole == UserRole.Coach)
         {
             response = await ClassService.GetClassesByCoachIdAsync(userId);
         }
         else
         {
-            // Default/member behavior: load classes booked by the user
             response = await ClassService.GetClassesByUserIdAsync(userId);
         }
 
         if (response.IsSuccessStatusCode)
         {
-            MyClassesList = await response.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
-            MyClassesList = MyClassesList.OrderBy(c => c.Date).ThenBy(c => c.Time).ToList();
+            MyClassesList =
+                await response.Content.ReadFromJsonAsync<List<FitnessClass>>()
+                ?? new List<FitnessClass>();
+
+            MyClassesList = MyClassesList
+                .OrderBy(c => c.Date)
+                .ThenBy(c => c.Time)
+                .ToList();
         }
+
     }
 
     private void GoToCreate()
-    {
-        // Navigate to the class creation page (page not implemented yet)
-        Nav.NavigateTo("/classes/create");
-    }
+        => Nav.NavigateTo("/classes/create");
 
     private void GoToBook()
-    {
-        // Navigate to the general class booking page
-        Nav.NavigateTo("/classes/book");
-    }
+        => Nav.NavigateTo("/classes/book");
 
     private void GoToBooking(FitnessClass c)
     {
-        if (c == null || string.IsNullOrEmpty(c.Id)) return;
+        if (string.IsNullOrEmpty(c?.Id))
+            return;
 
-        // Coaches should be taken to their coach view for the class
         if (userRole == UserRole.Coach)
         {
             Nav.NavigateTo($"/classes/coach/{c.Id}");
@@ -146,47 +162,34 @@
         }
 
         if (c.SeatBookingEnabled)
-        {
             Nav.NavigateTo($"/classes/seat/{c.Id}");
-        }
         else
-        {
             Nav.NavigateTo($"/classes/book/{c.Id}");
-        }
     }
 
     private void GoToDashboard()
-    {
-        Nav.NavigateTo("/dashboard");
-    }
+        => Nav.NavigateTo("/dashboard");
 
     private async Task CancelClassBooking(string classId)
     {
-        if (string.IsNullOrEmpty(userId)) return;
+        if (string.IsNullOrEmpty(userId))
+            return;
+
         isCancelling = true;
-        var response = await ClassService.CancelClassBookingForUserAsync(classId, userId);
+
+        var response =
+            await ClassService.CancelClassBookingForUserAsync(classId, userId);
+
         if (response.IsSuccessStatusCode)
         {
-            // Refresh the list using the same role-based endpoint as on init
-            HttpResponseMessage refreshed;
-            var roleToUse = userRole ?? await TokenService.GetUserRoleAsync();
-            if (roleToUse == UserRole.Coach)
-            {
-                refreshed = await ClassService.GetClassesByCoachIdAsync(userId);
-            }
-            else
-            {
-                refreshed = await ClassService.GetClassesByUserIdAsync(userId);
-            }
-            if (refreshed.IsSuccessStatusCode)
-            {
-                MyClassesList = await refreshed.Content.ReadFromJsonAsync<List<FitnessClass>>() ?? new List<FitnessClass>();
-                MyClassesList = MyClassesList.OrderBy(c => c.Date).ThenBy(c => c.Time).ToList();
-            }
+            await LoadClassesAsync();
         }
+
         isCancelling = false;
         StateHasChanged();
     }
+
+
 
     public class MyClassModel
     {

@@ -1,17 +1,18 @@
 using FitlifeFitness.Models;
+using System.Net.Http;
+using System.Net.Http.Json;
 
 namespace FitLifeFitness.Services;
 
 public class ClassService
 {
     private readonly HttpClient _httpClient;
-    private readonly TokenService _tokenService;
 
-    public ClassService(HttpClient httpClient, TokenService tokenService)
+    public ClassService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _tokenService = tokenService;
     }
+
     public async Task<HttpResponseMessage> GetAllClassesAsync()
     {
         return await _httpClient.GetAsync("/api/classes/classes");

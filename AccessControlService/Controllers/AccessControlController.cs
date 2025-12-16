@@ -2,6 +2,7 @@ using AccessControlService.Models;
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using AccessControlService.Repositories;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AccessControlService.Controllers;
 

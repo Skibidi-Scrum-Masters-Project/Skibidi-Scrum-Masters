@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add Razor Components with Interactive Server
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents(options =>
     {
@@ -27,7 +25,8 @@ builder.Services.AddScoped<ProtectedLocalStorage>();
 
 // Application Services (Scoped per circuit)
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<AuthHeaderHandler>();
+// HTTP message handlers should be registered as transient
+builder.Services.AddTransient<AuthHeaderHandler>();
 // Authentication/Authorization for Blazor components
 builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, TokenAuthenticationStateProvider>();
