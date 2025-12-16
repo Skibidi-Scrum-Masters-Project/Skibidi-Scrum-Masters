@@ -2,6 +2,8 @@
 @layout PhoneLayout
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Services
+@inject AnalyticsService AnalyticsService
 
 <div class="crowdpage">
     <div class="crowd-body">
@@ -16,7 +18,9 @@
 
                 <div class="crowd-now-row">
                     <div class="crowd-now-left">
-                        <span class="crowd-now-percentage" style="color:@CurrentColor">@CurrentPercent %</span>
+                        <span class="crowd-now-percentage" style="color:@CurrentColor">
+                            @CurrentPercent %
+                        </span>
                         <span class="crowd-now-text">@CurrentLabel</span>
                     </div>
 
@@ -36,29 +40,30 @@
                 </div>
 
                 <div class="crowd-bar">
-                    <div class="crowd-bar-fill" style="width:@($"{CurrentPercent}%"); background:@CurrentColor"></div>
+                    <div class="crowd-bar-fill"
+                         style="width:@($"{CurrentPercent}%"); background:@CurrentColor">
+                    </div>
                 </div>
 
                 <div class="crowd-legend" aria-label="Forklaring på farver">
                     <span class="legend-item">
-                        <span class="legend-dot low" aria-hidden="true"></span>
+                        <span class="legend-dot low"></span>
                         <span class="legend-text">Roligt</span>
                     </span>
                     <span class="legend-item">
-                        <span class="legend-dot medium" aria-hidden="true"></span>
+                        <span class="legend-dot medium"></span>
                         <span class="legend-text">Moderat</span>
                     </span>
                     <span class="legend-item">
-                        <span class="legend-dot high" aria-hidden="true"></span>
+                        <span class="legend-dot high"></span>
                         <span class="legend-text">Travlt</span>
                     </span>
                     <span class="legend-item">
-                        <span class="legend-dot very-high" aria-hidden="true"></span>
+                        <span class="legend-dot very-high"></span>
                         <span class="legend-text">Meget travlt</span>
                     </span>
                 </div>
             </section>
-
 
             @if (ShowTip)
             {
@@ -81,10 +86,14 @@
 
                             <div class="crowd-bar small">
                                 <div class="crowd-bar-fill"
-                                     style="width:@($"{point.Percent}%"); background:@GetLevelColor(point.Percent)"></div>
+                                     style="width:@($"{point.Percent}%"); background:@GetLevelColor(point.Percent)">
+                                </div>
                             </div>
 
-                            <span class="crowd-percent" style="color:@GetLevelColor(point.Percent)">@point.Percent %</span>
+                            <span class="crowd-percent"
+                                  style="color:@GetLevelColor(point.Percent)">
+                                @point.Percent %
+                            </span>
                         </div>
                     }
                 </div>
@@ -112,13 +121,14 @@
 @code {
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
-    // seed data (TODO: hent rigtige data fra backend)
     private const int MaxPeopleCapacity = 250;
 
-    private int CurrentPercent { get; set; } = 68;
+    // ✅ DATA FRA BACKEND
+    private int CurrentPeople;
 
-    private int CurrentPeople =>
-        (int)Math.Round(MaxPeopleCapacity * (CurrentPercent / 100.0));
+    // ✅ AFLEDT DATA (CSS + UI bruger denne)
+    private int CurrentPercent =>
+        (int)Math.Round(CurrentPeople / (double)MaxPeopleCapacity * 100);
 
     private string CurrentLabel => GetLevelLabel(CurrentPercent);
     private string CurrentColor => GetLevelColor(CurrentPercent);
@@ -140,25 +150,38 @@
     private string PeakTime =>
         Forecast.OrderByDescending(x => x.Percent).FirstOrDefault()?.Time ?? "18:00";
 
-    private void RefreshData()
+    protected override async Task OnInitializedAsync()
     {
-        // TODO: hent rigtige data fra backend (via service)
-        // TODO: tilføj loading + error state
-        // TODO: udregn CurrentPercent baseret på real-time occupancy
-
-        var rand = new Random();
-        CurrentPercent = rand.Next(20, 95);
-
-        foreach (var p in Forecast)
-        {
-            p.Percent = rand.Next(20, 95);
-        }
+        await RefreshData();
     }
 
-    private void GoBack()
+    private async Task RefreshData()
     {
-        // TODO: skift destination hvis du vil tilbage til et bestemt sted
-        NavigationManager.NavigateTo("/dashboard");
+        try
+        {
+            var crowdRes = await AnalyticsService.GetCrowdCountAsync();
+
+            if (crowdRes.IsSuccessStatusCode)
+            {
+                CurrentPeople =
+                    await crowdRes.Content.ReadFromJsonAsync<int>();
+            }
+            else
+            {
+                CurrentPeople = 0;
+            }
+
+            // midlertidig forecast (mock)
+            var rand = new Random();
+            foreach (var p in Forecast)
+            {
+                p.Percent = rand.Next(20, 95);
+            }
+        }
+        catch
+        {
+            CurrentPeople = 0;
+        }
     }
 
     private static string GetLevelLabel(int percent) => percent switch
