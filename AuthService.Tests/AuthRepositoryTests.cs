@@ -47,7 +47,7 @@ public class AuthRepositoryTests
             Username = "testuser",
             Email = "test@example.com",
             HashedPassword = hashedPassword,
-            Role = Role.Member
+            Role = 0
         };
 
         // Act
@@ -76,12 +76,13 @@ public class AuthRepositoryTests
     public void GenerateToken_ShouldReturnValidJWT()
     {
         // Arrange
-        var user = new UserDTO
+        var user = new User
         {
             Id = "123",
             Username = "testuser",
             Email = "test@example.com",
-            Role = Role.Member
+            HashedPassword = "hashedpwd",
+            Role = 0
         };
 
         // Act

@@ -1,23 +1,18 @@
 ﻿@inherits LayoutComponentBase
 
 <div class="page">
-    <!-- Sidebar -->
     <div class="sidebar">
         <NavMenu />
     </div>
 
-    <!-- Main content area -->
-    <main class="main-area">
-        <!-- Topbar -->
-        <TopBar />
+    <main>
+        <div class="top-row px-4">
+            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        </div>
 
-        <!-- Page content -->
         <article class="content px-4">
             @Body
         </article>
-
-        <!-- Bottom navigation -->
-        <BottomNav ActivePage="@ActivePage" />
     </main>
 </div>
 
@@ -26,7 +21,3 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
-
-@code {
-    [Parameter] public string ActivePage { get; set; } = string.Empty;
-}

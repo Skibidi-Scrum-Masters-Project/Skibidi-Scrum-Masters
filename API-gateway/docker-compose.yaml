@@ -60,10 +60,6 @@ services:
     image: asgermunk/fitnessapp-frontend:latest
     expose:
       - "8080"
-    # Persist DataProtection keys to host so keys survive container restarts.
-    # Creates ./data/frontend/dataprotection on the host and mounts it into the container.
-    volumes:
-      - ./data/frontend/dataprotection:/root/.aspnet/DataProtection-Keys
     networks:
       - skibidi
 

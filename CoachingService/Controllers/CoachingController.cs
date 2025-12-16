@@ -32,7 +32,7 @@ public class CoachingController : ControllerBase
     }
 
    
-    [HttpPut("Session")]
+    [HttpPost("Session")]
     public ActionResult<Session> BookSession([FromBody] Session session)
     {
         try
@@ -94,65 +94,5 @@ public class CoachingController : ControllerBase
             return StatusCode(500, new { message = "An error occurred while cancelling the session.", details = ex.Message });
         }
     }
-    
-    [HttpPut("CompleteSession/{id}")]
-    public ActionResult<Session> CompleteSession(string id)
-    {
-        try
-        {
-            var session = _coachingRepository.CompleteSession(id);
-            return Ok(session);
-        }
-        catch (ArgumentNullException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-    }
 
-    
-    //Kun for Coach
-    [HttpPost("MakeSessionAsCoach")]
-    public ActionResult<Session> CreateSession([FromBody] Session session)
-    {
-        var created = _coachingRepository.CreateSession(session);
-        
-        return Ok(created);
-    }
-
-    [HttpDelete("RemoveSessionAsCoach/{id}")]
-    public ActionResult<Session> DeleteSession(string id)
-    {
-        var deleted = _coachingRepository.DeleteSession(id);
-        
-        return Ok(deleted);
-    }
-    
-    [HttpGet("AvailableSessions")]
-    public ActionResult<IEnumerable<Session>> GetAvailableSessions()
-    {
-        var sessions = _coachingRepository.GetAllAvaliableCoachSessions();
-
-        return Ok(sessions);
-    }
-    
-    [HttpGet("AvailableSessions/{coachId}")]
-    public ActionResult<IEnumerable<Session>> GetAvailableSessionsForCoachId(string coachId)
-    {
-        var sessions = _coachingRepository.GetAllAvailableCoachSessionsForCoachId(coachId);
-
-        return Ok(sessions);
-    }
-
-    [HttpGet("AllSessions/{coachId}")]
-    public ActionResult<IEnumerable<Session>> GetAllSessionsByCoachId(string coachId)
-    {
-        var sessions = _coachingRepository.GetAllSessionsByCoachId(coachId);
-        
-        return Ok(sessions);
-    }
-    
 }

@@ -19,6 +19,51 @@ public class AuthControllerTests
         _mockRepository = new Mock<IAuthRepository>();
         _controller = new AuthController(_mockRepository.Object);
     }
+
+    [TestMethod]
+    public async Task Login_WithValidCredentials_ShouldReturnSuccess()
+    {
+        // Arrange
+        var loginRequest = new LoginRequest
+        {
+            Username = "testuser",
+            Password = "testpassword"
+        };
+
+        var expectedResponse = new LoginResponse
+        {
+            Token = "mock-jwt-token",
+            User = new User
+            {
+                Id = "1",
+                Username = "testuser",
+                Email = "test@example.com"
+            },
+            ExpiresAt = DateTime.UtcNow.AddHours(1)
+        };
+
+        // Setup the mock to return the expected response when Login is called
+        _mockRepository
+            .Setup(repo => repo.Login(It.IsAny<LoginRequest>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _controller.Login(loginRequest);
+
+        // Assert
+        var okResult = result as OkObjectResult;
+        Assert.IsNotNull(okResult, "Expected OkObjectResult");
+        Assert.AreEqual(200, okResult.StatusCode);
+
+        var response = okResult.Value as LoginResponse;
+        Assert.IsNotNull(response, "Expected LoginResponse");
+        Assert.AreEqual(expectedResponse.Token, response.Token);
+        Assert.AreEqual(expectedResponse.User.Username, response.User.Username);
+
+        // Verify that the repository's Login method was called exactly once
+        _mockRepository.Verify(repo => repo.Login(It.IsAny<LoginRequest>()), Times.Once);
+    }
+
     [TestMethod]
     public async Task Login_WithInvalidCredentials_ShouldReturnUnauthorized()
     {

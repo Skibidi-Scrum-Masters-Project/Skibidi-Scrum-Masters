@@ -1,48 +1,15 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace SocialService.Models;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-
 
 public class Post
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.ObjectId)]
-    public string? Id { get; set; }
+    public int userId { get; set; }
+    public int postId { get; set; }
+    public int fitnessClassId { get; set; }
+    public int workoutId { get; set; }
+    public DateTime postDate { get; set; }
+    public string postTitle { get; set; }
+    public string postContent { get; set; }
     
-    public string UserName { get; set; }
-    public string UserId { get; set; }
-    public string? FitnessClassId { get; set; }
-    public string? WorkoutId { get; set; }
-    public DateTime PostDate { get; set; }
-
-    [Required]
-    public string PostTitle { get; set; }
-
-    [Required]
-    public string PostContent { get; set; }
-
-    public PostType Type { get; set; } = PostType.Generic;
-
-    public WorkoutStatsSnapshot? WorkoutStats { get; set; }
+    public List<string> comments { get; set; }
     
-    public List<Comment> Comments { get; set; } = new();
-
-    public bool IsDraft { get; set; } = false;
-    
-    public string? SourceEventId { get; set; }
-
-}
-
-public enum PostType
-{
-    Generic = 0,
-    Workout = 1
-}
-
-public class WorkoutStatsSnapshot
-{
-    public int? DurationSeconds { get; set; }
-    public int? Calories { get; set; }
 }

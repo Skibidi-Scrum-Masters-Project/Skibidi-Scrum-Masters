@@ -14,12 +14,6 @@ services:
       - ../AuthService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   userservice:
     build:
@@ -33,12 +27,6 @@ services:
       - ../UserService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   classservice:
     build:
@@ -52,12 +40,6 @@ services:
       - ../ClassService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   socialservice:
     build:
@@ -71,12 +53,6 @@ services:
       - ../SocialService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   solotrainingservice:
     build:
@@ -90,12 +66,6 @@ services:
       - ../SoloTrainingService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   accesscontrolservice:
     build:
@@ -109,12 +79,6 @@ services:
       - ../AccessControlService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   coachingservice:
     build:
@@ -128,12 +92,6 @@ services:
       - ../CoachingService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   analyticsservice:
     build:
@@ -147,14 +105,7 @@ services:
       - ../AnalyticsService/appsettings.Development.json:/app/appsettings.Development.json:ro
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
-  # Blazor Frontend
   frontend:
     build:
       context: ..
@@ -162,23 +113,9 @@ services:
     ports:
       - "3001:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
-      - ApiSettings__BaseUrl=http://nginx
-      - DATA_PROTECTION_PATH=/root/.aspnet/DataProtection-Keys
+      - NODE_ENV=development
     networks:
       - skibidi
-    depends_on:
-      - nginx
-    # Persist DataProtection keys on the host so keys survive container restarts.
-    volumes:
-      - ./data/frontend/dataprotection:/root/.aspnet/DataProtection-Keys
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   # NGINX API Gateway
   nginx:
@@ -195,17 +132,11 @@ services:
       - accesscontrolservice
       - coachingservice
       - analyticsservice
+      - frontend
     ports:
-      - "80:80"
+      - "4000:80"
     networks:
       - skibidi
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
 
 networks:
   skibidi:

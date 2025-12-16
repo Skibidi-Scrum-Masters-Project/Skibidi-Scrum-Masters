@@ -1,4 +1,4 @@
 ﻿// This file has been replaced with specific test classes:
-// - AccessControlControllerTests.cs
-// - AccessControlRepositoryTests.cs
+// - LockersControllerTests.cs
+// - LockerRepositoryTests.cs
 // Delete this file when ready.
