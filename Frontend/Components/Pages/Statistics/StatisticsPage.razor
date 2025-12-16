@@ -1,5 +1,6 @@
 @page "/statistics"
-
+@using System.Globalization
+@using System.Net.Http.Json
 @using FitLifeFitness.Models
 @using FitLifeFitness.Services
 @using FitLifeFitness.Components.Layout
@@ -8,105 +9,345 @@
 
 @inject TokenService TokenService
 @inject AnalyticsService AnalyticsService
+@inject UserService UserService
 
 <div class="stats-screen">
-    <h2 class="stats-title">Statistik</h2>
+
+    <div class="main-tabs">
+        <button class="main-tab @(ActiveTab == StatsTab.Overview ? "active" : "")"
+                type="button"
+                @onclick="() => SetTab(StatsTab.Overview)">
+            Oversigt
+        </button>
+
+        <button class="main-tab @(ActiveTab == StatsTab.Compare ? "active" : "")"
+                type="button"
+                @onclick="() => SetTab(StatsTab.Compare)">
+            Sammenligning
+        </button>
+
+        <button class="main-tab @(ActiveTab == StatsTab.Favorites ? "active" : "")"
+                type="button"
+                @onclick="() => SetTab(StatsTab.Favorites)">
+            Favoritter
+        </button>
+    </div>
 
     @if (isLoading)
     {
-        <p>Indlæser statistik…</p>
+        <div class="tab-content active">
+            <div class="stats-hero">
+                <h2 class="stats-title">Statistik</h2>
+                <p class="stats-subtitle">Indlæser statistik...</p>
+            </div>
+        </div>
     }
     else if (!string.IsNullOrEmpty(feedError))
     {
-        <p style="color:red">@feedError</p>
-    }
-    else
-    {
-        @foreach (var c in ClassResults)
-        {
-            <div style="border-bottom:1px solid #ccc; margin-bottom:8px">
-                <p><b>ClassId:</b> @c.ClassId</p>
-                <p><b>UserId:</b> @c.UserId</p>
-                <p><b>Category:</b> @c.Category</p>
-                <p><b>Calories:</b> @c.CaloriesBurned</p>
-                <p><b>Watt:</b> @c.Watt</p>
-                <p><b>Duration:</b> @c.DurationMin min</p>
-                <p><b>Date:</b> @c.Date</p>
-                <p><b>EventId:</b> @c.EventId</p>
+        <div class="tab-content active">
+            <div class="stats-hero">
+                <h2 class="stats-title">Statistik</h2>
+                <p class="stats-subtitle" style="color:#fca5a5">@feedError</p>
             </div>
-        }
-    }
-
-    <hr />
-
-    <h3>✅ Solo training results</h3>
-
-    @if (SoloTrainingResults.Count == 0)
-    {
-        <p>Ingen solo training results</p>
+        </div>
     }
     else
     {
-        @foreach (var s in SoloTrainingResults)
-        {
-            <div style="border-bottom:1px solid #ccc; margin-bottom:8px">
-                <p><b>UserId:</b> @s.UserId</p>
-                <p><b>Date:</b> @s.Date</p>
-                <p><b>TrainingType:</b> @s.TrainingType</p>
-                <p><b>Duration:</b> @s.DurationMinutes min</p>
+        <div class="tab-content @(ActiveTab == StatsTab.Overview ? "active" : "")" id="overview">
+            <div class="stats-hero">
+                <h2 class="stats-title">Statistik</h2>
+                <p class="stats-subtitle">Se din udvikling og træningshistorik</p>
 
-                <p><b>Exercises:</b></p>
-                <ul>
-                    @foreach (var ex in s.Exercises)
+                <div class="stats-streak-banner">
+                    <div class="streak-left">
+                        <span class="streak-emoji">🔥</span>
+                        <div class="streak-info">
+                            <h3>@StreakWeeks ugers streak</h3>
+                            <p>Fortsæt den gode vane!</p>
+                        </div>
+                    </div>
+                    <span class="streak-number">@StreakWorkouts</span>
+                </div>
+            </div>
+
+            <div class="period-selector">
+                <button class="period-btn @(ActivePeriod == StatsPeriod.Week ? "active" : "")"
+                        type="button"
+                        @onclick="() => SetPeriod(StatsPeriod.Week)">
+                    Uge
+                </button>
+                <button class="period-btn @(ActivePeriod == StatsPeriod.Month ? "active" : "")"
+                        type="button"
+                        @onclick="() => SetPeriod(StatsPeriod.Month)">
+                    Måned
+                </button>
+                <button class="period-btn @(ActivePeriod == StatsPeriod.Year ? "active" : "")"
+                        type="button"
+                        @onclick="() => SetPeriod(StatsPeriod.Year)">
+                    År
+                </button>
+            </div>
+
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <p class="stat-value">@WorkoutsInPeriod</p>
+                    <p class="stat-label">@PeriodLabelWorkouts</p>
+                </div>
+
+                <div class="stat-card">
+                    <p class="stat-value">@MinutesInPeriod</p>
+                    <p class="stat-label">Minutter trænet</p>
+                </div>
+
+                <div class="stat-card">
+                    <p class="stat-value">@CaloriesInPeriod</p>
+                    <p class="stat-label">Kalorier forbrændt</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content @(ActiveTab == StatsTab.Compare ? "active" : "")" id="compare">
+            <div class="stats-hero">
+                <h2 class="stats-title">Sammenligning</h2>
+                <p class="stats-subtitle">Se hvordan du klarer dig mod andre</p>
+            </div>
+
+            @if (!HasAnyWorkouts)
+            {
+                <div class="empty-compare-banner" role="status">
+                    <div class="empty-compare-icon">⚠️</div>
+                    <div class="empty-compare-text">
+                        <div class="empty-compare-title">Ingen træninger endnu</div>
+                        <div class="empty-compare-sub">
+                            Når du har gennemført din første træning, giver sammenligningen mening.
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="rank-card">
+                    <div class="rank-badge">
+                        <div class="rank-number">#@Rank</div>
+                        <div class="rank-text">Din placering</div>
+                    </div>
+                    <p class="rank-subtitle">ud af @ActiveMembers aktive medlemmer denne måned</p>
+                </div>
+            }
+            <div class="rank-card">
+                <div class="rank-badge">
+                    <div class="rank-number">#@Rank</div>
+                    <div class="rank-text">Din placering</div>
+                </div>
+                <p class="rank-subtitle">ud af @ActiveMembers aktive medlemmer denne måned</p>
+            </div>
+            
+            <div class="stats-chart-card">
+                <p class="chart-title">Dine stats vs gennemsnit</p>
+
+                @if (CompareMetrics.Count == 0)
+                {
+                    <div class="todo-hint">Ingen sammenligningsdata endnu.</div>
+                }
+                else
+                {
+                    @foreach (var m in CompareMetrics)
                     {
-                        <li>
-                            @ex.ExerciseType –
-                            Volume: @ex.Volume
+                        <div class="metric-item">
+                            <div class="metric-header">
+                                <span class="metric-name">@m.Name</span>
+                                <span class="metric-values">
+                                    <span class="you">Du: @m.YouText</span>
+                                    <span class="avg">Ø: @m.AvgText</span>
+                                </span>
+                            </div>
 
-                            <ul>
-                                @foreach (var set in ex.Sets)
-                                {
-                                    <li>
-                                        Reps: @set.Repetitions |
-                                        Weight: @set.Weight
-                                    </li>
-                                }
-                            </ul>
-                        </li>
+                            <div class="metric-bars">
+                                <div class="metric-bar you-bar" style="width:@m.YouWidth%">
+                                    <span class="bar-label">Du</span>
+                                </div>
+                                <div class="metric-bar avg-bar" style="width:@m.AvgWidth%">
+                                    <span class="bar-label">Gennemsnit</span>
+                                </div>
+                            </div>
+
+                            <div class="metric-diff @(m.IsPositive ? "positive" : "negative")">@m.DiffText</div>
+                        </div>
                     }
-                </ul>
+                }
             </div>
-        }
-    }
 
-    <hr />
+            <div class="stats-chart-card">
+                <p class="chart-title">Top 5 denne måned</p>
 
-    <h3>✅ Crowd count</h3>
+                @if (Leaderboard.Count == 0)
+                {
+                    <div class="todo-hint">Ingen leaderboard data endnu.</div>
+                }
+                else
+                {
+                    <div class="leaderboard-list">
+                        @foreach (var row in Leaderboard)
+                        {
+                            <div class="leaderboard-item @(row.IsFirst ? "rank-1" : "")">
+                                <div class="lb-rank">@row.RankIcon</div>
+                                <div>
+                                    <div class="lb-name">@row.Name</div>
+                                    <div class="lb-stats">@row.Stats</div>
+                                </div>
+                                <div class="lb-score">@row.Score</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
 
-    <p><b>Antal i centeret:</b> @CrowdCount</p>
+        <div class="tab-content @(ActiveTab == StatsTab.Favorites ? "active" : "")" id="favorites">
+            <div class="stats-hero">
+                <h2 class="stats-title">Favoritter</h2>
+                <p class="stats-subtitle">Dine mest brugte øvelser og hold</p>
+            </div>
+
+            <div class="favorites-card purple">
+                <p class="chart-title">Top øvelser (solo)</p>
+                <p class="chart-subtitle">Baseret på dine seneste @FavoritesWindowDays dage</p>
+
+                @if (TopExercises.Count == 0)
+                {
+                    <div class="favorites-empty">Ingen solo data endnu</div>
+                }
+                else
+                {
+                    <div class="favorites-list">
+                        @for (int i = 0; i < TopExercises.Count; i++)
+                        {
+                            var ex = TopExercises[i];
+                            <div class="favorite-item">
+                                <div class="fav-rank">@(i + 1)</div>
+                                <div>
+                                    <div class="fav-name">@ex.Name</div>
+                                    <div class="fav-stats">@ex.Details</div>
+                                </div>
+                                <div class="fav-count">@ex.Count</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="favorites-card">
+                <p class="chart-title">Top holdtyper</p>
+                <p class="chart-subtitle">Baseret på dine class results</p>
+
+                @if (TopClasses.Count == 0)
+                {
+                    <div class="favorites-empty">Ingen class data endnu</div>
+                }
+                else
+                {
+                    <div class="favorites-list">
+                        @for (int i = 0; i < TopClasses.Count; i++)
+                        {
+                            var c = TopClasses[i];
+                            <div class="favorite-item">
+                                <div class="fav-rank">@(i + 1)</div>
+                                <div>
+                                    <div class="fav-name">@c.Name</div>
+                                    <div class="fav-stats">@c.Details</div>
+                                </div>
+                                <div class="fav-count">@c.Count</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="favorites-card">
+                <p class="chart-title">Hvornår træner du mest</p>
+                <p class="chart-subtitle">Fordeling af dine træninger over døgnet</p>
+
+                <div class="time-chart">
+                    @foreach (var b in TimeBuckets)
+                    {
+                        <div class="time-bar-group">
+                            <div class="time-bar @(b.IsTop ? "highlight" : "")" style="height:@b.HeightPxpx">
+                                <span class="time-value">@b.Value</span>
+                            </div>
+                            <div class="time-label">@b.Label</div>
+                        </div>
+                    }
+                </div>
+
+                <div class="time-insight">
+                    <span class="insight-icon">🟠</span>
+                    <p>@TimeInsight</p>
+                </div>
+            </div>
+        </div>
     }
 </div>
 
-@code {
+@code
+{
+    private enum StatsTab { Overview, Compare, Favorites }
+    private enum StatsPeriod { Week, Month, Year }
 
-   
+    private StatsTab ActiveTab = StatsTab.Overview;
+    private StatsPeriod ActivePeriod = StatsPeriod.Week;
+
     private string? LoggedInUserId;
     private bool isLoading = true;
     private string? feedError;
 
-    // Modeller klar til brug
     private List<ClassResultDTO> ClassResults = new();
     private List<SoloTrainingResultsDTO> SoloTrainingResults = new();
-    private int CrowdCount;
 
-    
+    private int WorkoutsInPeriod { get; set; }
+    private int MinutesInPeriod { get; set; }
+    private int CaloriesInPeriod { get; set; }
+
+    private string PeriodLabelWorkouts => ActivePeriod switch
+    {
+        StatsPeriod.Week => "Træninger denne uge",
+        StatsPeriod.Month => "Træninger denne måned",
+        _ => "Træninger i år"
+    };
+
+    private int StreakWeeks { get; set; }
+    private int StreakWorkouts { get; set; }
+
+    private const int FavoritesWindowDays = 30;
+    private List<FavRow> TopExercises { get; set; } = new();
+    private List<FavRow> TopClasses { get; set; } = new();
+    private List<TimeBucketUI> TimeBuckets { get; set; } = new();
+    private string TimeInsight { get; set; } = "Ikke nok data endnu til et tydeligt mønster.";
+
+    private int Rank { get; set; }
+    private int ActiveMembers { get; set; }
+    private List<CompareMetric> CompareMetrics { get; set; } = new();
+    private List<LeaderboardRow> Leaderboard { get; set; } = new();
+
+    private Dictionary<string, string> UsersMap { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    private bool HasAnyWorkouts => (ClassResults?.Count ?? 0) > 0 || (SoloTrainingResults?.Count ?? 0) > 0;
+
     protected override async Task OnInitializedAsync()
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
         await LoadStatisticsAsync();
     }
 
-    
+    private async Task Reload() => await LoadStatisticsAsync();
+
+    private void SetTab(StatsTab tab) => ActiveTab = tab;
+
+    private void SetPeriod(StatsPeriod p)
+    {
+        ActivePeriod = p;
+        RecomputeAll();
+    }
+
     private async Task LoadStatisticsAsync()
     {
         isLoading = true;
@@ -120,39 +361,75 @@
                 return;
             }
 
-            //  CLASS RESULTS 
-            var classRes =
-                await AnalyticsService.GetClassResultsAsync(LoggedInUserId);
+            await LoadUsersMapAsync();
 
-            if (classRes.IsSuccessStatusCode)
+            var dashboardRes = await AnalyticsService.GetDashboardAsync(LoggedInUserId);
+
+            if (!dashboardRes.IsSuccessStatusCode)
             {
-                ClassResults =
-                    await classRes.Content
-                        .ReadFromJsonAsync<List<ClassResultDTO>>()
-                    ?? new();
+                feedError = $"Kunne ikke hente dashboard data ({(int)dashboardRes.StatusCode})";
+                ClassResults = new();
+                SoloTrainingResults = new();
+
+                Rank = 0;
+                ActiveMembers = 0;
+                CompareMetrics = new();
+                Leaderboard = new();
+                return;
             }
 
-            //  SOLO TRAINING 
-            var soloRes =
-                await AnalyticsService.GetSoloTrainingResultsAsync(LoggedInUserId);
+            var dashboard = await dashboardRes.Content.ReadFromJsonAsync<AnalyticsDashboardDTO>();
 
-            if (soloRes.IsSuccessStatusCode)
+            ClassResults = dashboard?.ClassResults ?? new();
+            SoloTrainingResults = dashboard?.SoloTrainingResults ?? new();
+
+            var compareRes = await AnalyticsService.GetCompareMonthAsync(LoggedInUserId);
+
+            if (!compareRes.IsSuccessStatusCode)
             {
-                SoloTrainingResults =
-                    await soloRes.Content
-                        .ReadFromJsonAsync<List<SoloTrainingResultsDTO>>()
-                    ?? new();
+                Rank = 0;
+                ActiveMembers = 0;
+                CompareMetrics = new();
+                Leaderboard = new();
+            }
+            else
+            {
+                var compare = await compareRes.Content.ReadFromJsonAsync<AnalyticsCompareDTO>();
+
+                Rank = compare?.Rank ?? 0;
+                ActiveMembers = compare?.ActiveMembers ?? 0;
+
+                var hasAnyWorkouts = HasAnyWorkouts;
+
+                CompareMetrics = (compare?.Metrics ?? new())
+                    .Select(m => new CompareMetric(m.Name, m.You, m.Avg, m.Unit, hasAnyWorkouts))
+                    .ToList();
+
+                Leaderboard = (compare?.Leaderboard ?? new())
+                    .Select(r =>
+                    {
+                        var icon = r.Rank switch
+                        {
+                            1 => "🥇",
+                            2 => "🥈",
+                            3 => "🥉",
+                            _ => r.Rank.ToString()
+                        };
+
+                        var displayName = ResolveUserName(r.UserId);
+
+                        return new LeaderboardRow(
+                            IsFirst: r.Rank == 1,
+                            RankIcon: icon,
+                            Name: displayName,
+                            Stats: r.StatsText,
+                            Score: (int)Math.Round(r.Score, 0)
+                        );
+                    })
+                    .ToList();
             }
 
-                //  CROWD 
-                var crowdRes =
-                    await AnalyticsService.GetCrowdCountAsync();
-
-                if (crowdRes.IsSuccessStatusCode)
-                {
-                    CrowdCount =
-                        await crowdRes.Content.ReadFromJsonAsync<int>();
-                }
+            RecomputeAll();
         }
         catch (Exception ex)
         {
@@ -163,4 +440,289 @@
             isLoading = false;
         }
     }
+
+    private async Task LoadUsersMapAsync()
+    {
+        try
+        {
+            var res = await UserService.GetAllUsersAsync();
+
+            if (!res.IsSuccessStatusCode)
+            {
+                UsersMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                return;
+            }
+
+            var users = await res.Content.ReadFromJsonAsync<List<UserDto>>() ?? new List<UserDto>();
+
+            UsersMap = (users ?? new List<UserDto>())
+                .Where(u => !string.IsNullOrWhiteSpace(u.Id))
+                .ToDictionary(
+                    u => u.Id,
+                    u => string.IsNullOrWhiteSpace(u.Username) ? u.Id : u.Username,
+                    StringComparer.OrdinalIgnoreCase
+                );
+        }
+        catch
+        {
+            UsersMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    private string ResolveUserName(string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return "Ukendt";
+        return UsersMap.TryGetValue(userId, out var name) ? name : userId;
+    }
+
+    private void RecomputeAll()
+    {
+        ComputePeriodStats();
+        ComputeStreak();
+        ComputeFavorites();
+        ComputeTimeBuckets();
+    }
+
+    private DateTime PeriodStart()
+    {
+        var now = DateTime.Now;
+        return ActivePeriod switch
+        {
+            StatsPeriod.Week => StartOfWeek(now, DayOfWeek.Monday),
+            StatsPeriod.Month => new DateTime(now.Year, now.Month, 1),
+            _ => new DateTime(now.Year, 1, 1)
+        };
+    }
+
+    private void ComputePeriodStats()
+    {
+        var from = PeriodStart();
+
+        var classInPeriod = ClassResults.Where(x => x.Date >= from).ToList();
+        var soloInPeriod = SoloTrainingResults.Where(x => x.Date >= from).ToList();
+
+        WorkoutsInPeriod = classInPeriod.Count + soloInPeriod.Count;
+
+        var classMinutes = classInPeriod.Sum(x => x.DurationMin);
+        var soloMinutes = (int)Math.Round(soloInPeriod.Sum(x => x.DurationMinutes));
+        MinutesInPeriod = classMinutes + soloMinutes;
+
+        CaloriesInPeriod = (int)Math.Round(classInPeriod.Sum(x => x.CaloriesBurned));
+    }
+
+    private void ComputeStreak()
+    {
+        var allWorkoutDates = new List<DateTime>();
+        allWorkoutDates.AddRange(ClassResults.Select(x => x.Date));
+        allWorkoutDates.AddRange(SoloTrainingResults.Select(x => x.Date));
+
+        if (allWorkoutDates.Count == 0)
+        {
+            StreakWeeks = 0;
+            StreakWorkouts = 0;
+            return;
+        }
+
+        var weekCounts = allWorkoutDates
+            .GroupBy(d => (Year: ISOWeek.GetYear(d), Week: ISOWeek.GetWeekOfYear(d)))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var today = DateTime.Today;
+        var curYear = ISOWeek.GetYear(today);
+        var curWeek = ISOWeek.GetWeekOfYear(today);
+
+        int streakWeeks = 0;
+        int streakWorkouts = 0;
+
+        var y = curYear;
+        var w = curWeek;
+
+        for (int i = 0; i < 60; i++)
+        {
+            var key = (Year: y, Week: w);
+            if (!weekCounts.TryGetValue(key, out var cnt) || cnt <= 0)
+                break;
+
+            streakWeeks++;
+            streakWorkouts += cnt;
+
+            w--;
+            if (w <= 0)
+            {
+                y--;
+                w = ISOWeek.GetWeeksInYear(y);
+            }
+        }
+
+        StreakWeeks = streakWeeks;
+        StreakWorkouts = streakWorkouts;
+    }
+
+    private void ComputeFavorites()
+    {
+        var cutoff = DateTime.Now.AddDays(-FavoritesWindowDays);
+
+        var soloRecent = SoloTrainingResults.Where(s => s.Date >= cutoff).ToList();
+        var allExercises = soloRecent.SelectMany(s => s.Exercises ?? new List<Exercise>()).ToList();
+
+        TopExercises = allExercises
+            .GroupBy(e => e.ExerciseType)
+            .Select(g =>
+            {
+                var totalSets = g.Sum(x => x.Sets?.Count ?? 0);
+                var totalVolume = g.Sum(x => x.Volume);
+                return new FavRow(
+                    Name: g.Key.ToString(),
+                    Details: $"{totalSets} sæt, {Math.Round(totalVolume, 0)} volume",
+                    Count: totalSets
+                );
+            })
+            .OrderByDescending(x => x.Count)
+            .ThenBy(x => x.Name)
+            .Take(5)
+            .ToList();
+
+        TopClasses = ClassResults
+            .GroupBy(c => c.Category)
+            .Select(g =>
+            {
+                var count = g.Count();
+                var minutes = g.Sum(x => x.DurationMin);
+                return new FavRow(
+                    Name: g.Key.ToString(),
+                    Details: $"{minutes} min total",
+                    Count: count
+                );
+            })
+            .OrderByDescending(x => x.Count)
+            .ThenBy(x => x.Name)
+            .Take(5)
+            .ToList();
+    }
+
+    private void ComputeTimeBuckets()
+    {
+        var all = new List<DateTime>();
+        all.AddRange(ClassResults.Select(x => x.Date));
+        all.AddRange(SoloTrainingResults.Select(x => x.Date));
+
+        var counts = new int[5];
+
+        foreach (var d in all)
+        {
+            var h = d.Hour;
+            int idx =
+                (h >= 6 && h < 10) ? 0 :
+                (h >= 10 && h < 14) ? 1 :
+                (h >= 14 && h < 18) ? 2 :
+                (h >= 18 && h < 22) ? 3 :
+                4;
+
+            counts[idx]++;
+        }
+
+        var labels = new[]
+        {
+            "Morgen\n06-10",
+            "Formiddag\n10-14",
+            "Eftermiddag\n14-18",
+            "Aften\n18-22",
+            "Nat\n22-06"
+        };
+
+        var max = Math.Max(1, counts.Max());
+        var topIndex = Array.IndexOf(counts, max);
+
+        var ui = new List<TimeBucketUI>();
+        for (int i = 0; i < 5; i++)
+        {
+            var height = (int)Math.Round(30 + (counts[i] * 100.0 / max));
+            ui.Add(new TimeBucketUI
+            {
+                Label = labels[i],
+                Value = counts[i],
+                HeightPx = height,
+                IsTop = i == topIndex && counts[i] > 0
+            });
+        }
+
+        TimeBuckets = ui;
+
+        if (counts.Sum() == 0)
+        {
+            TimeInsight = "Ikke nok data endnu til et tydeligt mønster.";
+            return;
+        }
+
+        var best = labels[topIndex].Split('\n')[0];
+        TimeInsight = $"Du træner oftest om: {best}.";
+    }
+
+    private static DateTime StartOfWeek(DateTime dt, DayOfWeek startOfWeek)
+    {
+        int diff = (7 + (dt.DayOfWeek - startOfWeek)) % 7;
+        return dt.Date.AddDays(-1 * diff);
+    }
+
+    private readonly record struct FavRow(string Name, string Details, int Count);
+
+    private sealed class TimeBucketUI
+    {
+        public string Label { get; set; } = "";
+        public int Value { get; set; }
+        public int HeightPx { get; set; }
+        public bool IsTop { get; set; }
+        public string HeightPxpx => $"{HeightPx}px";
+    }
+
+    private sealed class CompareMetric
+    {
+        public CompareMetric(string name, double you, double avg, string unit, bool hasAnyWorkouts)
+        {
+            Name = name;
+            You = you;
+            Avg = avg;
+            Unit = unit;
+
+            var max = Math.Max(1, Math.Max(You, Avg));
+            YouWidth = (int)Math.Round((You / max) * 100);
+            AvgWidth = (int)Math.Round((Avg / max) * 100);
+
+            YouText = $"{Math.Round(You, 1)}{unit}";
+            AvgText = $"{Math.Round(Avg, 1)}{unit}";
+
+            if (!hasAnyWorkouts)
+            {
+                IsPositive = false;
+                DiffText = "Ingen data endnu";
+                return;
+            }
+
+            if (Avg == 0)
+            {
+                IsPositive = You >= 0;
+                DiffText = "Ingen gennemsnitsdata endnu";
+                return;
+            }
+
+            var diff = ((You - Avg) / Avg) * 100.0;
+            IsPositive = diff >= 0;
+            DiffText = $"{(IsPositive ? "+" : "")}{Math.Round(diff, 0)}% {(IsPositive ? "over" : "under")} gennemsnit";
+        }
+
+        public string Name { get; }
+        public double You { get; }
+        public double Avg { get; }
+        public string Unit { get; }
+
+        public int YouWidth { get; }
+        public int AvgWidth { get; }
+
+        public bool IsPositive { get; }
+        public string DiffText { get; }
+        public string YouText { get; }
+        public string AvgText { get; }
+    }
+
+    private readonly record struct LeaderboardRow(bool IsFirst, string RankIcon, string Name, string Stats, int Score);
 }

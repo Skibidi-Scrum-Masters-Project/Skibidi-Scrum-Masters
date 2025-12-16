@@ -1,0 +1,241 @@
+@page "/trainer/session/select/{CoachId}"
+
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components
+@using FitLifeFitness.Components.Layout
+@using FitLifeFitness.Services
+@using FitLifeFitness.Models
+
+@inject CoachingService CoachingService
+@inject UserService UserService
+@inject NavigationManager Nav
+
+@layout PhoneLayout
+
+<div class="choose-session">
+    <section class="hero">
+        <div class="hero-top">
+            <button class="ghost-icon" type="button" @onclick="GoBack" aria-label="Tilbage">
+                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M15 18l-6-6 6-6"></path>
+                </svg>
+            </button>
+
+            <div class="hero-text">
+                <h2 class="title">Vælg en ledig tid</h2>
+                <p class="sub">Hos @_coachDisplayName</p>
+            </div>
+        </div>
+
+        <div class="hero-pills">
+            <div class="pill">
+                <span class="pill-dot"></span>
+                @if (_sessions.Count == 1)
+                {
+                    <span class="pill-text">@(_sessions.Count) tid</span>
+                }
+                else
+                {
+                    <span class="pill-text">@(_sessions.Count) tider</span>
+                }
+            </div>
+        </div>
+    </section>
+
+    <div class="body">
+        @if (_isLoading)
+        {
+            <div class="card">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Indlæser ledige tider...</p>
+                </div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="card">
+                <div class="empty">
+                    <div class="empty-ico">⚠️</div>
+                    <div class="empty-title">Noget gik galt</div>
+                    <div class="empty-sub">@_error</div>
+
+                    <div class="btn-row" style="margin-top:14px;">
+                        <button class="ghost-btn" type="button" @onclick="GoBack">Tilbage</button>
+                        <button class="primary-btn" type="button" @onclick="Reload">Prøv igen</button>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (!_sessions.Any())
+        {
+            <div class="card">
+                <div class="empty">
+                    <div class="empty-ico">🕐</div>
+                    <div class="empty-title">Ingen ledige tider</div>
+                    <div class="empty-sub">Der er ingen ledige sessioner for @_coachDisplayName lige nu.</div>
+
+                    <button class="ghost-btn" type="button" style="margin-top:14px;" @onclick="GoBack">
+                        Tilbage
+                    </button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <section class="card">
+                <div class="section-head">
+                    <div class="section-title">
+                        <span class="dot available"></span>
+                        <span class="section-title-text available">Ledige sessioner</span>
+                    </div>
+                    <div class="section-sub">Tryk Book på den tid du vil have.</div>
+                </div>
+
+                <div class="list">
+                    @foreach (var session in _sessions)
+                    {
+                        <article class="row">
+                            <div class="left">
+                                <div class="date">@FormatDate(session.StartTime)</div>
+                                <div class="time">@FormatTime(session.StartTime) - @FormatTime(session.EndTime)</div>
+                            </div>
+
+                            <button class="book-btn" type="button" @onclick="() => GoToBooking(session.Id!)">
+                                Book
+                                <svg viewBox="0 0 24 24" class="arrow" focusable="false" aria-hidden="true">
+                                    <path d="M5 12h14"></path>
+                                    <path d="M12 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </article>
+                    }
+                </div>
+            </section>
+
+            <div class="todo-card">
+                <div class="todo-title">TODO</div>
+                <ul class="todo-list">
+                    <li>Filtrér tider: kun fremtidige sessioner</li>
+                    <li>Sorter: nærmeste først</li>
+                    <li>Vis varighed og evt. pris</li>
+                    <li>Vis “booket” toast efter booking</li>
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string CoachId { get; set; } = "";
+
+    private List<CoachingSession.SessionDto> _sessions = new();
+    private bool _isLoading = true;
+    private string? _error;
+
+    private UserDto? _coachUser;
+    private string _coachDisplayName = "Træner";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(CoachId))
+            {
+                _error = "CoachId mangler";
+                _sessions = new();
+                _coachUser = null;
+                _coachDisplayName = "Træner";
+                return;
+            }
+
+            await LoadCoachAsync(CoachId);
+
+            var response = await CoachingService.GetAvailableSessionsForCoachIdAsync(CoachId);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = $"Kunne ikke hente tider ({(int)response.StatusCode})";
+                _sessions = new();
+                return;
+            }
+
+            _sessions =
+                await response.Content.ReadFromJsonAsync<List<CoachingSession.SessionDto>>()
+                ?? new();
+
+            _sessions = _sessions
+                .Where(s => s.StartTime.ToLocalTime() >= DateTime.Now.AddMinutes(-1))
+                .OrderBy(s => s.StartTime)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _sessions = new();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadCoachAsync(string coachId)
+    {
+        try
+        {
+            var res = await UserService.GetUserByIdAsync(coachId);
+            if (res.IsSuccessStatusCode)
+            {
+                _coachUser = await res.Content.ReadFromJsonAsync<UserDto>();
+            }
+            else
+            {
+                _coachUser = null;
+            }
+        }
+        catch
+        {
+            _coachUser = null;
+        }
+
+        _coachDisplayName = GetDisplayName(_coachUser, coachId);
+    }
+
+    private async Task Reload() => await LoadAsync();
+
+    private void GoBack() => Nav.NavigateTo("/trainer/book");
+
+    private void GoToBooking(string sessionId)
+    {
+        Nav.NavigateTo($"/trainer/session/book/{sessionId}");
+    }
+
+    private string FormatDate(DateTime dt) => dt.ToLocalTime().ToString("dd/MM");
+    private string FormatTime(DateTime dt) => dt.ToLocalTime().ToString("HH:mm");
+
+    private static string GetDisplayName(UserDto? user, string? fallbackId)
+    {
+        if (user != null)
+        {
+            if (!string.IsNullOrWhiteSpace(user.FirstName))
+                return user.FirstName.Trim();
+
+            if (!string.IsNullOrWhiteSpace(user.Username))
+                return user.Username.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackId))
+            return $"Træner {fallbackId[..Math.Min(6, fallbackId.Length)]}";
+
+        return "Træner";
+    }
+}

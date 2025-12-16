@@ -8,7 +8,6 @@
     gap:0;
 }
 
-
 .dashboard > .topbar{
     display:none;
 }
@@ -105,6 +104,11 @@
 .primary-cta:hover,
 .primary-cta:focus{background:var(--green);outline:none;}
 .primary-cta:active{transform:scale(0.98);}
+.primary-cta:disabled{
+    opacity:0.6;
+    cursor:not-allowed;
+    box-shadow:none;
+}
 
 /* Crowd */
 .crowd-card{
@@ -142,13 +146,11 @@
 
 .bar-fill{
     height:100%;
+    width:100%;
     border-radius:50px;
     background:linear-gradient(90deg,var(--yellow-accent) 0%,var(--yellow-accent) 100%);
-    transition:width 0.5s ease;
+    transition:background-color 0.25s ease;
 }
-.bar-fill.low{width:25%;}
-.bar-fill.medium{width:55%;}
-.bar-fill.high{width:85%;}
 
 .crowd-info-row{
     display:flex;

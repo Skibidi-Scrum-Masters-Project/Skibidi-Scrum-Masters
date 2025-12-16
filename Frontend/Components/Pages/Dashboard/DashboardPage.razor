@@ -4,52 +4,141 @@
 @using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
 @using System.Net.Http.Json
+@using System.Globalization
 @using FitLifeFitness.Components.Layout
+
 @inject SocialService SocialService
 @inject TokenService TokenService
 @inject NavigationManager Nav
+@inject AnalyticsService AnalyticsService
 
 <div class="dashboard">
     <main class="dashboard-body">
-        <section class="welcome-card">
-            <div class="welcome-top">
-                <div class="welcome-left">
-                    <p class="welcome-small">Din status</p>
-                    <h2 class="welcome-title">@Username</h2>
 
-                    <div class="streak-row">
-                        <span class="streak-badge">🔥 5 ugers streak</span>
-                        <span class="streak-sub">Fortsæt for at slå din rekord</span>
+        @if (isAnalyticsLoading)
+        {
+            <section class="welcome-card">
+                <div class="welcome-top">
+                    <div class="welcome-left">
+                        <p class="welcome-small">Din status</p>
+                        <h2 class="welcome-title">@Username</h2>
+
+                        <div class="streak-row">
+                            <span class="streak-badge">🔥 Indlæser streak...</span>
+                            <span class="streak-sub">Henter dine data</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <p class="welcome-message">
-                Fantastisk arbejde. Du har trænet <strong>5 uger i streg</strong>. Klar til næste session?
-            </p>
+                <p class="welcome-message">Indlæser...</p>
 
-            <button class="primary-cta" @onclick="GoToTrainingPrograms" type="button">
-                Start dagens træning
-            </button>
-        </section>
+                <button class="primary-cta" disabled type="button">
+                    Start dagens træning
+                </button>
+            </section>
 
-        <section class="crowd-card">
-            <div class="crowd-head">
-                <span>Travlhed</span>
-                <span class="crowd-label">Nu</span>
-            </div>
+            <section class="crowd-card">
+                <div class="crowd-head">
+                    <span>Travlhed</span>
+                    <span class="crowd-label">Nu</span>
+                </div>
 
-            <div class="bar">
-                <div class="bar-fill medium"></div>
-            </div>
+                <div class="bar">
+                    <div class="bar-fill" style="width:100%"></div>
+                </div>
 
-            <div class="crowd-info-row">
-                <span>Medium: Forvent kort ventetid.</span>
-                <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
-            </div>
+                <div class="crowd-info-row">
+                    <span>Indlæser...</span>
+                    <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
+                </div>
 
-            <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
-        </section>
+                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+            </section>
+        }
+        else if (!string.IsNullOrWhiteSpace(analyticsError))
+        {
+            <section class="welcome-card">
+                <div class="welcome-top">
+                    <div class="welcome-left">
+                        <p class="welcome-small">Din status</p>
+                        <h2 class="welcome-title">@Username</h2>
+
+                        <div class="streak-row">
+                            <span class="streak-badge">⚠️ Kunne ikke hente data</span>
+                            <span class="streak-sub">@analyticsError</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="welcome-message">
+                    Vi kunne ikke hente dine streak og travlhed lige nu.
+                </p>
+
+                <button class="primary-cta" @onclick="GoToTrainingPrograms" type="button">
+                    Start dagens træning
+                </button>
+            </section>
+
+            <section class="crowd-card">
+                <div class="crowd-head">
+                    <span>Travlhed</span>
+                    <span class="crowd-label">Nu</span>
+                </div>
+
+                <div class="bar">
+                    <div class="bar-fill" style="width:100%"></div>
+                </div>
+
+                <div class="crowd-info-row">
+                    <span>Ingen data</span>
+                    <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
+                </div>
+
+                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+            </section>
+        }
+        else
+        {
+            <section class="welcome-card">
+                <div class="welcome-top">
+                    <div class="welcome-left">
+                        <p class="welcome-small">Din status</p>
+                        <h2 class="welcome-title">@Username</h2>
+
+                        <div class="streak-row">
+                            <span class="streak-badge">🔥 @StreakWeeks ugers streak</span>
+                            <span class="streak-sub">@StreakSubtitle</span>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="welcome-message">
+                    @WelcomeMessage
+                </p>
+
+                <button class="primary-cta" @onclick="GoToTrainingPrograms" type="button">
+                    Start dagens træning
+                </button>
+            </section>
+
+            <section class="crowd-card">
+                <div class="crowd-head">
+                    <span>Travlhed</span>
+                    <span class="crowd-label">Nu</span>
+                </div>
+
+                <div class="bar">
+                    <div class="bar-fill" style="width:100%; background:@CrowdColor"></div>
+                </div>
+
+                <div class="crowd-info-row">
+                    <span>@CrowdInfoText</span>
+                    <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
+                </div>
+
+                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+            </section>
+        }
 
         <section class="action-stack">
             <button class="stack-card" @onclick="GoToPersonalTraining" type="button">
@@ -146,26 +235,73 @@
                 }
             }
         </section>
+
     </main>
 </div>
 
 @code {
     private string? LoggedInUserId { get; set; }
     private string? Username { get; set; }
-    private string UserInitial => GetInitial(Username);
 
     private string activeFeedTab = "all";
     private bool isFeedLoading;
     private string feedError = string.Empty;
-
     private List<Post> feedItems = new();
+
+    private bool isAnalyticsLoading;
+    private string analyticsError = string.Empty;
+
+    private List<ClassResultDTO> ClassResults = new();
+    private List<SoloTrainingResultsDTO> SoloTrainingResults = new();
+    private int CrowdCount;
+
+    private const int MaxPeopleCapacity = 2;
+
+    private int StreakWeeks { get; set; }
+    private int StreakWorkouts { get; set; }
+
+    private bool HasAnyWorkouts => (ClassResults?.Count ?? 0) > 0 || (SoloTrainingResults?.Count ?? 0) > 0;
+
+    private string StreakSubtitle =>
+        HasAnyWorkouts
+            ? "Fortsæt for at slå din rekord"
+            : "Gennemfør din første træning for at starte en streak";
+
+    private string WelcomeMessage =>
+        HasAnyWorkouts
+            ? $"Fantastisk arbejde. Du har trænet {StreakWeeks} uger i streg. Klar til næste session?"
+            : "Du har ingen træninger endnu. Start din første træning og byg en streak op.";
+
+    private int CrowdPercent
+    {
+        get
+        {
+            if (MaxPeopleCapacity <= 0) return 0;
+            var p = (int)Math.Round((CrowdCount / (double)MaxPeopleCapacity) * 100.0);
+            return Math.Clamp(p, 0, 100);
+        }
+    }
+
+    private string CrowdLabel => GetLevelLabel(CrowdPercent);
+    private string CrowdColor => GetLevelColor(CrowdPercent);
+
+    private string CrowdInfoText => CrowdLabel switch
+    {
+        "Roligt" => "Roligt: Forvent ingen ventetid.",
+        "Mellem" => "Moderat: Forvent kort ventetid.",
+        "Travlt" => "Travlt: Forvent ventetid ved populære maskiner.",
+        _ => "Meget travlt: Overvej at komme senere."
+    };
 
     protected override async Task OnInitializedAsync()
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
 
-        await LoadFeedAsync();
+        await Task.WhenAll(
+            LoadAnalyticsAsync(),
+            LoadFeedAsync()
+        );
     }
 
     private async Task SwitchTab(string tab)
@@ -173,6 +309,93 @@
         if (activeFeedTab == tab) return;
         activeFeedTab = tab;
         await LoadFeedAsync();
+    }
+
+    private async Task LoadAnalyticsAsync()
+    {
+        isAnalyticsLoading = true;
+        analyticsError = string.Empty;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            {
+                analyticsError = "Kunne ikke finde bruger id. Log ind igen.";
+                return;
+            }
+
+            var res = await AnalyticsService.GetDashboardAsync(LoggedInUserId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                analyticsError = $"Analytics fejlede: {(int)res.StatusCode} {res.ReasonPhrase}";
+                return;
+            }
+
+            var dashboard = await res.Content.ReadFromJsonAsync<AnalyticsDashboardDTO>();
+
+            ClassResults = dashboard?.ClassResults ?? new();
+            SoloTrainingResults = dashboard?.SoloTrainingResults ?? new();
+            CrowdCount = dashboard?.CrowdCount ?? 0;
+
+            ComputeStreakFromResults();
+        }
+        catch (Exception ex)
+        {
+            analyticsError = $"Der skete en fejl: {ex.Message}";
+        }
+        finally
+        {
+            isAnalyticsLoading = false;
+        }
+    }
+
+    private void ComputeStreakFromResults()
+    {
+        var allWorkoutDates = new List<DateTime>();
+        allWorkoutDates.AddRange(ClassResults.Select(x => x.Date));
+        allWorkoutDates.AddRange(SoloTrainingResults.Select(x => x.Date));
+
+        if (allWorkoutDates.Count == 0)
+        {
+            StreakWeeks = 0;
+            StreakWorkouts = 0;
+            return;
+        }
+
+        var weekCounts = allWorkoutDates
+            .GroupBy(d => (Year: ISOWeek.GetYear(d), Week: ISOWeek.GetWeekOfYear(d)))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var today = DateTime.Today;
+        var curYear = ISOWeek.GetYear(today);
+        var curWeek = ISOWeek.GetWeekOfYear(today);
+
+        int streakWeeks = 0;
+        int streakWorkouts = 0;
+
+        var y = curYear;
+        var w = curWeek;
+
+        for (int i = 0; i < 60; i++)
+        {
+            var key = (Year: y, Week: w);
+            if (!weekCounts.TryGetValue(key, out var cnt) || cnt <= 0)
+                break;
+
+            streakWeeks++;
+            streakWorkouts += cnt;
+
+            w--;
+            if (w <= 0)
+            {
+                y--;
+                w = ISOWeek.GetWeeksInYear(y);
+            }
+        }
+
+        StreakWeeks = streakWeeks;
+        StreakWorkouts = streakWorkouts;
     }
 
     private async Task LoadFeedAsync()
@@ -238,12 +461,28 @@
         return dt.ToString("dd-MM-yyyy HH:mm");
     }
 
+    private static string GetLevelLabel(int percent) => percent switch
+    {
+        <= 30 => "Roligt",
+        <= 60 => "Mellem",
+        <= 85 => "Travlt",
+        _ => "Meget travlt"
+    };
+
+    private static string GetLevelColor(int percent) => percent switch
+    {
+        <= 30 => "rgb(36, 195, 106)",
+        <= 60 => "rgb(255, 193, 7)",
+        <= 85 => "rgb(255, 152, 0)",
+        _ => "rgb(235, 72, 72)"
+    };
+
     void GoToTrainingPrograms() => Nav.NavigateTo("/training");
     void GoToClasses() => Nav.NavigateTo("/classes");
     void GoToFeed() => Nav.NavigateTo("/feedpage");
     void GoToDashboard() => Nav.NavigateTo("/dashboard");
     void GoToLocker() => Nav.NavigateTo("/locker");
     void GoToProfile() => Nav.NavigateTo("/profile");
-    void GoToPersonalTraining() => Nav.NavigateTo("/personaltraining");
+    void GoToPersonalTraining() => Nav.NavigateTo("/trainer/book");
     void GoToCrowd() => Nav.NavigateTo("/crowd");
 }

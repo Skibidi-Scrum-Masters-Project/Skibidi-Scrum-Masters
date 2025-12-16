@@ -136,7 +136,7 @@
             </div>
             <div class="detail-item">
                 <span class="detail-icon">📍</span>
-                <span class="detail-text">@AvailableSeats/@TotalSeats ledige</span>
+                <span class="detail-text">@(TotalSeats - @AvailableSeats)/@TotalSeats Booket</span>
             </div>
         </div>
     </div>
@@ -305,7 +305,7 @@
             ClassName = SelectedClass.Name ?? "Ukendt hold";
             ClassTime = SelectedClass.StartTime.ToString("HH:mm") + " - " +
                         SelectedClass.Duration.ToString("HH:mm");
-            InstructorName = SelectedClass.InstructorId ?? "Ukendt";
+            InstructorName = await ResolveInstructorNameAsync(SelectedClass.InstructorId);
             Intensity = SelectedClass.Intensity;
             TotalSeats = SelectedClass.MaxCapacity;
             AvailableSeats = TotalSeats - (SelectedClass.BookingList?.Count ?? 0);
@@ -512,6 +512,31 @@
         public int Number { get; set; }
         public bool IsTaken { get; set; }
     }
+    
+    private async Task<string> ResolveInstructorNameAsync(string? instructorUserId)
+    {
+        if (string.IsNullOrWhiteSpace(instructorUserId))
+            return "Ukendt";
+
+        try
+        {
+            var userResponse = await UserService.GetUserByIdAsync(instructorUserId);
+            if (!userResponse.IsSuccessStatusCode)
+                return "Ukendt";
+
+            var user = await userResponse.Content.ReadFromJsonAsync<UserDto>();
+            if (user == null)
+                return "Ukendt";
+
+            var fullName = $"{user.FirstName} {user.LastName}".Trim();
+            return string.IsNullOrWhiteSpace(fullName) ? "Ukendt" : fullName;
+        }
+        catch
+        {
+            return "Ukendt";
+        }
+    }
+
 
     public class SeatRow
     {
