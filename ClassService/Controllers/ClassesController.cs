@@ -16,7 +16,7 @@ public class ClassesController : ControllerBase
     }
 
     [HttpPost("Classes")]
-    // [Authorize(Roles = "Admin,Coach")]
+    [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<FitnessClass>> CreateClassAsync(FitnessClass fitnessClass)
     {
         if (fitnessClass == null)
@@ -51,6 +51,7 @@ public class ClassesController : ControllerBase
         return Ok(createdClass);
     }
     [HttpGet("classes")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<FitnessClass>>> GetAllActiveClassesAsync()
     {
         var classes = await _classRepository.GetAllActiveClassesAsync();
@@ -63,6 +64,7 @@ public class ClassesController : ControllerBase
         return Ok(classes);
     }
     [HttpPut("classes/{classId}/{userId}")]
+    [Authorize]
     public async Task<ActionResult> BookClassForUser(string classId, string userId)
     {
         try
@@ -77,6 +79,7 @@ public class ClassesController : ControllerBase
 
     }
     [HttpPut("classes/{classId}/{userId}/friends")]
+    [Authorize]
     public async Task<ActionResult> BookClassForUserWithFriendsNoSeats(string classId, string userId, List<string> friends)
     {
         var classInfo = await _classRepository.GetClassByIdAsync(classId);
@@ -110,6 +113,7 @@ public class ClassesController : ControllerBase
 
     }
     [HttpPut("classes/{classId}/{userId}/friends/seats")]
+    [Authorize]
     public async Task<ActionResult> BookClassForUserWithFriendsWithSeats(string classId, string userId, [FromBody] BookClassWithFriendsRequestDTO request)
     {
         var classInfo = await _classRepository.GetClassByIdAsync(classId);
@@ -155,6 +159,7 @@ public class ClassesController : ControllerBase
         return Ok(await _classRepository.GetClassByIdAsync(classId));
     }
     [HttpPut("classes/{classId}/{userId}/{seat}")]
+    [Authorize]
     public async Task<ActionResult> BookClassForUserWithSeat(string classId, string userId, int seat)
     {
         if (string.IsNullOrEmpty(classId) || string.IsNullOrEmpty(userId))
@@ -176,6 +181,7 @@ public class ClassesController : ControllerBase
         }
     }
     [HttpPut("classes/{classId}/{userId}/cancel")]
+    [Authorize]
     public async Task<ActionResult> CancelClassBookingForUser(string classId, string userId)
     {
         if (string.IsNullOrEmpty(classId) || string.IsNullOrEmpty(userId))
@@ -193,6 +199,7 @@ public class ClassesController : ControllerBase
         }
     }
     [HttpDelete("classes/{classId}")]
+    [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult> DeleteClass(string classId)
     {
         if (string.IsNullOrEmpty(classId))
@@ -215,6 +222,7 @@ public class ClassesController : ControllerBase
         }
     }
     [HttpPost("classes/{classId}/finish")]
+    [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult> FinishClass(string classId)
     {
         if (string.IsNullOrEmpty(classId))
@@ -237,18 +245,21 @@ public class ClassesController : ControllerBase
         }
     }
     [HttpGet("classes/user/{userId}")]
+    [Authorize]
     public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByUserId(string userId)
     {
         var classes = await _classRepository.GetClassesByUserIdAsync(userId);
         return Ok(classes);
     }
     [HttpGet("classes/coach/{coachId}")]
+    [Authorize(Roles = "Admin,Coach")]
     public async Task<ActionResult<IEnumerable<FitnessClass>>> GetClassesByCoachId(string coachId)
     {
         var classes = await _classRepository.GetClassesByCoachIdAsync(coachId);
         return Ok(classes);
     }
     [HttpGet("classes/{classId}")]
+    [Authorize]
     public async Task<ActionResult<FitnessClass>> GetClassById(string classId)
     {
         var fitnessClass = await _classRepository.GetClassByIdAsync(classId);

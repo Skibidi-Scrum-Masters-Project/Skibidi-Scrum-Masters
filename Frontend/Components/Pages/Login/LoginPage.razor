@@ -1,4 +1,3 @@
-
 @page "/login"
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
@@ -120,19 +119,8 @@
                     }
                     catch { }
 
-                    // Await the provider to report authenticated (avoids polling and races)
-                    try
-                    {
-                        var ok = await AuthStateProvider.WaitForAuthenticationAsync(TimeSpan.FromSeconds(3));
-                    }
-                    catch { }
-
-                    try
-                    {
-                        await InvokeAsync(() => Nav.NavigateTo("/dashboard", forceLoad: false));
-                    }
-                    catch (TaskCanceledException) { }
-                    catch { }
+                    // Navigate with forceLoad to ensure authentication state is properly initialized
+                    Nav.NavigateTo("/dashboard", forceLoad: true);
                     return;
                 }
             }
@@ -188,9 +176,8 @@
         catch { }
         try
         {
-            await InvokeAsync(() => Nav.NavigateTo("/login", forceLoad: false));
+            Nav.NavigateTo("/login", forceLoad: true);
         }
-        catch (TaskCanceledException) { }
         catch { }
     }
 

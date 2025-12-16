@@ -45,17 +45,17 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Status endpoint - TBA" });
     }
 
-    [HttpPost("refresh")]
-    public async Task<IActionResult> RefreshToken(string userId, string jwtToken, Role role)
+    [HttpPost("refresh/{userId}/{refreshToken}/{role}")]
+    public async Task<IActionResult> RefreshToken(string userId, string refreshToken, Role role)
     {
         if (userId == null)
         {
             return BadRequest("userid cannot be null");
         }
 
-        if (jwtToken == null)
+        if (refreshToken == null)
         {
-            return BadRequest("JwtToken cannot be null");
+            return BadRequest("RefreshToken cannot be null");
         }
 
         if (role == null)
@@ -63,9 +63,9 @@ public class AuthController : ControllerBase
             return BadRequest("role cannot be null");
         }
         
-        if (jwtToken.Length < 10) return Unauthorized();
+        if (refreshToken.Length < 10) return Unauthorized();
 
-        return Ok(_authRepository.RefreshToken(userId, jwtToken, role));
+        return Ok(_authRepository.RefreshToken(userId, refreshToken, role));
     }
 
 
