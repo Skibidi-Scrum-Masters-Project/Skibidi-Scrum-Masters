@@ -131,6 +131,9 @@ public class UserRepositoryTests
     [TestMethod]
     public void GetAllUsersByRole_ShouldReturnUsersWithSpecifiedRole()
     {
+        // Ensure no seeded users interfere with this test
+        _database.DropCollection("Users");
+
         // Arrange
         var adminUser = new User
         {
@@ -161,6 +164,9 @@ public class UserRepositoryTests
     [TestMethod]
     public void GetAllUsersByRole_WithNoUsers_ShouldReturnEmptyList()
     {
+        // Ensure collection is empty (remove any seeded users)
+        _database.DropCollection("Users");
+
         // Act
         var guestUsers = _userRepository.GetUsersByRole(Role.Admin);
         // Assert
