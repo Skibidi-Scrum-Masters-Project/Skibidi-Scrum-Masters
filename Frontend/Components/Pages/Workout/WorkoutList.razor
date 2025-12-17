@@ -15,7 +15,6 @@
             <button class="workout-card" @onclick="() => OpenWorkout(workout.Id)">
                 <div class="workout-card-header">
                     <h3>@workout.Name</h3>
-                    
                 </div>
 
                 <p class="workout-focus">@workout.Description</p>
@@ -25,13 +24,14 @@
                 </p>
             </button>
         }
+
+        @if (ShowCreateProgramButton)
+        {
+            <div class="create-program-button-container">
+                <button class="create-program-button" @onclick="GoToCreateProgram">Create Program</button>
+            </div>
+        }
     </div>
-    @if (ShowCreateProgramButton)
-    {
-        <div class="create-program-button-container">
-            <button class="create-program-button" @onclick="GoToCreateProgram">Create Program</button>
-        </div>
-    }
 </div>
 
 @code {
@@ -83,15 +83,5 @@
     private void GoToCreateProgram()
     {
         Nav.NavigateTo("/create-workout-program");
-    }
-
-    public class WorkoutModel
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Level { get; set; } = "";
-        public string Focus { get; set; } = "";
-        public int ExerciseCount { get; set; }
-        public int EstimatedMinutes { get; set; }
     }
 }

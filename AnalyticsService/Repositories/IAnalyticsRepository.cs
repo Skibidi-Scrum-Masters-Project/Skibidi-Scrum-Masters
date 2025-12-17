@@ -20,5 +20,5 @@ public interface IAnalyticsRepository
    public Task<AnalyticsDashboardDTO> GetDashboardResult(string userId);
    
    Task<AnalyticsCompareDTO> GetCompareResultForCurrentMonth(string userId);
-
+   
 }; 
