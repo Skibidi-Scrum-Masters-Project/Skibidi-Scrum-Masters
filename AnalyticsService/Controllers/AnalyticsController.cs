@@ -110,4 +110,14 @@ public class AnalyticsController : ControllerBase
         var dto = await _analyticsRepository.GetCompareResultForCurrentMonth(userId);
         return Ok(dto);
     }
+
+
+    
+    
+    
+    
+    
+
+
+
 }

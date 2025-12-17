@@ -317,7 +317,7 @@ public class AnalyticsRepository : IAnalyticsRepository
 
     return dto;
 }
-    
+
 }
 
 

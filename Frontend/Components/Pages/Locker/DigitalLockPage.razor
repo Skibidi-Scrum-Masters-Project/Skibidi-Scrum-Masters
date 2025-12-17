@@ -6,86 +6,42 @@
 @inject TokenService TokenService
 @layout PhoneLayout
 
-<div class="locker-page">
-    <main class="locker-body">
-        @if (isLoading)
-        {
-            <section class="loading-card">
-                <div class="spinner"></div>
-                <p class="loading-text">Indlæser skabe...</p>
-            </section>
-        }
-        else if (!string.IsNullOrEmpty(error))
-        {
-            <section class="error-card">
-                <p class="error-text">❌ @error</p>
-                <button class="retry-button" @onclick="LoadLockers" type="button">
-                    Prøv igen
-                </button>
-            </section>
-        }
-        else if (myLocker != null)
-        {
-            <section class="my-locker-card">
-                <div class="locker-header">
-                    <h2 class="locker-number">Skab #@myLocker.LockerId</h2>
-                    <span class="status-badge">✓ Aktiv</span>
-                </div>
+<div class="locker-screen">
+    <h2>Locker test</h2>
 
-                <div class="bluetooth-section">
-                    <div class="bluetooth-icon">
-                        📶
-                    </div>
-                    <div class="bluetooth-status">Bluetooth tilsluttet</div>
-                    <div class="bluetooth-device">Locker @myLocker.LockerId</div>
-                </div>
+    @if (isLoading)
+    {
+        <p>Indlæser lockers…</p>
+    }
+    else if (!string.IsNullOrEmpty(error))
+    {
+        <p style="color:red">@error</p>
+    }
+    else if (!Lockers.Any())
+    {
+        <p>Ingen lockers fundet</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var locker in Lockers)
+            {
+                <li>
+                    <strong>LockerId:</strong> @locker.LockerId <br />
+                    <strong>Status:</strong> @(locker.IsLocked ? "Låst" : "Ledig") <br />
+                    <strong>UserId:</strong> @locker.UserId
 
-                <button class="action-button btn-unlock" @onclick="UnlockMyLocker" type="button">
-                    🔓 Lås op
-                </button>
-
-                <button class="action-button btn-lock" @onclick="() => LockLocker(myLocker)" type="button">
-                    🔒 Lås skab
-                </button>
-
-                <button class="action-button btn-secondary" @onclick="ReleaseLocker" type="button">
-                    Frigiv skab
-                </button>
-
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">Status</div>
-                        <div class="info-value">Låst</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-label">Batteri</div>
-                        <div class="info-value">92%</div>
-                    </div>
-                </div>
-            </section>
-        }
-        else if (availableLockers.Any())
-        {
-            <section class="available-section">
-                <h3 class="available-header">Vælg et ledigt skab</h3>
-                <div class="locker-grid">
-                    @foreach (var locker in availableLockers)
+                    @if (!locker.IsLocked)
                     {
-                        <button class="locker-item" @onclick="() => LockLocker(locker)" type="button">
-                            <div class="locker-item-number">#@locker.LockerId</div>
-                            <div class="locker-item-status">✓ Ledig</div>
+                        <button @onclick="() => LockLocker(locker)">
+                            Lock
                         </button>
                     }
-                </div>
-            </section>
-        }
-        else
-        {
-            <section class="empty-card">
-                <p class="empty-text">Ingen ledige skabe tilgængelige lige nu</p>
-            </section>
-        }
-    </main>
+                </li>
+                <hr />
+            }
+        </ul>
+    }
 </div>
 
 @code {
@@ -95,9 +51,6 @@
 
     private string lockerRoomId = "694132d584029a38d3635884";
     private string? userId;
-
-    private Locker? myLocker => Lockers.FirstOrDefault(l => l.UserId == userId);
-    private List<Locker> availableLockers => Lockers.Where(l => !l.IsLocked).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -144,30 +97,6 @@
             locker.LockerId,
             userId);
 
-        await LoadLockers();
-    }
-
-    private async Task UnlockMyLocker()
-    {
-        if (myLocker?.LockerId == null)
-            return;
-
-        // Her skulle Bluetooth unlock logik være
-        // For nu simulerer vi bare en unlock handling
-        await Task.Delay(500);
-        
-        // Evt. kald til AccessControlService.UnlockLockerAsync()
-        
-        await LoadLockers();
-    }
-
-    private async Task ReleaseLocker()
-    {
-        if (myLocker?.LockerId == null || userId == null)
-            return;
-
-        // Frigiv skabet så andre kan bruge det
-        // Dette skal tilpasses din API
-        await LoadLockers();
+        await LoadLockers(); // refresh list
     }
 }
