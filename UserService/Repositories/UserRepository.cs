@@ -13,6 +13,44 @@ public class UserRepository : IUserRepository
     {
         _usersCollection = database.GetCollection<User>("Users");
         _logger = logger;
+        try
+        {
+            var existing = _usersCollection.CountDocuments(Builders<User>.Filter.Empty);
+            if (existing == 0)
+            {
+                _logger.LogInformation("User collection empty — seeding default users");
+
+                var coach = new User
+                {
+                    Username = "coach",
+                    FirstName = "Coach",
+                    LastName = "User",
+                    Email = "coach@example.com",
+                    Role = Role.Coach,
+                    HashedPassword = "skibidicoach"
+                };
+
+                var admin = new User
+                {
+                    Username = "admin",
+                    FirstName = "Admin",
+                    LastName = "User",
+                    Email = "admin@example.com",
+                    Role = Role.Admin,
+                    HashedPassword = "skibidiadmin"
+                };
+
+                coach = HashPassword(coach);
+                admin = HashPassword(admin);
+
+                _usersCollection.InsertMany(new[] { coach, admin });
+                _logger.LogInformation("Seeded default users: 'coach' and 'admin'");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while seeding default users");
+        }
     }
     public UserRepository(IMongoDatabase database)
         : this(database, NullLogger<UserRepository>.Instance)
