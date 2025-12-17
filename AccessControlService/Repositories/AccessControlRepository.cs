@@ -167,6 +167,9 @@ public class AccessControlRepository : IAccessControlRepository
 
     public Task<DateTime?> GetUserStatus(string userId)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+            return Task.FromResult<DateTime?>(null);
+        
         var entry = _entryPoints
             .Find(ep => ep.UserId == userId)
             .SortByDescending(ep => ep.EnteredAt)
@@ -209,4 +212,20 @@ public class AccessControlRepository : IAccessControlRepository
 
         return Task.FromResult(locker);
     }
+
+    public async Task<string> GetLockerRoomId()
+    {
+        var lockerRoomId = await _lockerRooms
+            .Find(_ => true)
+            .Project(x => x.Id)
+            .FirstOrDefaultAsync();
+
+        if (lockerRoomId == null)
+            throw new InvalidOperationException("No locker room found.");
+
+        return lockerRoomId;
+    }
+
+
+
 }
