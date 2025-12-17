@@ -1,3 +1,4 @@
+using System;
 using FitnessApp.Shared.Models;
 using MongoDB.Driver;
 using MongoDB.Bson;
