@@ -20,6 +20,16 @@ public class AccessControlService
 
     public Task<HttpResponseMessage> GetAvailableLockersAsync(string lockerRoomId)
         => _httpClient.GetAsync($"/api/accesscontrol/{lockerRoomId}/available");
+    
+    public Task<HttpResponseMessage> EvaluateStatus(string userId)
+        => _httpClient.GetAsync($"/api/userstatus/{userId}");
+    
+    public Task<HttpResponseMessage> GetLockerForUserAsync(
+        string lockerRoomId,
+        string userId)
+        => _httpClient.GetAsync(
+            $"/api/accesscontrol/locker/{lockerRoomId}/user/{userId}");
+    
 
     public Task<HttpResponseMessage> LockLockerAsync(
         string lockerRoomId,
