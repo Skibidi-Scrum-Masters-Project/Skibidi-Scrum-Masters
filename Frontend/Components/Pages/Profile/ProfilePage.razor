@@ -1,440 +1,276 @@
 @page "/profile"
 @using FitLifeFitness.Components.Layout
-@using FitLifeFitness.Models
-@using FitLifeFitness.Services
-@using System.Net.Http.Json
-@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Routing
 @layout PhoneLayout
 @inject NavigationManager Nav
 
-@inject TokenService TokenService
-@inject UserService UserService
-@inject SocialService SocialService
-@inject ClassService ClassService
-@inject AnalyticsService AnalyticsService
+<div class="mehub">
 
-<div class="profile-page">
-    @if (isLoading)
-    {
-        <section class="profile-hero-card">
-            <div class="profile-avatar-large">..</div>
-            <h2 class="profile-name">Indlæser</h2>
-            <p class="profile-meta">Henter dine data</p>
-            <div class="membership-badge">
-                <span>Vent et øjeblik</span>
-            </div>
-        </section>
-    }
-    else if (!string.IsNullOrWhiteSpace(error))
-    {
-        <section class="profile-hero-card">
-            <div class="profile-avatar-large">!</div>
-            <h2 class="profile-name">Noget gik galt</h2>
-            <p class="profile-meta">@error</p>
+    <header class="mehub-header">
+        <div class="mehub-avatar">@Initials</div>
+        <div class="mehub-header-text">
+            <h2 class="mehub-title">Min side</h2>
+            <p class="mehub-sub">@User.Name · @User.MemberId</p>
+        </div>
+    </header>
 
-            <button class="action-card" type="button" @onclick="Reload">
-                <div class="action-text">
-                    <div class="action-title">Prøv igen</div>
-                    <div class="action-subtitle">Genindlæs profilen</div>
-                </div>
-                <div class="action-arrow">›</div>
+    <section class="mehub-quick">
+        <button class="quick-tile" @onclick="@(()=>Go("/friends"))">
+            <div class="qt-title">Venner</div>
+            <div class="qt-meta">@Friends.Count personer</div>
+        </button>
+
+        <button class="quick-tile" @onclick="@(()=>Go("/my-classes"))">
+            <div class="qt-title">Mine hold</div>
+            <div class="qt-meta">@MyClasses.Count hold</div>
+        </button>
+
+        <button class="quick-tile" @onclick="@(()=>Go("/appointments"))">
+            <div class="qt-title">Aftaler</div>
+            <div class="qt-meta">@Appointments.Count kommende</div>
+        </button>
+
+        @if (IsCoach)
+        {
+            <button class="quick-tile coach" @onclick="@(()=>Go("/coach-appointments"))">
+                <div class="qt-title">Træningsaftaler</div>
+                <div class="qt-meta">@CoachAppointments.Count bookinger</div>
             </button>
-        </section>
-    }
-    else
-    {
-        <section class="profile-hero-card">
-            <div class="profile-avatar-large">
-                @Initials
-            </div>
+        }
+    </section>
 
-            <h2 class="profile-name">@DisplayName</h2>
+    <section class="mehub-card">
+        <div class="card-head">
+            <div class="card-title">Kommende</div>
 
-            @if (!string.IsNullOrWhiteSpace(MembershipLabel))
-            {
-                <div class="membership-badge">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                    <span>@MembershipLabel</span>
-                </div>
-            }
-        </section>
-
-        <section class="quick-stats">
-            <div class="stat-tile">
-                <div class="stat-number">@StatsTrainings</div>
-                <div class="stat-label">Træninger</div>
-            </div>
-            <div class="stat-tile">
-                <div class="stat-number">@StatsClasses</div>
-                <div class="stat-label">Hold</div>
-            </div>
-            <div class="stat-tile">
-                <div class="stat-number">@StatsFriends</div>
-                <div class="stat-label">Venner</div>
-            </div>
-        </section>
-
-        <div class="section-header">
-            <div class="section-title">Oversigt</div>
+            <button class="chip" @onclick="ToggleView">
+                @if (CalendarView == "List")
+                {
+                    <span>Kalender</span>
+                }
+                else
+                {
+                    <span>Liste</span>
+                }
+            </button>
         </div>
 
-        <section class="nav-grid">
-            <button class="nav-card" type="button" @onclick="GoMyClasses">
-                <div class="nav-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                </div>
-                <div class="nav-card-title">Mine Hold</div>
-                <div class="nav-card-subtitle">@MyClassesSubtitle</div>
-                <div class="nav-card-arrow">›</div>
-            </button>
+        @if (CalendarView == "List")
+        {
+            <div class="event-list">
+                @foreach (var e in UpcomingSorted.Take(6))
+                {
+                    <div class="event-row" @onclick="@(()=>OpenEvent(e))">
+                        <div class="event-date">
+                            <div class="ed-day">@e.Start.ToString("dd")</div>
+                            <div class="ed-mon">@e.Start.ToString("MMM")</div>
+                        </div>
+                        <div class="event-info">
+                            <div class="ei-title">@e.Title</div>
+                            <div class="ei-meta">@e.Start.ToString("ddd HH:mm") · @e.Location</div>
+                        </div>
+                        <div class="event-tag @TagClass(e.Kind)">@KindLabel(e.Kind)</div>
+                    </div>
+                }
 
-            <button class="nav-card" type="button" @onclick="GoAppointments">
-                <div class="nav-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
+                @if (!UpcomingSorted.Any())
+                {
+                    <div class="empty">Ingen kommende aktiviteter endnu</div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="mini-calendar">
+                <div class="mc-head">
+                    <button class="mc-nav" @onclick="PrevWeek">‹</button>
+                    <div class="mc-title">@WeekStart.ToString("dd MMM") til @WeekStart.AddDays(6).ToString("dd MMM")</div>
+                    <button class="mc-nav" @onclick="NextWeek">›</button>
                 </div>
-                <div class="nav-card-title">Aftaler</div>
-                <div class="nav-card-subtitle">@AppointmentsSubtitle</div>
-                <div class="nav-card-arrow">›</div>
-            </button>
 
-            <button class="nav-card" type="button" @onclick="GoWorkouts">
-                <div class="nav-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M6 7h2v10H6z"></path>
-                        <path d="M16 7h2v10h-2z"></path>
-                        <path d="M8 10h8"></path>
-                        <path d="M8 14h8"></path>
-                    </svg>
+                <div class="mc-grid">
+                    @for (int i = 0; i < 7; i++)
+                    {
+                        var d = WeekStart.AddDays(i);
+                        var count = UpcomingSorted.Count(x => x.Start.Date == d.Date);
+                        <div class="mc-day @(d.Date == Today ? "today" : "")" @onclick="@(()=>OpenDay(d))">
+                            <div class="mc-dow">@d.ToString("ddd")</div>
+                            <div class="mc-num">@d.ToString("dd")</div>
+                            <div class="mc-dot @(count > 0 ? "on" : "")"></div>
+                            <div class="mc-count">@((count > 0) ? $"{count}" : "")</div>
+                        </div>
+                    }
                 </div>
-                <div class="nav-card-title">Træninger</div>
-                <div class="nav-card-subtitle">@WorkoutsSubtitle</div>
-                <div class="nav-card-arrow">›</div>
-            </button>
 
-            <button class="nav-card" type="button" @onclick="GoStatistics">
-                <div class="nav-card-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="20" x2="12" y2="10" />
-                        <line x1="18" y1="20" x2="18" y2="4" />
-                        <line x1="6" y1="20" x2="6" y2="16" />
-                    </svg>
-                </div>
-                <div class="nav-card-title">Statistik</div>
-                <div class="nav-card-subtitle">Se udvikling</div>
-                <div class="nav-card-arrow">›</div>
-            </button>
-        </section>
+                <div class="mc-hint">Tryk på en dag for at se aktiviteter</div>
+            </div>
+        }
+    </section>
 
-        <div class="section-header">
-            <div class="section-title">Indstillinger</div>
+    <section class="mehub-card">
+        <div class="card-head">
+            <div class="card-title">Genveje</div>
         </div>
 
-        <section class="action-stack">
-            <button class="action-card special" type="button" @onclick="OpenLocker">
-                <div class="action-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                </div>
-                <div class="action-text">
-                    <div class="action-title">Åbn mit skab</div>
-                    <div class="action-subtitle">@LockerSubtitle</div>
-                </div>
-                <div class="bluetooth-indicator">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2l4 4-4 4v-8zm0 12l4 4-4 4v-8zm-2-1l-4-4 4-4v8zm0 8l-4-4 4-4v8z" />
-                    </svg>
-                </div>
-                <div class="action-arrow">›</div>
-            </button>
+        <div class="shortcut-list">
+            <NavLink class="shortcut" href="/settings" Match="NavLinkMatch.Prefix">Indstillinger</NavLink>
+            <NavLink class="shortcut" href="/profile" Match="NavLinkMatch.Prefix">Profil</NavLink>
+            <NavLink class="shortcut" href="/support" Match="NavLinkMatch.Prefix">Support</NavLink>
+        </div>
+    </section>
 
-            <button class="action-card" type="button" @onclick="EditProfile">
-                <div class="action-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                </div>
-                <div class="action-text">
-                    <div class="action-title">Redigér profil</div>
-                    <div class="action-subtitle">Opdater oplysninger</div>
-                </div>
-                <div class="action-arrow">›</div>
-            </button>
+    <section class="mehub-card">
+        <div class="card-head">
+            <div class="card-title">Coach mode</div>
+        </div>
 
-            <button class="action-card danger" type="button" @onclick="Logout">
-                <div class="action-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
-                </div>
-                <div class="action-text">
-                    <div class="action-title">Log ud</div>
-                    <div class="action-subtitle">Afslut din session</div>
-                </div>
-                <div class="action-arrow">›</div>
+        <div class="coach-row">
+            <div class="coach-text">
+                <div class="coach-title">Jeg er coach</div>
+                <div class="coach-sub">Vis coach genveje og bookinger</div>
+            </div>
+            <button class="toggle @(IsCoach ? "on" : "")" @onclick="ToggleCoach">
+                <div class="knob"></div>
             </button>
-        </section>
-    }
+        </div>
+    </section>
+
 </div>
 
 @code {
-    private string? userId;
+    private string CalendarView = "List";
 
-    private ProfileUser? User;
-    private ProfileStats Stats = new();
+    private DateTime Today => DateTime.Today;
+    private DateTime WeekStart;
 
-    private bool isLoading = true;
-    private string? error;
+    private bool IsCoach = true;
 
-    protected override async Task OnInitializedAsync()
+    private UserModel User = new()
     {
-        await LoadAsync();
+        Name = "Bruger Eksempel",
+        Email = "bruger@fitlife.dk",
+        MemberId = "FLF-2048"
+    };
+
+    private List<FriendModel> Friends = new()
+    {
+        new() { Name = "Sara Jensen" },
+        new() { Name = "Mikkel Holm" },
+        new() { Name = "Nanna Larsen" },
+        new() { Name = "Jonas Madsen" }
+    };
+
+    private List<ClassModel> MyClasses = new()
+    {
+        new() { Title = "Pilates", Day = "Tirsdag", Time = "17:00" },
+        new() { Title = "HIIT", Day = "Torsdag", Time = "18:30" }
+    };
+
+    private List<EventModel> Appointments = new()
+    {
+        new() { Kind = EventKind.Appointment, Title = "Fysioterapi", Location = "Aarhus", Start = DateTime.Today.AddDays(1).AddHours(10) },
+        new() { Kind = EventKind.Class, Title = "Pilates", Location = "Studio 2", Start = DateTime.Today.AddDays(2).AddHours(17) },
+        new() { Kind = EventKind.Class, Title = "HIIT", Location = "Studio 1", Start = DateTime.Today.AddDays(4).AddHours(18).AddMinutes(30) }
+    };
+
+    private List<EventModel> CoachAppointments = new()
+    {
+        new() { Kind = EventKind.Coach, Title = "PT session", Location = "Gym floor", Start = DateTime.Today.AddDays(1).AddHours(14) },
+        new() { Kind = EventKind.Coach, Title = "Hold intro", Location = "Studio 3", Start = DateTime.Today.AddDays(3).AddHours(16) }
+    };
+
+    private IEnumerable<EventModel> UpcomingSorted =>
+        (IsCoach ? Appointments.Concat(CoachAppointments) : Appointments)
+        .Where(x => x.Start >= DateTime.Now.AddMinutes(-10))
+        .OrderBy(x => x.Start);
+
+    protected override void OnInitialized()
+    {
+        WeekStart = StartOfWeek(DateTime.Today, DayOfWeek.Monday);
     }
 
-    private async Task LoadAsync()
+    private void Go(string url) => Nav.NavigateTo(url);
+
+    private void ToggleView()
     {
-        isLoading = true;
-        error = null;
-
-        try
-        {
-            await TokenService.FlushPendingAsync();
-
-            userId = await TokenService.GetUserIdAsync();
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                Nav.NavigateTo("/login", forceLoad: true);
-                return;
-            }
-
-            await LoadUserFromUsersListAsync(userId);
-            await LoadStatsAsync(userId);
-        }
-        catch (Exception ex)
-        {
-            error = $"Der skete en fejl: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        CalendarView = CalendarView == "List" ? "Calendar" : "List";
     }
 
-    private async Task Reload()
+    private void ToggleCoach()
     {
-        await LoadAsync();
-        StateHasChanged();
+        IsCoach = !IsCoach;
     }
 
-    private async Task LoadUserFromUsersListAsync(string uid)
+    private void PrevWeek() => WeekStart = WeekStart.AddDays(-7);
+    private void NextWeek() => WeekStart = WeekStart.AddDays(7);
+
+    private void OpenDay(DateTime day)
     {
-        var fallbackName = await TokenService.GetUsernameAsync();
-
-        var resp = await UserService.GetAllUsersAsync();
-        if (!resp.IsSuccessStatusCode)
-        {
-            User = new ProfileUser
-            {
-                Name = fallbackName ?? uid,
-                MemberId = uid,
-                MemberSinceUtc = null,
-                MembershipLabel = ""
-            };
-            return;
-        }
-
-        await using var stream = await resp.Content.ReadAsStreamAsync();
-        using var doc = await JsonDocument.ParseAsync(stream);
-
-        string? nameFromApi = null;
-
-        if (doc.RootElement.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var u in doc.RootElement.EnumerateArray())
-            {
-                var id = GetString(u, "id") ?? GetString(u, "Id");
-                if (!string.Equals(id, uid, StringComparison.OrdinalIgnoreCase)) continue;
-
-                nameFromApi =
-                    GetString(u, "name") ??
-                    GetString(u, "Name") ??
-                    GetString(u, "username") ??
-                    GetString(u, "Username");
-
-                break;
-            }
-        }
-
-        User = new ProfileUser
-        {
-            Name = nameFromApi ?? fallbackName ?? uid,
-            MemberId = uid,
-            MemberSinceUtc = null,
-            MembershipLabel = ""
-        };
+        // Her kan du navigere til en filtreret aftale side
+        // Nav.NavigateTo($"/appointments?date={day:yyyy-MM-dd}");
     }
 
-    private async Task LoadStatsAsync(string uid)
+    private void OpenEvent(EventModel e)
     {
-        var stats = new ProfileStats();
-
-        stats.Friends = await CountArrayFromResponseAsync(() => SocialService.GetAllFriendsAsync(uid));
-        stats.Classes = await CountArrayFromResponseAsync(() => ClassService.GetClassesByUserIdAsync(uid));
-        stats.Trainings = await CountTrainingsThisMonthAsync(uid);
-
-        Stats = stats;
+        // Her kan du navigere til event details
+        // Nav.NavigateTo($"/appointments/{e.Id}");
     }
 
-    private async Task<int> CountTrainingsThisMonthAsync(string uid)
+    private string Initials =>
+        string.Join("", User.Name.Split(" ", StringSplitOptions.RemoveEmptyEntries).Select(x => x[0])).ToUpper();
+
+    private static DateTime StartOfWeek(DateTime date, DayOfWeek startDay)
     {
-        var now = DateTime.Now;
-        var month = now.Month;
-        var year = now.Year;
-
-        var classCount = 0;
-        var soloCount = 0;
-
-        try
-        {
-            var res = await AnalyticsService.GetClassResultsAsync(uid);
-            if (res.IsSuccessStatusCode)
-            {
-                var items = await res.Content.ReadFromJsonAsync<List<ClassResultDTO>>() ?? new List<ClassResultDTO>();
-                classCount = items.Count(x => x.Date.Month == month && x.Date.Year == year);
-            }
-        }
-        catch { }
-
-        try
-        {
-            var res = await AnalyticsService.GetSoloTrainingResultsAsync(uid);
-            if (res.IsSuccessStatusCode)
-            {
-                var items = await res.Content.ReadFromJsonAsync<List<SoloTrainingResultsDTO>>() ?? new List<SoloTrainingResultsDTO>();
-                soloCount = items.Count(x => x.Date.Month == month && x.Date.Year == year);
-            }
-        }
-        catch { }
-
-        return classCount + soloCount;
+        int diff = (7 + (date.DayOfWeek - startDay)) % 7;
+        return date.AddDays(-1 * diff).Date;
     }
 
-    private static async Task<int> CountArrayFromResponseAsync(Func<Task<HttpResponseMessage>> call)
+    private static string KindLabel(EventKind kind) => kind switch
     {
-        try
-        {
-            var res = await call();
-            if (!res.IsSuccessStatusCode) return 0;
+        EventKind.Class => "Hold",
+        EventKind.Coach => "Coach",
+        _ => "Aftale"
+    };
 
-            await using var stream = await res.Content.ReadAsStreamAsync();
-            using var doc = await JsonDocument.ParseAsync(stream);
+    private static string TagClass(EventKind kind) => kind switch
+    {
+        EventKind.Class => "tag-class",
+        EventKind.Coach => "tag-coach",
+        _ => "tag-apt"
+    };
 
-            return doc.RootElement.ValueKind == JsonValueKind.Array
-                ? doc.RootElement.GetArrayLength()
-                : 0;
-        }
-        catch
-        {
-            return 0;
-        }
+    public class UserModel
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string MemberId { get; set; } = "";
     }
 
-    private string DisplayName => string.IsNullOrWhiteSpace(User?.Name) ? "Profil" : User!.Name!;
-    private string Initials => BuildInitials(User?.Name) ?? "ME";
-
-    private string ProfileMeta
+    public class FriendModel
     {
-        get
-        {
-            var member = string.IsNullOrWhiteSpace(User?.MemberId) ? null : $"Medlem #{User!.MemberId}";
-            var since = User?.MemberSinceUtc.HasValue == true ? $"Siden {User!.MemberSinceUtc.Value:MMM yyyy}" : null;
-            return JoinMeta(member, since) ?? " ";
-        }
+        public string Name { get; set; } = "";
     }
 
-    private string MembershipLabel => string.IsNullOrWhiteSpace(User?.MembershipLabel) ? "" : User!.MembershipLabel!;
-
-    private int StatsTrainings => Stats.Trainings;
-    private int StatsClasses => Stats.Classes;
-    private int StatsFriends => Stats.Friends;
-
-    private string MyClassesSubtitle => Stats.Classes == 1 ? "1 aktivt hold" : $"{Stats.Classes} aktive hold";
-    private string AppointmentsSubtitle => "Se dine tider";
-    private string WorkoutsSubtitle => Stats.Trainings == 1 ? "1 i denne måned" : $"{Stats.Trainings} i denne måned";
-    private string LockerSubtitle => "Bluetooth skabslås";
-
-    private void GoMyClasses() => Nav.NavigateTo("/classes");
-    private void GoAppointments() => Nav.NavigateTo("/appointments");
-    private void GoWorkouts() => Nav.NavigateTo("/workouts");
-    private void GoStatistics() => Nav.NavigateTo("/statistics");
-
-    private void OpenLocker() => Nav.NavigateTo("/locker");
-    private void EditProfile() => Nav.NavigateTo("/profile/edit");
-
-    private async Task Logout()
+    public class ClassModel
     {
-        await TokenService.ClearAsync();
-        Nav.NavigateTo("/login", forceLoad: true);
+        public string Title { get; set; } = "";
+        public string Day { get; set; } = "";
+        public string Time { get; set; } = "";
     }
 
-    private static string? BuildInitials(string? name)
+    public enum EventKind
     {
-        if (string.IsNullOrWhiteSpace(name)) return null;
-
-        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 0) return null;
-
-        var first = parts[0].Length > 0 ? parts[0][0].ToString() : "";
-        var last = parts.Length > 1 && parts[^1].Length > 0 ? parts[^1][0].ToString() : "";
-
-        var initials = (first + last).ToUpperInvariant();
-        return string.IsNullOrWhiteSpace(initials) ? null : initials;
+        Appointment,
+        Class,
+        Coach
     }
 
-    private static string? JoinMeta(string? a, string? b)
+    public class EventModel
     {
-        if (string.IsNullOrWhiteSpace(a) && string.IsNullOrWhiteSpace(b)) return null;
-        if (string.IsNullOrWhiteSpace(a)) return b;
-        if (string.IsNullOrWhiteSpace(b)) return a;
-        return $"{a} · {b}";
-    }
-
-    private static string? GetString(JsonElement obj, string prop)
-    {
-        if (obj.ValueKind != JsonValueKind.Object) return null;
-        if (!obj.TryGetProperty(prop, out var el)) return null;
-        if (el.ValueKind == JsonValueKind.String) return el.GetString();
-        return null;
-    }
-
-    private sealed class ProfileStats
-    {
-        public int Trainings { get; set; }
-        public int Classes { get; set; }
-        public int Friends { get; set; }
-    }
-
-    private sealed class ProfileUser
-    {
-        public string? Name { get; set; }
-        public string? MemberId { get; set; }
-        public DateTime? MemberSinceUtc { get; set; }
-        public string? MembershipLabel { get; set; }
+        public string Id { get; set; } = Guid.NewGuid().ToString("N");
+        public EventKind Kind { get; set; }
+        public string Title { get; set; } = "";
+        public string Location { get; set; } = "";
+        public DateTime Start { get; set; }
     }
 }

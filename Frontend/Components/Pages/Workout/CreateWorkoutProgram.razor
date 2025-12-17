@@ -1,215 +1,134 @@
 @page "/create-workout-program"
 @using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
-@using Microsoft.AspNetCore.Components.Web
 @using FitLifeFitness.Components.Layout
 @layout PhoneLayout
 
-<div class="create-program-page">
-    <div class="create-program-body">
-        <div class="create-program-shell">
+<div class="create-program-header">
+    <h2>Create Workout Program</h2>
+</div>
 
-            <header class="create-hero">
-                <div class="hero-top">
-                    <button class="ghost-icon" type="button" @onclick="Cancel" aria-label="Tilbage">
-                        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                            <path d="M15 18l-6-6 6-6"></path>
-                        </svg>
-                    </button>
+<div class="create-program-form">
+    <label>Name</label>
+    <input @bind="Name" />
 
-                    <div class="hero-text">
-                        <h2 class="hero-title">Opret træningsprogram</h2>
-                        <p class="hero-subtitle">Byg et program med dine foretrukne øvelsestyper.</p>
-                    </div>
-                </div>
-                
-            </header>
+    <label>Description</label>
+    <input @bind="Description" />
 
-            <section class="form-card">
-                <div class="field">
-                    <label class="label">Navn</label>
-                    <input class="input"
-                           placeholder="Fx Push day"
-                           @bind="Name"
-                           @bind:event="oninput" />
-                </div>
-
-                <div class="field">
-                    <label class="label">Beskrivelse</label>
-                    <textarea class="textarea"
-                              placeholder="Kort beskrivelse af programmet..."
-                              @bind="Description"
-                              @bind:event="oninput"></textarea>
-                </div>
-
-                <div class="divider"></div>
-
-                <div class="field">
-                    <label class="label">Øvelsestyper</label>
-                    <p class="hint">Søg og tilføj. Tryk Enter for at vælge første forslag.</p>
-
-                    <div class="search-row">
-                        <input list="exercises-datalist"
-                               class="input search"
-                               placeholder="Søg eller vælg..."
-                               @bind="SearchText"
-                               @bind:event="oninput"
-                               @onkeydown="OnSearchKeyDown" />
-
-                        <button class="pill-btn"
-                                type="button"
-                                @onclick="AddExerciseType"
-                                disabled="@(!CanAddExercise)">
-                            Tilføj
-                        </button>
-                    </div>
-
-                    <datalist id="exercises-datalist">
-                        @foreach (var et in FilteredExerciseTypes)
-                        {
-                            <option value="@et.ToString()"></option>
-                        }
-                    </datalist>
-
-                    @if (!string.IsNullOrWhiteSpace(Message))
-                    {
-                        <div class="callout error">@Message</div>
-                    }
-
-                    @if (SelectedExerciseTypes.Count == 0)
-                    {
-                        <div class="empty-box">
-                            Ingen øvelsestyper valgt endnu.
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="chips">
-                            @foreach (var et in SelectedExerciseTypes)
-                            {
-                                <div class="chip">
-                                    <span class="chip-text">@et.ToString()</span>
-                                    <button class="chip-x"
-                                            type="button"
-                                            @onclick="() => RemoveExerciseType(et)"
-                                            aria-label="Fjern">
-                                        ✕
-                                    </button>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </section>
-
-            <div class="actions">
-                <button class="btn ghost" type="button" @onclick="Cancel">
-                    Annuller
-                </button>
-                <button class="btn primary" type="button" @onclick="CreateProgram">
-                    Opret program
-                </button>
-            </div>
-
-            <div class="spacer"></div>
+        <label>Exercise types</label>
+        <div class="search-row">
+            <input list="exercises-datalist" class="exercise-search" placeholder="Search or select exercises..." @bind="SearchText" @oninput="OnSearchInput" @onkeydown="OnSearchKeyDown" />
+            <button class="search-add-btn" @onclick="AddExerciseType">Add</button>
         </div>
+
+        <datalist id="exercises-datalist">
+            @foreach (var et in FilteredExerciseTypes)
+            {
+                <option value="@et.ToString()"></option>
+            }
+        </datalist>
+
+        <div class="selected-chips" style="margin-top:0.75rem;">
+            @foreach (var et in SelectedExerciseTypes)
+            {
+                <div class="chip">@et.ToString() <button @onclick="() => RemoveExerciseType(et)">x</button></div>
+            }
+        </div>
+
+    <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+        <button @onclick="CreateProgram">Create</button>
+        <button @onclick="Cancel">Cancel</button>
     </div>
+
+    @if (!string.IsNullOrEmpty(Message))
+    {
+        <div class="message">@Message</div>
+    }
 </div>
 
 @code {
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
-    private string Name = string.Empty;
-    private string Description = string.Empty;
-
-    private List<ExerciseType> AllExerciseTypes = new();
-    private List<ExerciseType> SelectedExerciseTypes = new();
-
-    private string SearchText = string.Empty;
-    private string Message = string.Empty;
-
+    private string Name { get; set; } = string.Empty;
+    private string Description { get; set; } = string.Empty;
+    private string ExerciseTypesText { get; set; } = string.Empty;
+    private List<ExerciseType> AllExerciseTypes { get; set; } = new List<ExerciseType>();
+    private List<ExerciseType> SelectedExerciseTypes { get; set; } = new List<ExerciseType>();
+    private string SearchText { get; set; } = string.Empty;
     private IEnumerable<ExerciseType> FilteredExerciseTypes =>
         string.IsNullOrWhiteSpace(SearchText)
             ? AllExerciseTypes
-            : AllExerciseTypes.Where(et =>
-                et.ToString().Contains(SearchText, StringComparison.OrdinalIgnoreCase));
-
-    private bool CanAddExercise =>
-        !string.IsNullOrWhiteSpace(SearchText)
-        && Enum.TryParse<ExerciseType>(SearchText, true, out _);
-    
-
-    protected override void OnInitialized()
-    {
-        AllExerciseTypes = Enum.GetValues(typeof(ExerciseType))
-            .Cast<ExerciseType>()
-            .ToList();
-    }
+            : AllExerciseTypes.Where(et => et.ToString().Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+    private string Message { get; set; } = string.Empty;
 
     private async Task CreateProgram()
     {
-        Message = string.Empty;
-
-        if (SelectedExerciseTypes.Count == 0)
-        {
-            Message = "Du skal vælge mindst 1 øvelsestype før du kan oprette programmet.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(Name))
-        {
-            Message = "Navn mangler.";
-            return;
-        }
 
         var program = new WorkoutProgramDTO
         {
-            Name = Name.Trim(),
-            Description = Description.Trim(),
-            ExerciseTypes = SelectedExerciseTypes.ToList()
+            Name = Name,
+            Description = Description,
+            ExerciseTypes = SelectedExerciseTypes
         };
 
         var response = await SoloTrainingService.CreateWorkoutProgramAsync(program);
-
         if (response.IsSuccessStatusCode)
+        {
             Nav.NavigateTo("/workouts");
+        }
         else
-            Message = "Kunne ikke oprette programmet.";
+        {
+            Message = "Failed to create program";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        AllExerciseTypes = Enum.GetValues(typeof(ExerciseType)).Cast<ExerciseType>().ToList();
     }
 
     private void AddExerciseType()
     {
-        Message = string.Empty;
-
-        if (Enum.TryParse<ExerciseType>(SearchText, true, out var et))
+        var value = SearchText?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(value)) return;
+        if (Enum.TryParse<ExerciseType>(value, true, out var et))
         {
-            if (!SelectedExerciseTypes.Contains(et))
-                SelectedExerciseTypes.Add(et);
-
+            if (!SelectedExerciseTypes.Contains(et)) SelectedExerciseTypes.Add(et);
             SearchText = string.Empty;
         }
     }
 
     private void RemoveExerciseType(ExerciseType et)
     {
-        Message = string.Empty;
-        SelectedExerciseTypes.Remove(et);
+        if (SelectedExerciseTypes.Contains(et)) SelectedExerciseTypes.Remove(et);
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        SearchText = e?.Value?.ToString() ?? string.Empty;
     }
 
     private void OnSearchKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key != "Enter") return;
-
-        var first = FilteredExerciseTypes.FirstOrDefault();
-        if (EqualityComparer<ExerciseType>.Default.Equals(first, default)) return;
-
-        if (!SelectedExerciseTypes.Contains(first))
-            SelectedExerciseTypes.Add(first);
-
-        SearchText = string.Empty;
-        Message = string.Empty;
+        if (e?.Key == "Enter")
+        {
+            // pick the top filtered result if any
+            var filtered = FilteredExerciseTypes;
+            if (filtered.Any())
+            {
+                var first = filtered.First();
+                if (!SelectedExerciseTypes.Contains(first))
+                {
+                    SelectedExerciseTypes.Add(first);
+                }
+                SearchText = string.Empty;
+            }
+        }
     }
 
-    private void Cancel() => Nav.NavigateTo("/workouts");
+    private void Cancel()
+    {
+        Nav.NavigateTo("/workouts");
+    }
 }

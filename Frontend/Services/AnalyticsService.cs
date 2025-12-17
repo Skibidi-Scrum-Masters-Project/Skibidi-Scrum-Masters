@@ -37,5 +37,4 @@ public class AnalyticsService
     {
         return await _httpClient.GetAsync($"/api/analytics/compare/month/{userId}");
     }
-    
 }

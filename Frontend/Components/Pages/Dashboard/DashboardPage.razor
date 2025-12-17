@@ -11,7 +11,6 @@
 @inject TokenService TokenService
 @inject NavigationManager Nav
 @inject AnalyticsService AnalyticsService
-@inject AccessControlService AcessControlService
 
 <div class="dashboard">
     <main class="dashboard-body">
@@ -44,8 +43,8 @@
                     <span class="crowd-label">Nu</span>
                 </div>
 
-                <div class="crowd-bar">
-                    <div class="crowd-bar-fill" style="width:35%; background:rgba(255,255,255,0.12)"></div>
+                <div class="bar">
+                    <div class="bar-fill" style="width:100%"></div>
                 </div>
 
                 <div class="crowd-info-row">
@@ -86,8 +85,8 @@
                     <span class="crowd-label">Nu</span>
                 </div>
 
-                <div class="crowd-bar">
-                    <div class="crowd-bar-fill" style="width:0%; background:rgba(255,255,255,0.12)"></div>
+                <div class="bar">
+                    <div class="bar-fill" style="width:100%"></div>
                 </div>
 
                 <div class="crowd-info-row">
@@ -128,10 +127,8 @@
                     <span class="crowd-label">Nu</span>
                 </div>
 
-                <div class="crowd-bar">
-                    <div class="crowd-bar-fill"
-                         style="width:@($"{CrowdPercent}%"); background:@CrowdColor">
-                    </div>
+                <div class="bar">
+                    <div class="bar-fill" style="width:100%; background:@CrowdColor"></div>
                 </div>
 
                 <div class="crowd-info-row">
@@ -251,8 +248,6 @@
     private string feedError = string.Empty;
     private List<Post> feedItems = new();
 
-    private bool checkedIn;
-
     private bool isAnalyticsLoading;
     private string analyticsError = string.Empty;
 
@@ -260,7 +255,7 @@
     private List<SoloTrainingResultsDTO> SoloTrainingResults = new();
     private int CrowdCount;
 
-    private const int MaxPeopleCapacity = 250;
+    private const int MaxPeopleCapacity = 2;
 
     private int StreakWeeks { get; set; }
     private int StreakWorkouts { get; set; }
@@ -282,7 +277,7 @@
         get
         {
             if (MaxPeopleCapacity <= 0) return 0;
-            var p = (int)Math.Round(CrowdCount / (double)MaxPeopleCapacity * 100.0);
+            var p = (int)Math.Round((CrowdCount / (double)MaxPeopleCapacity) * 100.0);
             return Math.Clamp(p, 0, 100);
         }
     }
@@ -308,7 +303,7 @@
             LoadFeedAsync()
         );
     }
-    
+
     private async Task SwitchTab(string tab)
     {
         if (activeFeedTab == tab) return;
@@ -482,7 +477,7 @@
         _ => "rgb(235, 72, 72)"
     };
 
-    void GoToTrainingPrograms() => Nav.NavigateTo("/workouts");
+    void GoToTrainingPrograms() => Nav.NavigateTo("/training");
     void GoToClasses() => Nav.NavigateTo("/classes");
     void GoToFeed() => Nav.NavigateTo("/feedpage");
     void GoToDashboard() => Nav.NavigateTo("/dashboard");
