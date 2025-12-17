@@ -15,15 +15,15 @@ Gå til static-mappen og start containerne:
 ```bash
 cd /static
 docker compose up -d
-
+```
 2. Testmiljø
 
 Naviger til test-miljøet og byg applikationen:
 Bash
-
+````bash
 cd /test_env
 docker compose up --build -d
-
+````
 👤 Testbrugere (Seeded)
 
 Følgende konti er præ-konfigureret i systemet:
