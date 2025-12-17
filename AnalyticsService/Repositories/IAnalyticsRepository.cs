@@ -1,5 +1,4 @@
 using AnalyticsService.Models;
-using TrainingType = FitnessApp.Shared.Models.TrainingType;
 
 public interface IAnalyticsRepository
 {

@@ -1,7 +1,6 @@
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace FitnessApp.Shared.Models
+namespace SoloTrainingService.Models
 {
     public class Workout
     {

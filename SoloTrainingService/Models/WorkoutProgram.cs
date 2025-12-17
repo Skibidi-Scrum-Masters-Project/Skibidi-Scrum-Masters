@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations;
 using FitnessApp.Shared.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using SoloTrainingService.Models;
+
 namespace FitnessApp.SoloTrainingService.Models
 {
     public class WorkoutProgram

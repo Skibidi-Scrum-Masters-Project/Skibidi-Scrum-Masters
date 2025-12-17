@@ -196,86 +196,89 @@ public class ClassRepository : IClassRepository
         return _classesCollection.DeleteOneAsync(c => c.Id == classId);
     }
 
-    public async Task FinishClass(string classId)
+public async Task FinishClass(string classId)
+{
+    var finishedClass = await GetClassByIdAsync(classId);
+    if (finishedClass == null) throw new Exception("Class not found.");
+
+    var caloriesBurnedTotal = CalculateCaloriesBurned(
+        finishedClass.Intensity,
+        finishedClass.Category,
+        finishedClass.Duration
+    );
+
+    var wattTotal = await CalculateWatt(
+        finishedClass.Intensity,
+        finishedClass.Category,
+        finishedClass.Duration
+    );
+
+    var occurredAtUtc = DateTime.UtcNow;
+
+    var analyticsClient = _httpClientFactory.CreateClient("AnalyticsService");
+    var socialClient = _httpClientFactory.CreateClient("SocialService");
+
+    foreach (var attendant in finishedClass.BookingList)
     {
-        var finishedClass = await GetClassByIdAsync(classId);
-        if (finishedClass == null) throw new Exception("Class not found.");
-
-        var caloriesBurnedTotal = CalculateCaloriesBurned(
-            finishedClass.Intensity,
-            finishedClass.Category,
-            finishedClass.Duration
-        );
-
-        var wattTotal = await CalculateWatt(
-            finishedClass.Intensity,
-            finishedClass.Category,
-            finishedClass.Duration
-        );
-
-        var occurredAtUtc = DateTime.UtcNow;
-
-        foreach (var attendant in finishedClass.BookingList)
+        var metric = new ClassResult
         {
-            var metric = new ClassResult
+            ClassId = classId,
+            UserId = attendant.UserId,
+            CaloriesBurned = caloriesBurnedTotal,
+            Watt = wattTotal,
+            DurationMin = finishedClass.Duration,
+            Date = occurredAtUtc,
+            EventId = Guid.NewGuid().ToString()
+        };
+
+        await _classResultsCollection.InsertOneAsync(metric);
+
+        try
+        {
+            // SocialService
+            var socialRes = await socialClient.PostAsJsonAsync(
+                "/internal/events/class-workout-completed",
+                metric
+            );
+
+            if (!socialRes.IsSuccessStatusCode)
             {
-                ClassId = classId,
-                UserId = attendant.UserId,
-                CaloriesBurned = caloriesBurnedTotal,
-                Watt = wattTotal,
-                DurationMin = finishedClass.Duration,
-                Date = DateTime.UtcNow,
-                EventId = Guid.NewGuid().ToString()
-            };
-
-            await _classResultsCollection.InsertOneAsync(metric);
-            
-        
-            try
-            {
-                await NotifySocialService(metric);
-                var analyticsClient = _httpClientFactory.CreateClient("AnalyticsService");
-
-                await analyticsClient.PostAsJsonAsync(
-                    "http://analyticsservice:8080/api/analytics/classes",
-                    new ClassResult
-                    {
-                        ClassId = metric.ClassId,
-                        UserId = metric.UserId,
-                        CaloriesBurned = metric.CaloriesBurned,
-                        Watt = metric.Watt,
-                        Category = finishedClass.Category, // enum → JSON → enum
-                        DurationMin = metric.DurationMin,
-                        Date = metric.Date
-                    }
-                );
-
+                var body = await socialRes.Content.ReadAsStringAsync();
+                Console.WriteLine($"SocialService event failed: {(int)socialRes.StatusCode} {body}");
             }
-            catch (Exception ex)
+
+            // AnalyticsService
+            var analyticsRes = await analyticsClient.PostAsJsonAsync(
+                "http://analyticsservice:8080/api/analytics/classes",
+                new ClassResult
+                {
+                    ClassId = metric.ClassId,
+                    UserId = metric.UserId,
+                    CaloriesBurned = metric.CaloriesBurned,
+                    Watt = metric.Watt,
+                    Category = finishedClass.Category,
+                    DurationMin = metric.DurationMin,
+                    Date = metric.Date
+                }
+            );
+
+            if (!analyticsRes.IsSuccessStatusCode)
             {
-                // Stopper ikke finish hvis socialservice er nede
-                Console.WriteLine($"NotifySocialService failed for user {attendant.UserId} in class {classId}: {ex.Message}");
+                var body = await analyticsRes.Content.ReadAsStringAsync();
+                Console.WriteLine($"AnalyticsService event failed: {(int)analyticsRes.StatusCode} {body}");
             }
-            
         }
-
-        finishedClass.IsActive = false;
-        await _classesCollection.ReplaceOneAsync(c => c.Id == classId, finishedClass);
-    }
-
-
-
-    private async Task NotifySocialService(ClassResult evt)
-    {
-        var client = _httpClientFactory.CreateClient("SocialService");
-        var res = await client.PostAsJsonAsync("/internal/events/class-workout-completed", evt);
-
-        if (!res.IsSuccessStatusCode)
+        catch (Exception ex)
         {
-            var body = await res.Content.ReadAsStringAsync();
-            throw new Exception("SocialService event failed: " + (int)res.StatusCode + " " + body);
+            // stopper ikke finish hvis services er nede
+            Console.WriteLine($"FinishClass notify failed for user {attendant.UserId} in class {classId}: {ex.Message}");
         }
     }
+
+    finishedClass.IsActive = false;
+    await _classesCollection.ReplaceOneAsync(c => c.Id == classId, finishedClass);
+}
+
 
 
     public async Task<Double> CalculateWatt(Intensity intensity,

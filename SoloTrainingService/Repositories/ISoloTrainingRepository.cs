@@ -1,5 +1,7 @@
 using FitnessApp.Shared.Models;
 using FitnessApp.SoloTrainingService.Models;
+using SoloTrainingService.Models;
+
 public interface ISoloTrainingRepository
 {
     Task<WorkoutProgram> CreateWorkoutProgram(WorkoutProgram workoutProgram);
