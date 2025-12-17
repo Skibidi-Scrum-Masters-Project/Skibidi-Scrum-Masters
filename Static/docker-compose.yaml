@@ -5,7 +5,7 @@ services:
     container_name: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: secret123
+      MONGO_INITDB_ROOT_PASSWORD: abfmfitlifeskibidi
     ports:
       - 27018:27017
     volumes:
