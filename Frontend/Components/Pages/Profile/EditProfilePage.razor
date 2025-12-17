@@ -134,6 +134,7 @@
     private string? error;
     private string? saveMessage;
     private bool saveSuccess;
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,13 +143,14 @@
 
     private async Task LoadAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         isLoading = true;
         error = null;
         saveMessage = null;
 
         try
         {
-            await TokenService.FlushPendingAsync();
+
 
             userId = await TokenService.GetUserIdAsync();
             if (string.IsNullOrWhiteSpace(userId))
@@ -201,7 +203,7 @@
                 LicensePlate = licensePlate
             };
 
-            var resp = await UserService.UpdateUserAsync(userId!, updateDto);
+            var resp = await UserService.UpdateUserAsync(userId!, updateDto, jwt);
 
             if (resp.IsSuccessStatusCode)
             {

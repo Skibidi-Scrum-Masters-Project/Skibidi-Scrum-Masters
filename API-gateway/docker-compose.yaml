@@ -1,9 +1,12 @@
+version: '3.8'
+
 services:
-  # Fitness App Microservices
   authservice:
     image: asgermunk/fitnessapp-authservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
@@ -11,6 +14,8 @@ services:
     image: asgermunk/fitnessapp-userservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
@@ -18,6 +23,8 @@ services:
     image: asgermunk/fitnessapp-classservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
@@ -25,6 +32,8 @@ services:
     image: asgermunk/fitnessapp-socialservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
@@ -32,6 +41,8 @@ services:
     image: asgermunk/fitnessapp-solotrainingservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
@@ -39,6 +50,8 @@ services:
     image: asgermunk/fitnessapp-accesscontrolservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
@@ -46,6 +59,8 @@ services:
     image: asgermunk/fitnessapp-coachingservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
@@ -53,21 +68,27 @@ services:
     image: asgermunk/fitnessapp-analyticsservice:latest
     expose:
       - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
     networks:
       - skibidi
 
   frontend:
     image: asgermunk/fitnessapp-frontend:latest
-    expose:
-      - "8080"
-    # Persist DataProtection keys to host so keys survive container restarts.
-    # Creates ./data/frontend/dataprotection on the host and mounts it into the container.
-    volumes:
-      - ./data/frontend/dataprotection:/root/.aspnet/DataProtection-Keys
+    ports:
+      - "3001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ApiSettings__BaseUrl=http://nginx
+      - DATA_PROTECTION_PATH=/root/.aspnet/DataProtection-Keys
     networks:
       - skibidi
+    depends_on:
+      - nginx
+    volumes:
+      - ./data/frontend/dataprotection:/root/.aspnet/DataProtection-Keys
 
-  # NGINX API Gateway
   nginx:
     image: nginx:latest
     volumes:
@@ -81,9 +102,8 @@ services:
       - accesscontrolservice
       - coachingservice
       - analyticsservice
-      - frontend
     ports:
-      - "4000:80"
+      - "80:80"
     networks:
       - skibidi
 

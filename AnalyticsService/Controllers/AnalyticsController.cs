@@ -18,7 +18,7 @@ public class AnalyticsController : ControllerBase
 
     
     [HttpPost("classes")]
-    [Authorize]
+    
     public async Task<IActionResult> PostClassesAnalytics(
         [FromBody] ClassResultDTO dto)
     {
@@ -56,7 +56,7 @@ public class AnalyticsController : ControllerBase
     
     // Post solotraining results
     [HttpPost("solotraining")]
-    [Authorize]
+    
     public async Task<IActionResult> PostSoloTrainingResult([FromBody] SoloTrainingResultsDTO dto)
     {
         if (dto == null)
@@ -98,6 +98,7 @@ public class AnalyticsController : ControllerBase
     }
     
     [HttpGet("dashboard/{userId}")]
+    [Authorize]
     public async Task<IActionResult> GetDashboard(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))
@@ -108,6 +109,7 @@ public class AnalyticsController : ControllerBase
     }
     
     [HttpGet("compare/month/{userId}")]
+    [Authorize]
     public async Task<IActionResult> GetCompareForMonth(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))

@@ -345,7 +345,7 @@
         if (string.IsNullOrWhiteSpace(LoggedInUserId))
             return;
 
-        var res = await AcessControlService.GetUserStatus(LoggedInUserId);
+        var res = await AcessControlService.GetUserStatusAsync(LoggedInUserId,jwt);
         if (!res.IsSuccessStatusCode)
             return;
 
@@ -380,8 +380,8 @@
             analyticsError = string.Empty;
 
             var res = isCheckedIn
-                ? await AcessControlService.CloseDoorAsync(LoggedInUserId)
-                : await AcessControlService.OpenDoorAsync(LoggedInUserId);
+                ? await AcessControlService.CloseDoorAsync(LoggedInUserId, jwt)
+                : await AcessControlService.OpenDoorAsync(LoggedInUserId, jwt);
 
             if (!res.IsSuccessStatusCode)
             {
@@ -422,7 +422,7 @@
                 return;
             }
 
-            var res = await AnalyticsService.GetDashboardAsync(LoggedInUserId);
+            var res = await AnalyticsService.GetDashboardAsync(LoggedInUserId, jwt);
 
             if (!res.IsSuccessStatusCode)
             {

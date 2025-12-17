@@ -33,21 +33,6 @@ services:
       - loki
     networks:
       - skibidi
-  rabbitmq:
-    image: rabbitmq:management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"   # RabbitMQ main port (for apps)
-      - "15672:15672" # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    restart: unless-stopped
-    networks:
-      - skibidi
-
 volumes:
   mongodb-data:
   grafana_data:

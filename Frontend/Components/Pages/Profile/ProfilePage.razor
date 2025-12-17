@@ -201,6 +201,7 @@
 
     private bool isLoading = true;
     private string? error;
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
@@ -214,7 +215,7 @@
 
         try
         {
-            await TokenService.FlushPendingAsync();
+            jwt = await TokenService.GetTokenAsync();
 
             userId = await TokenService.GetUserIdAsync();
             if (string.IsNullOrWhiteSpace(userId))
@@ -294,8 +295,8 @@
     {
         var stats = new ProfileStats();
 
-        stats.Friends = await CountArrayFromResponseAsync(() => SocialService.GetAllFriendsAsync(uid));
-        stats.Classes = await CountArrayFromResponseAsync(() => ClassService.GetClassesByUserIdAsync(uid));
+        stats.Friends = await CountArrayFromResponseAsync(() => SocialService.GetAllFriendsAsync(uid, jwt));
+        stats.Classes = await CountArrayFromResponseAsync(() => ClassService.GetClassesByUserIdAsync(uid, jwt));
         stats.Trainings = await CountTrainingsThisMonthAsync(uid);
 
         Stats = stats;
@@ -312,7 +313,7 @@
 
         try
         {
-            var res = await AnalyticsService.GetClassResultsAsync(uid);
+            var res = await AnalyticsService.GetClassResultsAsync(uid, jwt);
             if (res.IsSuccessStatusCode)
             {
                 var items = await res.Content.ReadFromJsonAsync<List<ClassResultDTO>>() ?? new List<ClassResultDTO>();
@@ -323,7 +324,7 @@
 
         try
         {
-            var res = await AnalyticsService.GetSoloTrainingResultsAsync(uid);
+            var res = await AnalyticsService.GetSoloTrainingResultsAsync(uid, jwt);
             if (res.IsSuccessStatusCode)
             {
                 var items = await res.Content.ReadFromJsonAsync<List<SoloTrainingResultsDTO>>() ?? new List<SoloTrainingResultsDTO>();

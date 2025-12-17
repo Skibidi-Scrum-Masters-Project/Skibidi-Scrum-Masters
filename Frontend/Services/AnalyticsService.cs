@@ -1,3 +1,6 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+
 namespace FitLifeFitness.Services;
 
 public class AnalyticsService
@@ -9,33 +12,43 @@ public class AnalyticsService
         _httpClient = httpClient;
     }
 
-    // GET crowd count
-    public async Task<HttpResponseMessage> GetCrowdCountAsync()
+    private void AddJwtHeader(string jwt)
     {
+        _httpClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", jwt);
+    }
+
+    // GET crowd count
+    public async Task<HttpResponseMessage> GetCrowdCountAsync(string jwt)
+    {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync("/api/analytics/crowd");
     }
 
     // GET class training results
-    public async Task<HttpResponseMessage> GetClassResultsAsync(string userId)
+    public async Task<HttpResponseMessage> GetClassResultsAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/analytics/classresult/{userId}");
     }
 
     // GET solo training results
-    public async Task<HttpResponseMessage> GetSoloTrainingResultsAsync(string userId)
+    public async Task<HttpResponseMessage> GetSoloTrainingResultsAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/analytics/solotrainingresult/{userId}");
     }
-    
-    // ny: samlet dashboard
-    public async Task<HttpResponseMessage> GetDashboardAsync(string userId)
+
+    // samlet dashboard
+    public async Task<HttpResponseMessage> GetDashboardAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/analytics/dashboard/{userId}");
     }
-    
-    public async Task<HttpResponseMessage> GetCompareMonthAsync(string userId)
+
+    public async Task<HttpResponseMessage> GetCompareMonthAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/analytics/compare/month/{userId}");
     }
-    
 }
