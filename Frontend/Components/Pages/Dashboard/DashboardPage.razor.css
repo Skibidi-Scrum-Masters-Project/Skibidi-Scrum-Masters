@@ -8,12 +8,8 @@
     gap:0;
 }
 
-.dashboard > .topbar{
-    display:none;
-}
-.dashboard > .bottom-nav{
-    display:none;
-}
+.dashboard > .topbar{ display:none; }
+.dashboard > .bottom-nav{ display:none; }
 
 .dashboard-body{
     flex:1;
@@ -136,20 +132,19 @@
     color:var(--text-secondary);
 }
 
-.bar{
+/* progress bar (samme idé som crowd page) */
+.crowd-bar{
     width:100%;
-    height:8px;
+    height:10px;
     border-radius:50px;
-    background:var(--gray-light);
+    background:rgba(0,0,0,0.18);
     overflow:hidden;
 }
 
-.bar-fill{
+.crowd-bar-fill{
     height:100%;
-    width:100%;
     border-radius:50px;
-    background:linear-gradient(90deg,var(--yellow-accent) 0%,var(--yellow-accent) 100%);
-    transition:background-color 0.25s ease;
+    transition:width 500ms ease, background-color 250ms ease;
 }
 
 .crowd-info-row{
