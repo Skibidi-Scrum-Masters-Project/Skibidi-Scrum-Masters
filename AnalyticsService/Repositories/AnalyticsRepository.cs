@@ -22,28 +22,28 @@ public class AnalyticsRepository : IAnalyticsRepository
         _soloTrainingResultsCollection = database.GetCollection<SoloTrainingResultsDTO>("SoloTrainingResults");
     }
 
-    public async Task<ClassResultDTO> PostClassesAnalytics(string classId, string userId, double caloriesBurned,
-        Double watt, Category category, int durationMin, DateTime date)
+    
+    public async Task<ClassResultDTO> PostClassesAnalytics(ClassResultDTO dto)
     {
-        if (string.IsNullOrWhiteSpace(classId)) throw new ArgumentNullException(nameof(classId));
-        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
-        if (durationMin < 0) throw new ArgumentOutOfRangeException(nameof(durationMin));
+        if (dto == null)
+            throw new ArgumentNullException(nameof(dto));
 
-        var classResult = new ClassResultDTO
+        var entity = new ClassResultDTO
         {
-            ClassId = classId,
-            UserId = userId,
-            CaloriesBurned = caloriesBurned,
-            Category = category,
-            Watt = watt,
-            DurationMin = durationMin,
-            Date = date
+            ClassId = dto.ClassId,
+            UserId = dto.UserId,
+            CaloriesBurned = dto.CaloriesBurned,
+            Category = dto.Category,
+            Watt = dto.Watt,
+            DurationMin = dto.DurationMin,
+            Date = dto.Date
         };
 
-        await _classesResultsCollection.InsertOneAsync(classResult).ConfigureAwait(false);
+        await _classesResultsCollection.InsertOneAsync(entity);
 
-        return classResult;
+        return entity;
     }
+
 
     public async Task<int> GetCrowdCount()
     {
@@ -106,30 +106,38 @@ public class AnalyticsRepository : IAnalyticsRepository
         return updated.Id ?? "User exit time updated successfully";
     }
 
-    public async Task<string> PostSoloTrainingResult(string userId, DateTime date, List<Exercise> exercises,
-        TrainingTypes trainingType, double durationMinutes)
+    public async Task<string> PostSoloTrainingResult(SoloTrainingResultsDTO dto)
     {
-        if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentNullException(nameof(userId));
-        if (exercises == null) throw new ArgumentNullException(nameof(exercises));
-        if (durationMinutes < 0) throw new ArgumentOutOfRangeException(nameof(durationMinutes));
+        if (dto == null)
+            throw new ArgumentNullException(nameof(dto));
 
-        var soloTrainingResults = new SoloTrainingResultsDTO
+        if (string.IsNullOrWhiteSpace(dto.UserId))
+            throw new ArgumentNullException(nameof(dto.UserId));
+
+        if (dto.Exercises == null || dto.Exercises.Count == 0)
+            throw new ArgumentNullException(nameof(dto.Exercises));
+
+        if (dto.DurationMinutes < 0)
+            throw new ArgumentOutOfRangeException(nameof(dto.DurationMinutes));
+
+        var entity = new SoloTrainingResultsDTO
         {
-            UserId = userId,
-            Date = date,
-            Exercises = exercises,
-            TrainingType = trainingType,
-            DurationMinutes = durationMinutes
+            UserId = dto.UserId,
+            Date = dto.Date,
+            TrainingType = dto.TrainingType,
+            DurationMinutes = dto.DurationMinutes,
+            Exercises = dto.Exercises
         };
 
-        await _soloTrainingResultsCollection.InsertOneAsync(soloTrainingResults).ConfigureAwait(false);
+        await _soloTrainingResultsCollection.InsertOneAsync(entity)
+            .ConfigureAwait(false);
 
-        return soloTrainingResults.Id ?? "Solo training result added successfully";
+        return entity.Id ?? "Solo training result added successfully";
     }
 
     public async Task<List<SoloTrainingResultsDTO>> GetSoloTrainingResult(string userId)
     {
-        if (userId == null)
+        if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
 
         var filter = Builders<SoloTrainingResultsDTO>
@@ -140,9 +148,10 @@ public class AnalyticsRepository : IAnalyticsRepository
             .ToListAsync();
     }
 
+
     public async Task<List<ClassResultDTO>> GetClassResult(string userId)
     {
-        if (userId == null)
+        if (string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
 
         var filter = Builders<ClassResultDTO>
@@ -152,7 +161,6 @@ public class AnalyticsRepository : IAnalyticsRepository
             .Find(filter)
             .ToListAsync();
     }
-
     public async Task<AnalyticsDashboardDTO> GetDashboardResult(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))
@@ -309,7 +317,7 @@ public class AnalyticsRepository : IAnalyticsRepository
 
     return dto;
 }
-
+    
 }
 
 

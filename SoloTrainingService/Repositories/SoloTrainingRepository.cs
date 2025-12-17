@@ -42,19 +42,10 @@ public class SoloTrainingRepository : ISoloTrainingRepository
 
         try
         {
-            var evt = new SoloTrainingCompletedEvent
-            {
-                UserId = userId,
-                SoloTrainingSessionId = soloTraining.Id!,
-                Date = soloTraining.Date,
-                WorkoutProgramName = soloTraining.WorkoutProgramName,
-                DurationMinutes = soloTraining.DurationMinutes,
-                ExerciseCount = soloTraining.Exercises?.Count ?? 0
-            };
-
+            
             var response = await _httpClient.PostAsJsonAsync(
                 "http://socialservice:8080/internal/events/solo-training-completed",
-                evt
+                soloTraining
             );
 
             Console.WriteLine($"Social response: {response.StatusCode}");

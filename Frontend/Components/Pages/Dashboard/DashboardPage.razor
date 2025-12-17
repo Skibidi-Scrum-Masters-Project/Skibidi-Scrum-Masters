@@ -13,6 +13,7 @@
 @inject TokenService TokenService
 @inject NavigationManager Nav
 @inject AnalyticsService AnalyticsService
+@inject AccessControlService AcessControlService
 
 <div class="dashboard">
     <main class="dashboard-body">
@@ -45,8 +46,8 @@
                     <span class="crowd-label">Nu</span>
                 </div>
 
-                <div class="bar">
-                    <div class="bar-fill" style="width:100%"></div>
+                <div class="crowd-bar">
+                    <div class="crowd-bar-fill" style="width:35%; background:rgba(255,255,255,0.12)"></div>
                 </div>
 
                 <div class="crowd-info-row">
@@ -54,7 +55,7 @@
                     <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
                 </div>
 
-                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+                <button class="unlock-btn" disabled type="button">Indlæser...</button>
             </section>
         }
         else if (!string.IsNullOrWhiteSpace(analyticsError))
@@ -87,8 +88,8 @@
                     <span class="crowd-label">Nu</span>
                 </div>
 
-                <div class="bar">
-                    <div class="bar-fill" style="width:100%"></div>
+                <div class="crowd-bar">
+                    <div class="crowd-bar-fill" style="width:0%; background:rgba(255,255,255,0.12)"></div>
                 </div>
 
                 <div class="crowd-info-row">
@@ -96,7 +97,12 @@
                     <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
                 </div>
 
-                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+                <button class="unlock-btn @(isCheckedIn ? "checkout" : "")"
+                        @onclick="ToggleCheckIn"
+                        type="button"
+                        disabled="@isDoorBusy">
+                    @(isCheckedIn ? "Check ud" : "Check ind")
+                </button>
             </section>
         }
         else
@@ -129,8 +135,10 @@
                     <span class="crowd-label">Nu</span>
                 </div>
 
-                <div class="bar">
-                    <div class="bar-fill" style="width:100%; background:@CrowdColor"></div>
+                <div class="crowd-bar">
+                    <div class="crowd-bar-fill"
+                         style="width:@($"{CrowdPercent}%"); background:@CrowdColor">
+                    </div>
                 </div>
 
                 <div class="crowd-info-row">
@@ -138,7 +146,12 @@
                     <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
                 </div>
 
-                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+                <button class="unlock-btn @(isCheckedIn ? "checkout" : "")"
+                        @onclick="ToggleCheckIn"
+                        type="button"
+                        disabled="@isDoorBusy">
+                    @(isCheckedIn ? "Check ud" : "Check ind")
+                </button>
             </section>
         }
 
@@ -259,10 +272,13 @@
     private List<SoloTrainingResultsDTO> SoloTrainingResults = new();
     private int CrowdCount;
 
-    private const int MaxPeopleCapacity = 2;
+    private const int MaxPeopleCapacity = 20;
 
     private int StreakWeeks { get; set; }
     private int StreakWorkouts { get; set; }
+
+    private bool isDoorBusy;
+    private bool isCheckedIn;
 
     private bool HasAnyWorkouts => (ClassResults?.Count ?? 0) > 0 || (SoloTrainingResults?.Count ?? 0) > 0;
 
@@ -281,7 +297,7 @@
         get
         {
             if (MaxPeopleCapacity <= 0) return 0;
-            var p = (int)Math.Round((CrowdCount / (double)MaxPeopleCapacity) * 100.0);
+            var p = (int)Math.Round(CrowdCount / (double)MaxPeopleCapacity * 100.0);
             return Math.Clamp(p, 0, 100);
         }
     }
@@ -317,10 +333,73 @@
 
         await Task.WhenAll(
             LoadAnalyticsAsync(),
-            LoadFeedAsync()
+            LoadFeedAsync(),
+            RefreshCheckInStatus()
         );
 
         StateHasChanged();
+    }
+
+    private async Task RefreshCheckInStatus()
+    {
+        if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            return;
+
+        var res = await AcessControlService.GetUserStatus(LoggedInUserId);
+        if (!res.IsSuccessStatusCode)
+            return;
+
+        var raw = (await res.Content.ReadAsStringAsync())?.Trim();
+
+        if (string.IsNullOrWhiteSpace(raw) || raw == "null")
+        {
+            isCheckedIn = false;
+            return;
+        }
+
+        raw = raw.Trim('"'); // fjerner anførselstegn
+
+        if (!DateTime.TryParse(raw, null, System.Globalization.DateTimeStyles.RoundtripKind, out var exitedAt))
+        {
+            isCheckedIn = false;
+            return;
+        }
+
+        isCheckedIn = exitedAt == DateTime.MinValue;
+    }
+
+
+    private async Task ToggleCheckIn()
+    {
+        if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            return;
+
+        try
+        {
+            isDoorBusy = true;
+            analyticsError = string.Empty;
+
+            var res = isCheckedIn
+                ? await AcessControlService.CloseDoorAsync(LoggedInUserId)
+                : await AcessControlService.OpenDoorAsync(LoggedInUserId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                analyticsError = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            await RefreshCheckInStatus();
+            await LoadAnalyticsAsync();
+        }
+        catch (Exception ex)
+        {
+            analyticsError = ex.Message;
+        }
+        finally
+        {
+            isDoorBusy = false;
+        }
     }
 
     private async Task SwitchTab(string tab)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using SoloTrainingService.Controllers;
 using Moq;
+using SoloTrainingService.Models;
 
 namespace SoloTrainingService.Tests;
 

@@ -132,17 +132,7 @@
                     }
                 </section>
             }
-
-            <div class="todo-card">
-                <div class="todo-title">TODO</div>
-                <ul class="todo-list">
-                    <li>Sortering: nærmeste først, derefter længde</li>
-                    <li>Rediger session</li>
-                    <li>Vis session type og pris</li>
-                    <li>Vis push besked når en session bookes</li>
-                    <li>Bekræftelse og regler for sletning af bookede sessioner</li>
-                </ul>
-            </div>
+            
         }
     </div>
 </div>
@@ -501,9 +491,6 @@
 
             <div class="session-actions">
                 <button class="small-btn" type="button" @onclick="() => ShowDetails(session)">Se detaljer</button>
-                <button class="small-btn danger" type="button" disabled="true" title="Kan ikke slettes endnu">
-                    Slet
-                </button>
             </div>
         }
         else

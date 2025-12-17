@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using FitnessApp.SoloTrainingService.Models;
 using Microsoft.AspNetCore.Authorization;
+using SoloTrainingService.Models;
+
 namespace SoloTrainingService.Controllers;
 
 [ApiController]

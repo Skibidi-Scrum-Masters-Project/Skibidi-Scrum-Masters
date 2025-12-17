@@ -31,15 +31,7 @@ public class AnalyticsController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.ClassId))
             return BadRequest("ClassId required.");
 
-        var result = await _analyticsRepository.PostClassesAnalytics(
-            dto.ClassId,
-            dto.UserId,
-            dto.CaloriesBurned,
-            dto.Watt,
-            dto.Category,
-            dto.DurationMin,
-            dto.Date
-        );
+        var result = await _analyticsRepository.PostClassesAnalytics(dto);
 
         return Ok(result);
     }
@@ -70,18 +62,10 @@ public class AnalyticsController : ControllerBase
         if (dto == null)
             return BadRequest("Payload required.");
 
-        // Optional: basic validation
         if (string.IsNullOrWhiteSpace(dto.UserId))
             return BadRequest("UserId required.");
 
-        // Pass through to repository
-        var result = await _analyticsRepository.PostSoloTrainingResult(
-            dto.UserId,
-            dto.Date,
-            dto.Exercises,
-            dto.TrainingType,
-            dto.DurationMinutes);
-
+        var result = await _analyticsRepository.PostSoloTrainingResult(dto);
         return Ok(result);
     }
     
@@ -132,14 +116,4 @@ public class AnalyticsController : ControllerBase
         var dto = await _analyticsRepository.GetCompareResultForCurrentMonth(userId);
         return Ok(dto);
     }
-
-
-    
-    
-    
-    
-    
-
-
-
 }

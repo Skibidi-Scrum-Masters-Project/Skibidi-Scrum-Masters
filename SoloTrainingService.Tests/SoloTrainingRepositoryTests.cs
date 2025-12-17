@@ -2,6 +2,7 @@ using FitnessApp.Shared.Models;
 using Mongo2Go;
 using MongoDB.Driver;
 using System.Net;
+using SoloTrainingService.Models;
 
 namespace SoloTrainingService.Tests;
 

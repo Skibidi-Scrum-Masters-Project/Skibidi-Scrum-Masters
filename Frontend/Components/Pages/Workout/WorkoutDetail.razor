@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
 @using FitLifeFitness.Models
+@using System.Net.Http.Json
 @layout PhoneLayout
 
 <div class="workout-logger">
@@ -11,14 +12,7 @@
     }
     else
     {
-        <!-- Header removed: controls moved to footer -->
-
-        <!-- Stats Bar -->
         <div class="stats-bar">
-            <div class="stat">
-                <div class="stat-label">Duration</div>
-                <div class="stat-value duration">@($"{duration}s")</div>
-            </div>
             <div class="stat">
                 <div class="stat-label">Volume</div>
                 <div class="stat-value">@($"{totalVolume} kg")</div>
@@ -27,425 +21,130 @@
                 <div class="stat-label">Sets</div>
                 <div class="stat-value">@totalSets</div>
             </div>
-            <div class="muscle-icons">
-                <div class="muscle-icon"></div>
-                <div class="muscle-icon"></div>
-            </div>
         </div>
 
-        <!-- Exercises -->
-        <div class="exercises-container">
-            @foreach (var exercise in Exercises)
-            {
-                <div class="exercise-card">
-                    <!-- Exercise Header -->
-                    <div class="exercise-header">
-                        <div class="exercise-icon"></div>
-                        <h3 class="exercise-name">@exercise.ExerciseType</h3>
-                        <button class="icon-button">
-                            <span class="more-icon">⋮</span>
-                        </button>
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="notes-section">
-                        <input type="text" placeholder="Add notes here..." class="notes-input" />
-                    </div>
-
-                    <!-- Sets Table -->
-                    <div class="sets-container">
-                        <div class="sets-header">
-                            <div class="col-set">SET</div>
-                            <div class="col-weight">🏋️ KG</div>
-                            <div class="col-reps">REPS</div>
-                            <div class="col-check"></div>
-                        </div>
-
-                        @for (int i = 0; i < exercise.Sets.Count; i++)
+        <div class="workout-scroll">
+            <section class="workout-hero">
+                <div class="hero-top">
+                    <div class="hero-ico" aria-hidden="true">🏋️</div>
+                    <div class="hero-text">
+                        <h2 class="hero-title">@Workout.Name</h2>
+                        @if (!string.IsNullOrWhiteSpace(Workout.Description))
                         {
-                            var setIndex = i;
-                            var set = exercise.Sets[setIndex];
-                            <div class="set-row @(set.IsFinished ? "finished" : "") @(set.IsPlaceholder ? "prefilled" : "")">
-                                <div class="col-set set-number">@(setIndex + 1)</div>
-                                <div class="col-weight">
-                                    <input
-                                        type="number"
-                                        class="set-input"
-                                        value="@(set.HasUserValue ? set.Weight.ToString() : string.Empty)"
-                                        placeholder="@set.Weight"
-                                        onfocus="this.select();"
-                                        @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, true)"
-                                        @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, true)" />
-                                </div>
-                                <div class="col-reps">
-                                    <input
-                                        type="number"
-                                        class="set-input"
-                                        value="@(set.HasUserValue ? set.Repetitions.ToString() : string.Empty)"
-                                        placeholder="@set.Repetitions"
-                                        onfocus="this.select();"
-                                        @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, false)"
-                                        @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, false)" />
-                                </div>
-                                <div class="col-check">
-                                    <button class="check-button" @onclick="() => FinishSet(exercise, setIndex)">✓</button>
-                                    <button class="remove-button" @onclick="() => RemoveSet(exercise, setIndex)">✕</button>
-                                </div>
-                            </div>
-                        
+                            <p class="hero-sub">@Workout.Description</p>
+                        }
+                        else
+                        {
+                            <p class="hero-sub">Log dine sets og gem din træning</p>
                         }
                     </div>
-
-                    <!-- Add Set Button -->
-                    <button class="add-set-button" @onclick="() => AddSet(exercise)">
-                        <span class="plus-icon">+</span>
-                        <span>Add Set</span>
-                    </button>
                 </div>
-            }
+            </section>
+
+            <div class="exercises-container">
+                @foreach (var exercise in Exercises)
+                {
+                    <div class="exercise-card">
+                        <div class="exercise-header">
+
+                            <div class="exercise-headtext">
+                                <h3 class="exercise-name">@exercise.ExerciseType</h3>
+                                <p class="exercise-sub">@($"{exercise.Sets.Count} sets")</p>
+                            </div>
+                        </div>
+
+                        <div class="notes-section">
+                            <input type="text" placeholder="Tilføj noter her" class="notes-input" />
+                        </div>
+
+                        <div class="sets-container">
+                            <div class="sets-header">
+                                <div class="col-set">SET</div>
+                                <div class="col-weight">KG</div>
+                                <div class="col-reps">REPS</div>
+                                <div class="col-check"></div>
+                            </div>
+
+                            @for (int i = 0; i < exercise.Sets.Count; i++)
+                            {
+                                var setIndex = i;
+                                var set = exercise.Sets[setIndex];
+
+                                <div class="set-row @(set.IsFinished ? "finished" : "") @(set.IsPlaceholder ? "prefilled" : "")">
+                                    <div class="col-set set-number">@(setIndex + 1)</div>
+
+                                    <div class="col-weight">
+                                        <input
+                                            type="number"
+                                            class="set-input"
+                                            value="@(set.HasUserValue ? set.Weight.ToString() : string.Empty)"
+                                            placeholder="@set.Weight"
+                                            onfocus="this.select();"
+                                            @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, true)"
+                                            @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, true)" />
+                                    </div>
+
+                                    <div class="col-reps">
+                                        <input
+                                            type="number"
+                                            class="set-input"
+                                            value="@(set.HasUserValue ? set.Repetitions.ToString() : string.Empty)"
+                                            placeholder="@set.Repetitions"
+                                            onfocus="this.select();"
+                                            @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, false)"
+                                            @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, false)" />
+                                    </div>
+
+                                    <div class="col-check">
+                                        <button class="check-button" type="button" @onclick="() => FinishSet(exercise, setIndex)" aria-label="Finish set">✓</button>
+                                        <button class="remove-button" type="button" @onclick="() => RemoveSet(exercise, setIndex)" aria-label="Remove set">✕</button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <button class="add-set-button" type="button" @onclick="() => AddSet(exercise)">
+                            <span class="plus-icon">+</span>
+                            <span>Tilføj Set</span>
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <!-- sticky action bar, følger med skærmen -->
+            <div class="footer-actions">
+                <button class="footer-button finish" type="button" @onclick="FinishWorkout">Afslut træning</button>
+                <button class="footer-button delete" type="button" @onclick="DeleteWorkout">Slet træning</button>
+            </div>
         </div>
     }
 </div>
-
-    <!-- Footer actions: Finish (save) above Delete -->
-    <div class="footer-actions">
-        <button class="footer-button finish" @onclick="FinishWorkout">Finish</button>
-        <button class="footer-button delete" @onclick="DeleteWorkout">Delete</button>
-    </div>
 
 @if (showToast)
 {
     <div class="toast">@toastMessage</div>
 }
 
-<style>
-    .workout-logger {
-        min-height: 100vh;
-        background-color: #000;
-        color: #fff;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
+@if (showDeleteConfirm)
+{
+    <div class="modal-overlay" @onclick="CloseDeleteConfirm" role="presentation">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-label="Delete workout confirmation" @onclick:stopPropagation="true">
+            <div class="modal-title">Slet træning</div>
+            <div class="modal-text">Er du sikker på, at du vil slette denne træning</div>
 
-    .header {
-        position: sticky;
-        top: 0;
-        background-color: #000;
-        border-bottom: 1px solid #27272a;
-        z-index: 10;
-    }
-
-    .header-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem;
-        gap: 1rem;
-    }
-
-    .header-title {
-        font-size: 1.25rem;
-        font-weight: 500;
-        flex: 1;
-        text-align: center;
-        margin: 0;
-    }
-
-    .icon-button {
-        background: none;
-        border: none;
-        color: #fff;
-        font-size: 1.5rem;
-        cursor: pointer;
-        padding: 0.25rem;
-    }
-
-    .finish-button {
-        background-color: #3b82f6;
-        color: #fff;
-        border: none;
-        padding: 0.5rem 1.5rem;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        cursor: pointer;
-    }
-
-    .stats-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.5rem 1rem;
-        border-bottom: 1px solid #27272a;
-    }
-
-    .stat {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .stat-label {
-        color: #71717a;
-        font-size: 0.875rem;
-    }
-
-    .stat-value {
-        color: #fff;
-        font-size: 1.5rem;
-        font-weight: 300;
-    }
-
-    .stat-value.duration {
-        color: #3b82f6;
-    }
-
-    .muscle-icons {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .muscle-icon {
-        width: 2.5rem;
-        height: 4rem;
-        background-color: #27272a;
-        border-radius: 0.25rem;
-    }
-
-    .exercises-container {
-        padding: 1rem;
-        /* keep header/stats visible and allow exercises to scroll */
-        max-height: calc(100vh - 160px);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .exercise-card {
-        background-color: #18181b;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        overflow: hidden;
-    }
-
-    .exercise-header {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1rem;
-        border-bottom: 1px solid #27272a;
-    }
-
-    .exercise-icon {
-        width: 3rem;
-        height: 3rem;
-        background-color: #27272a;
-        border-radius: 50%;
-    }
-
-    .exercise-name {
-        color: #3b82f6;
-        font-size: 1.125rem;
-        font-weight: 500;
-        flex: 1;
-        margin: 0;
-    }
-
-    .more-icon {
-        font-size: 1.25rem;
-    }
-
-    .notes-section {
-        padding: 1rem;
-        border-bottom: 1px solid #27272a;
-    }
-
-    .notes-input {
-        width: 100%;
-        background: transparent;
-        border: none;
-        color: #71717a;
-        outline: none;
-        font-size: 1rem;
-    }
-
-    .notes-input::placeholder {
-        color: #52525b;
-    }
-
-    .sets-container {
-        padding: 1rem;
-    }
-
-    .sets-header {
-        display: grid;
-        grid-template-columns: 60px 100px 100px 50px;
-        gap: 0.5rem;
-        color: #71717a;
-        font-size: 0.875rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .set-row {
-        display: grid;
-        grid-template-columns: 60px 100px 100px 50px;
-        gap: 0.5rem;
-        align-items: center;
-        padding: 0.75rem 0;
-        border-top: 1px solid #27272a;
-    }
-
-    .set-number {
-        color: #fff;
-        font-size: 1.25rem;
-    }
-
-    .set-input {
-        width: 100%;
-        background: transparent;
-        border: none;
-        color: #fff;
-        font-size: 1.25rem;
-        text-align: center;
-        outline: none;
-    }
-
-    .set-input::-webkit-outer-spin-button,
-    .set-input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-
-    .check-button {
-        width: 2.5rem;
-        height: 2.5rem;
-        background-color: #27272a;
-        border: none;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fff;
-    }
-
-    .check-button:hover {
-        background-color: #3f3f46;
-    }
-
-    .checkmark {
-        opacity: 0;
-    }
-
-    .set-row.finished {
-        background-color: rgba(34,197,94,0.06);
-    }
-
-    .set-row.finished .check-button {
-        background-color: #16a34a;
-        color: #fff;
-    }
-    .set-row.prefilled {
-        background-color: rgba(148,163,184,0.04);
-        color: #9ca3af;
-    }
-    .set-row.prefilled .set-input {
-        color: #9ca3af;
-    }
-
-    .remove-button {
-        width: 2.5rem;
-        height: 2.5rem;
-        background-color: transparent;
-        border: none;
-        color: #f87171;
-        cursor: pointer;
-        margin-left: 0.25rem;
-        font-size: 1rem;
-    }
-
-    .remove-button:hover {
-        background-color: rgba(184, 28, 28, 0.15);
-        border-radius: 0.25rem;
-    }
-
-    .add-set-button {
-        width: 100%;
-        padding: 1rem;
-        background: transparent;
-        border: none;
-        border-top: 1px solid #27272a;
-        color: #71717a;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        font-size: 1rem;
-    }
-
-    .add-set-button:hover {
-        background-color: rgba(39, 39, 42, 0.5);
-    }
-
-    .plus-icon {
-        font-size: 1.25rem;
-    }
-
-    .toast {
-        position: fixed;
-        bottom: 1.5rem;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(59, 130, 246, 0.95);
-        color: white;
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
-        z-index: 50;
-    }
-
-    /* Footer actions */
-
-    .footer-actions {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: linear-gradient(180deg, rgba(0,0,0,0.0), #000 40%);
-        padding: 0.75rem 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        justify-content: flex-end;
-        align-items: center;
-        z-index: 60;
-        box-shadow: 0 -4px 12px rgba(0,0,0,0.6);
-        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    }
-
-    .footer-button {
-        padding: 0.85rem 1.25rem;
-        border-radius: 0.5rem;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-        width: calc(100% - 2rem);
-        max-width: 520px;
-    }
-
-    .footer-button.finish {
-        background: #3b82f6;
-        color: #fff;
-    }
-
-    .footer-button.delete {
-        background: transparent;
-        color: #f87171;
-        border: 1px solid rgba(248,113,113,0.12);
-    }
-</style>
+            <div class="modal-actions">
+                <button class="modal-btn ghost" type="button" @onclick="CloseDeleteConfirm">Annuller</button>
+                <button class="modal-btn danger" type="button" @onclick="ConfirmDeleteWorkout">Slet</button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     [Parameter] public string Id { get; set; } = "";
+
     private WorkoutProgramDTO? Workout { get; set; }
+
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
     [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -454,13 +153,16 @@
     public List<ExerciseDTO> PreviousExercises { get; set; } = new List<ExerciseDTO>();
     private List<ExerciseDTO> Exercises { get; set; } = new List<ExerciseDTO>();
     private SoloTrainingSessionDTO? Session { get; set; } = new SoloTrainingSessionDTO();
-    // finished sets collected per exercise as the user clicks "Finish set"
     private List<ExerciseDTO> FinishedExercises { get; set; } = new List<ExerciseDTO>();
+
     private int duration = 16;
     private int totalVolume = 0;
     private int totalSets = 0;
+
     private bool showToast = false;
     private string toastMessage = string.Empty;
+
+    private bool showDeleteConfirm = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -480,20 +182,19 @@
                     ExerciseTypes = program.ExerciseTypes.Select(et => et).ToList(),
                 };
 
-                // create ExerciseDTO instances based on the program's exercise types
                 Exercises = Workout.ExerciseTypes
-                .Select(et => new ExerciseDTO
-                {
-                    ExerciseType = et,
-                    Volume = 0,
-                    Sets = new List<Set>
-                {
-new Set { Repetitions = 0, Weight = 0 },
-new Set { Repetitions = 0, Weight = 0 },
-new Set { Repetitions = 0, Weight = 0 }
-                }
-                })
-                .ToList();
+                    .Select(et => new ExerciseDTO
+                    {
+                        ExerciseType = et,
+                        Volume = 0,
+                        Sets = new List<Set>
+                        {
+                            new Set { Repetitions = 0, Weight = 0 },
+                            new Set { Repetitions = 0, Weight = 0 },
+                            new Set { Repetitions = 0, Weight = 0 }
+                        }
+                    })
+                    .ToList();
             }
         }
 
@@ -502,39 +203,37 @@ new Set { Repetitions = 0, Weight = 0 }
         if (response2.IsSuccessStatusCode)
         {
             SoloTrainingSessionDTO? session = await response2.Content.ReadFromJsonAsync<SoloTrainingSessionDTO>();
-                if (session != null && session.Exercises.Any())
+            if (session != null && session.Exercises.Any())
+            {
+                PreviousExercises = session.Exercises;
+
+                foreach (var exercise in Exercises)
                 {
-                    PreviousExercises = session.Exercises;
-
-                    // Prefill current visible sets from the most recent session for the same exercise types
-                    foreach (var exercise in Exercises)
+                    var prev = PreviousExercises.FirstOrDefault(pe => pe.ExerciseType == exercise.ExerciseType);
+                    if (prev != null && prev.Sets != null)
                     {
-                        var prev = PreviousExercises.FirstOrDefault(pe => pe.ExerciseType == exercise.ExerciseType);
-                        if (prev != null && prev.Sets != null)
+                        if (prev.Sets.Count > exercise.Sets.Count)
                         {
-                            // if previous has more sets than current placeholders, expand
-                            if (prev.Sets.Count > exercise.Sets.Count)
+                            var toAdd = prev.Sets.Count - exercise.Sets.Count;
+                            for (int k = 0; k < toAdd; k++)
                             {
-                                var toAdd = prev.Sets.Count - exercise.Sets.Count;
-                                for (int k = 0; k < toAdd; k++)
-                                {
-                                    exercise.Sets.Add(new Set());
-                                }
+                                exercise.Sets.Add(new Set());
                             }
+                        }
 
-                            // copy values and mark as placeholders
-                            for (int si = 0; si < prev.Sets.Count && si < exercise.Sets.Count; si++)
-                            {
-                                exercise.Sets[si].Weight = prev.Sets[si].Weight;
-                                exercise.Sets[si].Repetitions = prev.Sets[si].Repetitions;
-                                exercise.Sets[si].IsPlaceholder = true;
-                                exercise.Sets[si].IsFinished = false;
-                                exercise.Sets[si].HasUserValue = false;
-                            }
+                        for (int si = 0; si < prev.Sets.Count && si < exercise.Sets.Count; si++)
+                        {
+                            exercise.Sets[si].Weight = prev.Sets[si].Weight;
+                            exercise.Sets[si].Repetitions = prev.Sets[si].Repetitions;
+                            exercise.Sets[si].IsPlaceholder = true;
+                            exercise.Sets[si].IsFinished = false;
+                            exercise.Sets[si].HasUserValue = false;
                         }
                     }
                 }
+            }
         }
+
         Session = new SoloTrainingSessionDTO
         {
             UserId = userId ?? "",
@@ -547,9 +246,7 @@ new Set { Repetitions = 0, Weight = 0 }
 
     private void AddSet(ExerciseDTO exercise)
     {
-        // If previous session exists for this exercise, default new set to last previous values
         var prev = PreviousExercises.FirstOrDefault(pe => pe.ExerciseType == exercise.ExerciseType);
-        // Determine whether the user has updated any visible sets (entered a user value)
         var userUpdatedAny = exercise.Sets.Any(s => s.HasUserValue);
 
         if (prev != null && prev.Sets.Any() && !userUpdatedAny)
@@ -567,14 +264,12 @@ new Set { Repetitions = 0, Weight = 0 }
     {
         if (index >= 0 && index < exercise.Sets.Count)
         {
-            // if a finished entry exists for this exercise, remove corresponding finished set
             var finished = FinishedExercises.FirstOrDefault(fe => fe.ExerciseType == exercise.ExerciseType);
             if (finished != null && index >= 0 && index < finished.Sets.Count)
             {
                 finished.Sets.RemoveAt(index);
-                // recompute finished volume
                 finished.Volume = (finished.Sets?.Sum(s => s.Repetitions * s.Weight)) ?? 0;
-                // if no finished sets remain, remove the finished exercise entry
+
                 if (finished.Sets.Count == 0)
                 {
                     FinishedExercises.Remove(finished);
@@ -592,18 +287,13 @@ new Set { Repetitions = 0, Weight = 0 }
         totalVolume = (int)FinishedExercises.Sum(e => (e.Sets?.Sum(s => s.Repetitions * s.Weight) ?? 0));
     }
 
-    // Finish a temp set at the given index for the specified exercise.
-    // The set remains visible but is marked finished; a copy is stored under FinishedExercises
     private void FinishSet(ExerciseDTO exercise, int index)
     {
         if (index < 0 || index >= exercise.Sets.Count) return;
 
         var set = exercise.Sets[index];
-
-        // mark as finished in-place so it remains visible and editable
         set.IsFinished = true;
 
-        // find or create finished exercise entry
         var finished = FinishedExercises.FirstOrDefault(fe => fe.ExerciseType == exercise.ExerciseType);
         if (finished == null)
         {
@@ -611,17 +301,13 @@ new Set { Repetitions = 0, Weight = 0 }
             FinishedExercises.Add(finished);
         }
 
-        // ensure finished.Sets has a slot at the same index
         while (finished.Sets.Count <= index)
         {
             finished.Sets.Add(new Set { Repetitions = 0, Weight = 0 });
         }
 
-        // copy values into the slot
         finished.Sets[index].Repetitions = set.Repetitions;
         finished.Sets[index].Weight = set.Weight;
-
-        // recompute finished volume
         finished.Volume = (finished.Sets?.Sum(s => s.Repetitions * s.Weight)) ?? 0;
 
         UpdateStats();
@@ -632,12 +318,11 @@ new Set { Repetitions = 0, Weight = 0 }
         if (index < 0 || index >= exercise.Sets.Count) return;
 
         var set = exercise.Sets[index];
-        if (!set.IsFinished) return; // only sync finished sets
+        if (!set.IsFinished) return;
 
         var finished = FinishedExercises.FirstOrDefault(fe => fe.ExerciseType == exercise.ExerciseType);
         if (finished == null) return;
 
-        // ensure slot exists
         while (finished.Sets.Count <= index)
         {
             finished.Sets.Add(new Set { Repetitions = 0, Weight = 0 });
@@ -646,6 +331,7 @@ new Set { Repetitions = 0, Weight = 0 }
         finished.Sets[index].Repetitions = set.Repetitions;
         finished.Sets[index].Weight = set.Weight;
         finished.Volume = (finished.Sets?.Sum(s => s.Repetitions * s.Weight)) ?? 0;
+
         UpdateStats();
     }
 
@@ -671,17 +357,14 @@ new Set { Repetitions = 0, Weight = 0 }
             }
         }
 
-        // user has manually changed this set -> mark that they provided a value
         set.HasUserValue = true;
 
-        // if this set was finished, sync the finished collection
         if (set.IsFinished)
         {
             OnSetChanged(exercise, index);
         }
     }
 
-    // Called on input (typing) so we can clear placeholders immediately
     private void OnSetInput(ExerciseDTO exercise, int index, ChangeEventArgs e, bool isWeight)
     {
         if (index < 0 || index >= exercise.Sets.Count) return;
@@ -704,42 +387,35 @@ new Set { Repetitions = 0, Weight = 0 }
             }
         }
 
-        // Immediately mark that the user has typed a value
         set.HasUserValue = true;
 
-        // If finished, sync live changes
         if (set.IsFinished)
         {
             OnSetChanged(exercise, index);
         }
     }
-    private void CancelWorkout()
-    {
-        // Logic to cancel the workout logging
-    }
-    private async Task DeleteWorkout()
-    {
-        bool confirmed = false;
-        try
-        {
-            confirmed = await JS.InvokeAsync<bool>("confirm", "Delete this workout? This cannot be undone.");
-        }
-        catch
-        {
-            // if JS interop fails, fall back to .NET navigation confirmation
-            confirmed = false;
-        }
 
-        if (confirmed)
-        {
-            NavigationManager.NavigateTo("/dashboard");
-        }
+    private Task DeleteWorkout()
+    {
+        showDeleteConfirm = true;
+        return Task.CompletedTask;
     }
+
+    private void CloseDeleteConfirm()
+    {
+        showDeleteConfirm = false;
+    }
+
+    private void ConfirmDeleteWorkout()
+    {
+        showDeleteConfirm = false;
+        NavigationManager.NavigateTo("/dashboard");
+    }
+
     private async Task FinishWorkout()
     {
         if (Session == null) return;
 
-        // simpler, safer duration calculation
         Session.DurationMinutes = Math.Max(0, (int)(DateTime.UtcNow - Session.Date).TotalMinutes);
         Session.Exercises = FinishedExercises;
 
@@ -747,7 +423,6 @@ new Set { Repetitions = 0, Weight = 0 }
         Session.WorkoutProgramId!, Session, jwt ?? "");
         if (response.IsSuccessStatusCode)
         {
-            // show short toast then redirect to dashboard
             toastMessage = "Workout saved";
             showToast = true;
             StateHasChanged();

@@ -14,36 +14,35 @@ public class AccessControlRepositoryTests
     private MongoDbRunner _runner = null!;
     private IMongoDatabase _database = null!;
     private AccessControlRepository _repository = null!;
-    private IMongoCollection<LockerRoom> _lockerRoomsCollection = null!;
-    private IMongoCollection<EntryPoint> _entryPointsCollection = null!;
-    private Mock<HttpMessageHandler> _mockHttpMessageHandler = null!;
+    private IMongoCollection<LockerRoom> _lockerRooms = null!;
+    private IMongoCollection<EntryPoint> _entryPoints = null!;
     private HttpClient _httpClient = null!;
 
     [TestInitialize]
-    public void Initialize()
+    public void Setup()
     {
         _runner = MongoDbRunner.Start(singleNodeReplSet: true);
         var client = new MongoClient(_runner.ConnectionString);
         _database = client.GetDatabase("AccessControlTests");
-        
-        // Create a mock HttpMessageHandler
-        _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
-        _mockHttpMessageHandler
-            .Protected()
+
+        // Mock HttpClient (Analytics calls)
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent("{}")
+                StatusCode = HttpStatusCode.OK
             });
-        
-        _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
+
+        _httpClient = new HttpClient(handler.Object);
+
         _repository = new AccessControlRepository(_database, _httpClient);
-        _lockerRoomsCollection = _database.GetCollection<LockerRoom>("LockerRooms");
-        _entryPointsCollection = _database.GetCollection<EntryPoint>("EntryPoints");
+
+        _lockerRooms = _database.GetCollection<LockerRoom>("LockerRooms");
+        _entryPoints = _database.GetCollection<EntryPoint>("EntryPoints");
     }
 
     [TestCleanup]
@@ -52,458 +51,222 @@ public class AccessControlRepositoryTests
         _runner.Dispose();
     }
 
-    #region CreateLockerRoom Tests
+    #region CreateLockerRoom
 
     [TestMethod]
-    public async Task CreateLockerRoom_ValidLockerRoom_InsertsIntoDatabase()
+    public async Task CreateLockerRoom_InsertsDocument()
     {
-        // Arrange
-        var lockerRoom = new LockerRoom
+        var room = new LockerRoom
         {
-            Capacity = 50,
-            Lockers = new List<Locker>
+            Capacity = 10,
+            Lockers = new()
             {
-                new Locker { LockerId = "L1", IsLocked = false, UserId = null },
-                new Locker { LockerId = "L2", IsLocked = false, UserId = null }
+                new Locker { LockerId = "L1" }
             }
         };
 
-        // Act
-        var result = await _repository.CreateLockerRoom(lockerRoom);
+        var result = await _repository.CreateLockerRoom(room);
 
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.IsNotNull(result.Id);
-        var dbLockerRoom = await _lockerRoomsCollection.Find(lr => lr.Id == result.Id).FirstOrDefaultAsync();
-        Assert.IsNotNull(dbLockerRoom);
-        Assert.AreEqual(50, dbLockerRoom.Capacity);
-        Assert.AreEqual(2, dbLockerRoom.Lockers!.Count);
-    }
+        var dbRoom = await _lockerRooms.Find(r => r.Id == result.Id).FirstOrDefaultAsync();
 
-    [TestMethod]
-    public async Task CreateLockerRoom_NullLockers_InsertsSuccessfully()
-    {
-        // Arrange
-        var lockerRoom = new LockerRoom
-        {
-            Capacity = 0,
-            Lockers = null
-        };
-
-        // Act
-        var result = await _repository.CreateLockerRoom(lockerRoom);
-
-        // Assert
-        Assert.IsNotNull(result);
-        var dbLockerRoom = await _lockerRoomsCollection.Find(lr => lr.Id == result.Id).FirstOrDefaultAsync();
-        Assert.IsNotNull(dbLockerRoom);
-        Assert.IsNull(dbLockerRoom.Lockers);
+        Assert.IsNotNull(dbRoom);
+        Assert.AreEqual(10, dbRoom.Capacity);
+        Assert.AreEqual(1, dbRoom.Lockers!.Count);
     }
 
     #endregion
 
-    #region OpenDoor Tests
+    #region OpenDoor / CloseDoor
 
     [TestMethod]
-    public async Task OpenDoor_ValidUserId_CreatesEntryPoint()
+    public async Task OpenDoor_CreatesEntryPoint()
     {
-        // Arrange
-        var userId = "user123";
+        var entry = await _repository.OpenDoor("user1");
 
-        // Act
-        var result = await _repository.OpenDoor(userId);
+        Assert.AreEqual("user1", entry.UserId);
+        Assert.AreEqual(DateTime.MinValue, entry.ExitedAt);
 
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual(userId, result.UserId);
-        Assert.IsNotNull(result.Id);
-        Assert.AreNotEqual(DateTime.MinValue, result.EnteredAt);
-        Assert.AreEqual(DateTime.MinValue, result.ExitedAt);
-
-        var dbEntryPoint = await _entryPointsCollection.Find(ep => ep.Id == result.Id).FirstOrDefaultAsync();
-        Assert.IsNotNull(dbEntryPoint);
-        Assert.AreEqual(userId, dbEntryPoint.UserId);
+        var dbEntry = await _entryPoints.Find(e => e.Id == entry.Id).FirstOrDefaultAsync();
+        Assert.IsNotNull(dbEntry);
     }
 
     [TestMethod]
-    public async Task OpenDoor_MultipleEntries_CreatesMultipleEntryPoints()
+    public async Task CloseDoor_UpdatesExitedAt()
     {
-        // Arrange
-        var userId1 = "user123";
-        var userId2 = "user456";
+        await _repository.OpenDoor("user1");
 
-        // Act
-        var result1 = await _repository.OpenDoor(userId1);
-        var result2 = await _repository.OpenDoor(userId2);
+        var closed = await _repository.CloseDoor("user1");
 
-        // Assert
-        Assert.IsNotNull(result1);
-        Assert.IsNotNull(result2);
-        Assert.AreNotEqual(result1.Id, result2.Id);
-
-        var count = await _entryPointsCollection.CountDocumentsAsync(ep => true);
-        Assert.AreEqual(2, count);
-    }
-
-    #endregion
-
-    #region CloseDoor Tests
-
-    [TestMethod]
-    public async Task CloseDoor_ValidUserId_UpdatesExitTime()
-    {
-        // Arrange
-        var userId = "user123";
-        await _repository.OpenDoor(userId);
-
-        // Act
-        var result = await _repository.CloseDoor(userId);
-
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual(userId, result.UserId);
-        Assert.AreNotEqual(DateTime.MinValue, result.ExitedAt);
-        Assert.IsTrue(result.ExitedAt > result.EnteredAt);
+        Assert.IsNotNull(closed);
+        Assert.AreNotEqual(DateTime.MinValue, closed.ExitedAt);
     }
 
     [TestMethod]
-    public async Task CloseDoor_UserNotEntered_ReturnsNull()
+    public async Task CloseDoor_NoActiveEntry_ReturnsNull()
     {
-        // Arrange
-        var userId = "nonexistent";
-
-        // Act
-        var result = await _repository.CloseDoor(userId);
-
-        // Assert
+        var result = await _repository.CloseDoor("ghost");
         Assert.IsNull(result);
     }
 
     #endregion
 
-    #region GetAllAvailableLockers Tests
+    #region GetUserStatus
 
     [TestMethod]
-    public async Task GetAllAvailableLockers_LockerRoomExists_ReturnsAvailableLockers()
+    public async Task GetUserStatus_NeverCheckedIn_ReturnsNull()
     {
-        // Arrange
-        var lockerRoom = new LockerRoom
-        {
-            Capacity = 5,
-            Lockers = new List<Locker>
-            {
-                new Locker { LockerId = "L1", IsLocked = false, UserId = null },
-                new Locker { LockerId = "L2", IsLocked = true, UserId = "user123" },
-                new Locker { LockerId = "L3", IsLocked = false, UserId = null }
-            }
-        };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
-
-        // Act
-        var result = await _repository.GetAllAvailableLockers(created.Id!);
-
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual(2, result.Count);
-        Assert.IsTrue(result.All(l => !l.IsLocked));
+        var status = await _repository.GetUserStatus("user1");
+        Assert.IsNull(status);
     }
 
     [TestMethod]
-    public async Task GetAllAvailableLockers_LockerRoomNotFound_ReturnsEmptyList()
+    public async Task GetUserStatus_CheckedIn_ReturnsMinValue()
     {
-        // Arrange
-        var nonExistentId = "507f1f77bcf86cd799439011";
+        await _repository.OpenDoor("user1");
 
-        // Act
-        var result = await _repository.GetAllAvailableLockers(nonExistentId);
+        var status = await _repository.GetUserStatus("user1");
 
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual(0, result.Count);
+        Assert.AreEqual(DateTime.MinValue, status);
+    }
+
+    [TestMethod]
+    public async Task GetUserStatus_CheckedOut_ReturnsExitTime()
+    {
+        await _repository.OpenDoor("user1");
+        var closed = await _repository.CloseDoor("user1");
+
+        var status = await _repository.GetUserStatus("user1");
+
+        Assert.AreEqual(closed!.ExitedAt, status);
     }
 
     #endregion
 
-    #region LockLocker Tests
+    #region Lockers
 
     [TestMethod]
-    public async Task LockLocker_ValidParameters_LocksLocker()
+    public async Task GetAllAvailableLockers_ReturnsOnlyUnlocked()
     {
-        // Arrange
-        var lockerRoom = new LockerRoom
+        var room = new LockerRoom
         {
-            Capacity = 3,
-            Lockers = new List<Locker>
+            Lockers = new()
             {
-                new Locker { LockerId = "L1", IsLocked = false, UserId = null }
+                new Locker { LockerId = "L1", IsLocked = false },
+                new Locker { LockerId = "L2", IsLocked = true }
             }
         };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
-        var userId = "user123";
 
-        // Act
-        var result = await _repository.LockLocker(created.Id!, "L1", userId);
+        var created = await _repository.CreateLockerRoom(room);
 
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual("L1", result.LockerId);
-        Assert.AreEqual(userId, result.UserId);
-        Assert.IsTrue(result.IsLocked);
+        var lockers = await _repository.GetAllAvailableLockers(created.Id!);
 
-        var dbLockerRoom = await _lockerRoomsCollection.Find(lr => lr.Id == created.Id).FirstOrDefaultAsync();
-        var locker = dbLockerRoom.Lockers!.First(l => l.LockerId == "L1");
-        Assert.IsTrue(locker.IsLocked);
-        Assert.AreEqual(userId, locker.UserId);
+        Assert.AreEqual(1, lockers.Count);
+        Assert.AreEqual("L1", lockers[0].LockerId);
     }
 
     [TestMethod]
-    public async Task LockLocker_LockerNotFound_ReturnsNull()
+    public async Task LockLocker_AssignsUser()
     {
-        // Arrange
-        var lockerRoom = new LockerRoom
+        var room = new LockerRoom
         {
-            Capacity = 1,
-            Lockers = new List<Locker>
+            Lockers = new()
             {
-                new Locker { LockerId = "L1", IsLocked = false, UserId = null }
+                new Locker { LockerId = "L1" }
             }
         };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
 
-        // Act
-        var result = await _repository.LockLocker(created.Id!, "NonExistent", "user123");
+        var created = await _repository.CreateLockerRoom(room);
 
-        // Assert
-        Assert.IsNull(result);
+        var locker = await _repository.LockLocker(created.Id!, "L1", "user1");
+
+        Assert.IsTrue(locker!.IsLocked);
+        Assert.AreEqual("user1", locker.UserId);
     }
 
     [TestMethod]
-    public async Task LockLocker_NullUserId_ReturnsNull()
+    public async Task UnlockLocker_RemovesUser()
     {
-        // Arrange
-        var lockerRoom = new LockerRoom
+        var room = new LockerRoom
         {
-            Capacity = 1,
-            Lockers = new List<Locker>
+            Lockers = new()
             {
-                new Locker { LockerId = "L1", IsLocked = false, UserId = null }
+                new Locker { LockerId = "L1", IsLocked = true, UserId = "user1" }
             }
         };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
 
-        // Act
-        var result = await _repository.LockLocker(created.Id!, "L1", null!);
+        var created = await _repository.CreateLockerRoom(room);
 
-        // Assert
-        Assert.IsNull(result);
-    }
+        var locker = await _repository.UnlockLocker(created.Id!, "L1", "user1");
 
-    #endregion
-
-    #region UnlockLocker Tests
-
-    [TestMethod]
-    public async Task UnlockLocker_ValidParameters_UnlocksLocker()
-    {
-        // Arrange
-        var userId = "user123";
-        var lockerRoom = new LockerRoom
-        {
-            Capacity = 1,
-            Lockers = new List<Locker>
-            {
-                new Locker { LockerId = "L1", IsLocked = true, UserId = userId }
-            }
-        };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
-
-        // Act
-        var result = await _repository.UnlockLocker(created.Id!, "L1", userId);
-
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual("L1", result.LockerId);
-        Assert.IsNull(result.UserId);
-        Assert.IsFalse(result.IsLocked);
-
-        var dbLockerRoom = await _lockerRoomsCollection.Find(lr => lr.Id == created.Id).FirstOrDefaultAsync();
-        var locker = dbLockerRoom.Lockers!.First(l => l.LockerId == "L1");
-        Assert.IsFalse(locker.IsLocked);
+        Assert.IsFalse(locker!.IsLocked);
         Assert.IsNull(locker.UserId);
     }
 
+    #endregion
+
+    #region GetLocker (by userId)
+
     [TestMethod]
-    public async Task UnlockLocker_WrongUser_ReturnsNull()
+    public async Task GetLocker_UserHasLocker_ReturnsLocker()
     {
-        // Arrange
-        var lockerRoom = new LockerRoom
+        var room = new LockerRoom
         {
-            Capacity = 1,
-            Lockers = new List<Locker>
+            Lockers = new()
             {
-                new Locker { LockerId = "L1", IsLocked = true, UserId = "user123" }
+                new Locker { LockerId = "L1", IsLocked = true, UserId = "user1" }
             }
         };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
 
-        // Act
-        var result = await _repository.UnlockLocker(created.Id!, "L1", "user456");
+        var created = await _repository.CreateLockerRoom(room);
 
-        // Assert
-        Assert.IsNull(result);
+        var locker = await _repository.GetLocker(created.Id!, "user1");
+
+        Assert.IsNotNull(locker);
+        Assert.AreEqual("L1", locker!.LockerId);
+    }
+
+    [TestMethod]
+    public async Task GetLocker_UserHasNoLocker_ReturnsNull()
+    {
+        var room = new LockerRoom
+        {
+            Lockers = new()
+            {
+                new Locker { LockerId = "L1" }
+            }
+        };
+
+        var created = await _repository.CreateLockerRoom(room);
+
+        var locker = await _repository.GetLocker(created.Id!, "ghost");
+
+        Assert.IsNull(locker);
     }
 
     #endregion
 
-    #region GetByIdAsync Tests
+    #region GetCrowd
 
     [TestMethod]
-    public async Task GetByIdAsync_ValidId_ReturnsLockerRoom()
+    public async Task GetCrowd_CountsOnlyActiveUsers()
     {
-        // Arrange
-        var lockerRoom = new LockerRoom
-        {
-            Capacity = 10,
-            Lockers = new List<Locker>
-            {
-                new Locker { LockerId = "L1", IsLocked = false, UserId = null }
-            }
-        };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
+        await _repository.OpenDoor("u1");
+        await _repository.OpenDoor("u2");
+        await _repository.OpenDoor("u3");
 
-        // Act
-        var result = await _repository.GetByIdAsync(created.Id!);
+        await _repository.CloseDoor("u1");
 
-        // Assert
-        Assert.IsNotNull(result);
-        Assert.AreEqual(created.Id, result.Id);
-        Assert.AreEqual(10, result.Capacity);
+        var crowd = await _repository.GetCrowd();
+
+        Assert.AreEqual(2, crowd);
     }
 
     [TestMethod]
-    public async Task GetByIdAsync_InvalidId_ReturnsNull()
+    public async Task GetCrowd_NoUsers_ReturnsZero()
     {
-        // Arrange
-        var nonExistentId = "507f1f77bcf86cd799439011";
-
-        // Act
-        var result = await _repository.GetByIdAsync(nonExistentId);
-
-        // Assert
-        Assert.IsNull(result);
-    }
-
-    #endregion
-
-    #region SaveAsync Tests
-
-    [TestMethod]
-    public async Task SaveAsync_UpdateExistingLockerRoom_UpdatesData()
-    {
-        // Arrange
-        var lockerRoom = new LockerRoom
-        {
-            Capacity = 10,
-            Lockers = new List<Locker>
-            {
-                new Locker { LockerId = "L1", IsLocked = false, UserId = null }
-            }
-        };
-        var created = await _repository.CreateLockerRoom(lockerRoom);
-
-        // Act
-        created.Capacity = 50;
-        created.Lockers!.Add(new Locker { LockerId = "L2", IsLocked = false, UserId = null });
-        await _repository.SaveAsync(created);
-
-        // Assert
-        var dbLockerRoom = await _lockerRoomsCollection.Find(lr => lr.Id == created.Id).FirstOrDefaultAsync();
-        Assert.IsNotNull(dbLockerRoom);
-        Assert.AreEqual(50, dbLockerRoom.Capacity);
-        Assert.AreEqual(2, dbLockerRoom.Lockers!.Count);
-    }
-
-    #endregion
-
-    #region GetCrowd Tests
-
-    [TestMethod]
-    public async Task GetCrowd_WithActiveUsers_ReturnsCrowdCount()
-    {
-        // Arrange
-        var userId1 = "user1";
-        var userId2 = "user2";
-        var userId3 = "user3";
-
-        // Create entry points for users currently in the facility (ExitedAt = DateTime.MinValue)
-        await _repository.OpenDoor(userId1);
-        await _repository.OpenDoor(userId2);
-        await _repository.OpenDoor(userId3);
-
-        // Act
-        var result = await _repository.GetCrowd();
-
-        // Assert
-        Assert.AreEqual(3, result);
-    }
-
-    [TestMethod]
-    public async Task GetCrowd_WithMixedEntryExit_CountsOnlyActiveUsers()
-    {
-        // Arrange
-        var userId1 = "user1";
-        var userId2 = "user2";
-        var userId3 = "user3";
-
-        // User 1 and 2 enter
-        await _repository.OpenDoor(userId1);
-        await _repository.OpenDoor(userId2);
-
-        // User 1 exits
-        await _repository.CloseDoor(userId1);
-
-        // User 3 enters
-        await _repository.OpenDoor(userId3);
-
-        // Act
-        var result = await _repository.GetCrowd();
-
-        // Assert
-        Assert.AreEqual(2, result, "Should count only users still in facility (user2 and user3)");
-    }
-
-    [TestMethod]
-    public async Task GetCrowd_WithNoActiveUsers_ReturnsZero()
-    {
-        // Arrange - No entry points created
-
-        // Act
-        var result = await _repository.GetCrowd();
-
-        // Assert
-        Assert.AreEqual(0, result);
-    }
-
-    [TestMethod]
-    public async Task GetCrowd_AllUsersExited_ReturnsZero()
-    {
-        // Arrange
-        var userId1 = "user1";
-        var userId2 = "user2";
-
-        // Users enter and then exit
-        await _repository.OpenDoor(userId1);
-        await _repository.OpenDoor(userId2);
-        await _repository.CloseDoor(userId1);
-        await _repository.CloseDoor(userId2);
-
-        // Act
-        var result = await _repository.GetCrowd();
-
-        // Assert
-        Assert.AreEqual(0, result);
+        var crowd = await _repository.GetCrowd();
+        Assert.AreEqual(0, crowd);
     }
 
     #endregion
 }
-

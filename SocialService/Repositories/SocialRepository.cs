@@ -143,10 +143,13 @@ public class SocialRepository : ISocialRepository
     
     public async Task<IEnumerable<Friendship>?> GetAllIncomingFriendRequests(string userId)
     {
-        return await _friendshipCollection
-            .Find(f => f.ReceiverId == userId 
+
+        var result = await _friendshipCollection
+            .Find(f => f.ReceiverId == userId
                        && f.FriendShipStatus == FriendshipStatus.Pending)
             .ToListAsync();
+        
+        return result;
     }
 
 

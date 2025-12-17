@@ -1,11 +1,9 @@
-using FitnessApp.Shared.Models;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using FitnessApp.Shared.Models;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace FitnessApp.Shared.Models
+namespace SoloTrainingService.Models
 {
     public class SoloTrainingSession
     {

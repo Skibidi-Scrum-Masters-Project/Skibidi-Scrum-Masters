@@ -12,26 +12,29 @@
     <div class="workout-grid">
         @foreach (var workout in Workouts)
         {
-            <button class="workout-card" @onclick="() => OpenWorkout(workout.Id)">
+            <button class="workout-card" type="button" @onclick="() => OpenWorkout(workout.Id)">
                 <div class="workout-card-header">
                     <h3>@workout.Name</h3>
-                    
                 </div>
 
                 <p class="workout-focus">@workout.Description</p>
 
                 <p class="workout-meta">
-                    @workout.ExerciseTypes.Count øvelser 
+                    @workout.ExerciseTypes.Count øvelser
                 </p>
             </button>
         }
     </div>
+
     @if (ShowCreateProgramButton)
     {
-        <div class="create-program-button-container">
-            <button class="create-program-button" @onclick="GoToCreateProgram">Create Program</button>
+        <div class="create-program-bar">
+            <button class="create-program-button" type="button" @onclick="GoToCreateProgram">
+                Create Program
+            </button>
         </div>
     }
+
 </div>
 
 @code {
@@ -39,7 +42,7 @@
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
     [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
 
-    private List<WorkoutProgramDTO> Workouts { get; set; } = new List<WorkoutProgramDTO>();
+    private List<WorkoutProgramDTO> Workouts { get; set; } = new();
     private bool ShowCreateProgramButton { get; set; } = false;
     private string? jwt;
 
@@ -62,7 +65,6 @@
             }
         }
 
-        // Determine if the logged-in user can create programs
         try
         {
             var role = await TokenService.GetUserRoleAsync();
@@ -77,23 +79,7 @@
         }
     }
 
-    private void OpenWorkout(string id)
-    {
-        Nav.NavigateTo($"/workouts/{id}");
-    }
+    private void OpenWorkout(string id) => Nav.NavigateTo($"/workouts/{id}");
 
-    private void GoToCreateProgram()
-    {
-        Nav.NavigateTo("/create-workout-program");
-    }
-
-    public class WorkoutModel
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Level { get; set; } = "";
-        public string Focus { get; set; } = "";
-        public int ExerciseCount { get; set; }
-        public int EstimatedMinutes { get; set; }
-    }
+    private void GoToCreateProgram() => Nav.NavigateTo("/create-workout-program");
 }

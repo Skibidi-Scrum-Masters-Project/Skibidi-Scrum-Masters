@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace FitnessApp.Shared.Models
+namespace AuthService.Models
 {
     public class LoginRequest
     {

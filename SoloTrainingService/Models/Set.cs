@@ -1,4 +1,4 @@
-namespace FitnessApp.Shared.Models
+namespace SoloTrainingService.Models
 {
     public class Set
     {
