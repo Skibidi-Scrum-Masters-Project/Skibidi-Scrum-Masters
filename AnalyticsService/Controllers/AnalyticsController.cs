@@ -38,7 +38,7 @@ public class AnalyticsController : ControllerBase
 
     // Post entered users
     [HttpPost("entered/{userId}/{entryTime}")]
-    [Authorize]
+    
     public async Task<IActionResult> AddUserToCrowd(string userId, DateTime entryTime)
     {
         var PostedUser = await _analyticsRepository.PostEnteredUser(userId, entryTime, DateTime.MinValue);
@@ -47,7 +47,7 @@ public class AnalyticsController : ControllerBase
     
     // Change status to exit for entered users
     [HttpPut("Exited/{userId}/{exitTime}")]
-    [Authorize]
+    
     public async Task<IActionResult> UpdateUserExitTime(string userId, DateTime exitTime)
     {
         var UpdatedExitTime = await _analyticsRepository.UpdateUserExitTime(userId, exitTime);

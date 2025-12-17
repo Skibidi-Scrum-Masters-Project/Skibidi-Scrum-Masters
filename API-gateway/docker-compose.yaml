@@ -84,8 +84,6 @@ services:
       - DATA_PROTECTION_PATH=/root/.aspnet/DataProtection-Keys
     networks:
       - skibidi
-    depends_on:
-      - nginx
     volumes:
       - ./data/frontend/dataprotection:/root/.aspnet/DataProtection-Keys
 
@@ -102,6 +100,7 @@ services:
       - accesscontrolservice
       - coachingservice
       - analyticsservice
+      - frontend 
     ports:
       - "80:80"
     networks:
