@@ -21,5 +21,7 @@ public interface IAccessControlRepository
 
     Task<Locker?> GetLocker(string lockerRoomId,string userId);
 
+    Task<string> GetLockerRoomId();
+
 
 }

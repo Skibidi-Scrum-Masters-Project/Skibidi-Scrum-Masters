@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
 @using FitLifeFitness.Models
+@using System.Net.Http.Json
 @layout PhoneLayout
 
 <div class="workout-logger">
@@ -11,12 +12,7 @@
     }
     else
     {
-        <!-- Stats Bar -->
         <div class="stats-bar">
-            <div class="stat">
-                <div class="stat-label">Duration</div>
-                <div class="stat-value duration">@($"{duration}s")</div>
-            </div>
             <div class="stat">
                 <div class="stat-label">Volume</div>
                 <div class="stat-value">@($"{totalVolume} kg")</div>
@@ -25,86 +21,100 @@
                 <div class="stat-label">Sets</div>
                 <div class="stat-value">@totalSets</div>
             </div>
-            <div class="muscle-icons">
-                <div class="muscle-icon"></div>
-                <div class="muscle-icon"></div>
-            </div>
         </div>
 
-        <!-- Exercises Container -->
-        <div class="exercises-container">
-            @foreach (var exercise in Exercises)
-            {
-                <div class="exercise-card">
-                    <!-- Exercise Header -->
-                    <div class="exercise-header">
-                        <div class="exercise-icon"></div>
-                        <h3 class="exercise-name">@exercise.ExerciseType</h3>
-                        <button class="icon-button">
-                            <span class="more-icon">⋮</span>
-                        </button>
-                    </div>
-
-                    <!-- Notes -->
-                    <div class="notes-section">
-                        <input type="text" placeholder="Add notes here..." class="notes-input" />
-                    </div>
-
-                    <!-- Sets Table -->
-                    <div class="sets-container">
-                        <div class="sets-header">
-                            <div class="col-set">SET</div>
-                            <div class="col-weight">KG</div>
-                            <div class="col-reps">REPS</div>
-                            <div class="col-check"></div>
-                        </div>
-
-                        @for (int i = 0; i < exercise.Sets.Count; i++)
+        <div class="workout-scroll">
+            <section class="workout-hero">
+                <div class="hero-top">
+                    <div class="hero-ico" aria-hidden="true">🏋️</div>
+                    <div class="hero-text">
+                        <h2 class="hero-title">@Workout.Name</h2>
+                        @if (!string.IsNullOrWhiteSpace(Workout.Description))
                         {
-                            var setIndex = i;
-                            var set = exercise.Sets[setIndex];
-                            <div class="set-row @(set.IsFinished ? "finished" : "") @(set.IsPlaceholder ? "prefilled" : "")">
-                                <div class="col-set set-number">@(setIndex + 1)</div>
-                                <div class="col-weight">
-                                    <input
-                                        type="number"
-                                        class="set-input"
-                                        value="@(set.HasUserValue ? set.Weight.ToString() : string.Empty)"
-                                        placeholder="@set.Weight"
-                                        onfocus="this.select();"
-                                        @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, true)"
-                                        @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, true)" />
-                                </div>
-                                <div class="col-reps">
-                                    <input
-                                        type="number"
-                                        class="set-input"
-                                        value="@(set.HasUserValue ? set.Repetitions.ToString() : string.Empty)"
-                                        placeholder="@set.Repetitions"
-                                        onfocus="this.select();"
-                                        @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, false)"
-                                        @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, false)" />
-                                </div>
-                                <div class="col-check">
-                                    <button class="check-button" @onclick="() => FinishSet(exercise, setIndex)">✓</button>
-                                    <button class="remove-button" @onclick="() => RemoveSet(exercise, setIndex)">✕</button>
-                                </div>
-                            </div>
+                            <p class="hero-sub">@Workout.Description</p>
+                        }
+                        else
+                        {
+                            <p class="hero-sub">Log dine sets og gem din træning</p>
                         }
                     </div>
-
-                    <!-- Add Set Button -->
-                    <button class="add-set-button" @onclick="() => AddSet(exercise)">
-                        <span class="plus-icon">+</span>
-                        <span>Add Set</span>
-                    </button>
                 </div>
-            }
+            </section>
 
-            <!-- Footer actions inside scrollable content -->
+            <div class="exercises-container">
+                @foreach (var exercise in Exercises)
+                {
+                    <div class="exercise-card">
+                        <div class="exercise-header">
+
+                            <div class="exercise-headtext">
+                                <h3 class="exercise-name">@exercise.ExerciseType</h3>
+                                <p class="exercise-sub">@($"{exercise.Sets.Count} sets")</p>
+                            </div>
+                        </div>
+
+                        <div class="notes-section">
+                            <input type="text" placeholder="Tilføj noter her" class="notes-input" />
+                        </div>
+
+                        <div class="sets-container">
+                            <div class="sets-header">
+                                <div class="col-set">SET</div>
+                                <div class="col-weight">KG</div>
+                                <div class="col-reps">REPS</div>
+                                <div class="col-check"></div>
+                            </div>
+
+                            @for (int i = 0; i < exercise.Sets.Count; i++)
+                            {
+                                var setIndex = i;
+                                var set = exercise.Sets[setIndex];
+
+                                <div class="set-row @(set.IsFinished ? "finished" : "") @(set.IsPlaceholder ? "prefilled" : "")">
+                                    <div class="col-set set-number">@(setIndex + 1)</div>
+
+                                    <div class="col-weight">
+                                        <input
+                                            type="number"
+                                            class="set-input"
+                                            value="@(set.HasUserValue ? set.Weight.ToString() : string.Empty)"
+                                            placeholder="@set.Weight"
+                                            onfocus="this.select();"
+                                            @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, true)"
+                                            @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, true)" />
+                                    </div>
+
+                                    <div class="col-reps">
+                                        <input
+                                            type="number"
+                                            class="set-input"
+                                            value="@(set.HasUserValue ? set.Repetitions.ToString() : string.Empty)"
+                                            placeholder="@set.Repetitions"
+                                            onfocus="this.select();"
+                                            @oninput="(ChangeEventArgs e) => OnSetInput(exercise, setIndex, e, false)"
+                                            @onchange="(ChangeEventArgs e) => OnSetValueChanged(exercise, setIndex, e, false)" />
+                                    </div>
+
+                                    <div class="col-check">
+                                        <button class="check-button" type="button" @onclick="() => FinishSet(exercise, setIndex)" aria-label="Finish set">✓</button>
+                                        <button class="remove-button" type="button" @onclick="() => RemoveSet(exercise, setIndex)" aria-label="Remove set">✕</button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <button class="add-set-button" type="button" @onclick="() => AddSet(exercise)">
+                            <span class="plus-icon">+</span>
+                            <span>Tilføj Set</span>
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <!-- sticky action bar, følger med skærmen -->
             <div class="footer-actions">
-                <button class="footer-button finish" @onclick="FinishWorkout">Finish</button>
-                <button class="footer-button delete" @onclick="DeleteWorkout">Delete</button>
+                <button class="footer-button finish" type="button" @onclick="FinishWorkout">Afslut træning</button>
+                <button class="footer-button delete" type="button" @onclick="DeleteWorkout">Slet træning</button>
             </div>
         </div>
     }
@@ -115,26 +125,48 @@
     <div class="toast">@toastMessage</div>
 }
 
+@if (showDeleteConfirm)
+{
+    <div class="modal-overlay" @onclick="CloseDeleteConfirm" role="presentation">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-label="Delete workout confirmation" @onclick:stopPropagation="true">
+            <div class="modal-title">Slet træning</div>
+            <div class="modal-text">Er du sikker på, at du vil slette denne træning</div>
+
+            <div class="modal-actions">
+                <button class="modal-btn ghost" type="button" @onclick="CloseDeleteConfirm">Annuller</button>
+                <button class="modal-btn danger" type="button" @onclick="ConfirmDeleteWorkout">Slet</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public string Id { get; set; } = "";
+
     private WorkoutProgramDTO? Workout { get; set; }
+
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
     [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-    [Inject] private IJSRuntime JS { get; set; } = default!;
+
     public List<ExerciseDTO> PreviousExercises { get; set; } = new List<ExerciseDTO>();
     private List<ExerciseDTO> Exercises { get; set; } = new List<ExerciseDTO>();
     private SoloTrainingSessionDTO? Session { get; set; } = new SoloTrainingSessionDTO();
     private List<ExerciseDTO> FinishedExercises { get; set; } = new List<ExerciseDTO>();
+
     private int duration = 16;
     private int totalVolume = 0;
     private int totalSets = 0;
+
     private bool showToast = false;
     private string toastMessage = string.Empty;
+
+    private bool showDeleteConfirm = false;
 
     protected override async Task OnInitializedAsync()
     {
         string? userId = await TokenService.GetUserIdAsync();
+
         HttpResponseMessage? response = await SoloTrainingService.GetWorkoutProgramByIdAsync(Id);
         if (response.IsSuccessStatusCode)
         {
@@ -150,18 +182,18 @@
                 };
 
                 Exercises = Workout.ExerciseTypes
-                .Select(et => new ExerciseDTO
-                {
-                    ExerciseType = et,
-                    Volume = 0,
-                    Sets = new List<Set>
-                {
-                    new Set { Repetitions = 0, Weight = 0 },
-                    new Set { Repetitions = 0, Weight = 0 },
-                    new Set { Repetitions = 0, Weight = 0 }
-                }
-                })
-                .ToList();
+                    .Select(et => new ExerciseDTO
+                    {
+                        ExerciseType = et,
+                        Volume = 0,
+                        Sets = new List<Set>
+                        {
+                            new Set { Repetitions = 0, Weight = 0 },
+                            new Set { Repetitions = 0, Weight = 0 },
+                            new Set { Repetitions = 0, Weight = 0 }
+                        }
+                    })
+                    .ToList();
             }
         }
 
@@ -199,6 +231,7 @@
                 }
             }
         }
+
         Session = new SoloTrainingSessionDTO
         {
             UserId = userId ?? "",
@@ -234,6 +267,7 @@
             {
                 finished.Sets.RemoveAt(index);
                 finished.Volume = (finished.Sets?.Sum(s => s.Repetitions * s.Weight)) ?? 0;
+
                 if (finished.Sets.Count == 0)
                 {
                     FinishedExercises.Remove(finished);
@@ -295,6 +329,7 @@
         finished.Sets[index].Repetitions = set.Repetitions;
         finished.Sets[index].Weight = set.Weight;
         finished.Volume = (finished.Sets?.Sum(s => s.Repetitions * s.Weight)) ?? 0;
+
         UpdateStats();
     }
 
@@ -358,22 +393,21 @@
         }
     }
 
-    private async Task DeleteWorkout()
+    private Task DeleteWorkout()
     {
-        bool confirmed = false;
-        try
-        {
-            confirmed = await JS.InvokeAsync<bool>("confirm", "Delete this workout? This cannot be undone.");
-        }
-        catch
-        {
-            confirmed = false;
-        }
+        showDeleteConfirm = true;
+        return Task.CompletedTask;
+    }
 
-        if (confirmed)
-        {
-            NavigationManager.NavigateTo("/dashboard");
-        }
+    private void CloseDeleteConfirm()
+    {
+        showDeleteConfirm = false;
+    }
+
+    private void ConfirmDeleteWorkout()
+    {
+        showDeleteConfirm = false;
+        NavigationManager.NavigateTo("/dashboard");
     }
 
     private async Task FinishWorkout()

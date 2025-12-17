@@ -53,7 +53,7 @@
                     <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
                 </div>
 
-                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+                <button class="unlock-btn" disabled type="button">Indlæser...</button>
             </section>
         }
         else if (!string.IsNullOrWhiteSpace(analyticsError))
@@ -95,7 +95,12 @@
                     <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
                 </div>
 
-                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+                <button class="unlock-btn @(isCheckedIn ? "checkout" : "")"
+                        @onclick="ToggleCheckIn"
+                        type="button"
+                        disabled="@isDoorBusy">
+                    @(isCheckedIn ? "Check ud" : "Check ind")
+                </button>
             </section>
         }
         else
@@ -139,7 +144,12 @@
                     <button class="link-secondary" type="button" @onclick="GoToCrowd">Se Travlhed</button>
                 </div>
 
-                <button class="unlock-btn" @onclick="GoToLocker" type="button">Check ind</button>
+                <button class="unlock-btn @(isCheckedIn ? "checkout" : "")"
+                        @onclick="ToggleCheckIn"
+                        type="button"
+                        disabled="@isDoorBusy">
+                    @(isCheckedIn ? "Check ud" : "Check ind")
+                </button>
             </section>
         }
 
@@ -251,16 +261,6 @@
     private string feedError = string.Empty;
     private List<Post> feedItems = new();
 
-    private bool checkedIn;
-    
-    // Check Status
-    private DateTime? userStatus;
-    private bool isCheckedIn;
-    private bool hasCheckedOut;
-    
-    // Get User Locker
-    private Locker? userLocker;
-
     private bool isAnalyticsLoading;
     private string analyticsError = string.Empty;
 
@@ -268,10 +268,13 @@
     private List<SoloTrainingResultsDTO> SoloTrainingResults = new();
     private int CrowdCount;
 
-    private const int MaxPeopleCapacity = 250;
+    private const int MaxPeopleCapacity = 20;
 
     private int StreakWeeks { get; set; }
     private int StreakWorkouts { get; set; }
+
+    private bool isDoorBusy;
+    private bool isCheckedIn;
 
     private bool HasAnyWorkouts => (ClassResults?.Count ?? 0) > 0 || (SoloTrainingResults?.Count ?? 0) > 0;
 
@@ -313,10 +316,73 @@
 
         await Task.WhenAll(
             LoadAnalyticsAsync(),
-            LoadFeedAsync()
+            LoadFeedAsync(),
+            RefreshCheckInStatus()
         );
     }
-    
+
+    private async Task RefreshCheckInStatus()
+    {
+        if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            return;
+
+        var res = await AcessControlService.GetUserStatus(LoggedInUserId);
+        if (!res.IsSuccessStatusCode)
+            return;
+
+        var raw = (await res.Content.ReadAsStringAsync())?.Trim();
+
+        if (string.IsNullOrWhiteSpace(raw) || raw == "null")
+        {
+            isCheckedIn = false;
+            return;
+        }
+
+        raw = raw.Trim('"'); // fjerner anførselstegn
+
+        if (!DateTime.TryParse(raw, null, System.Globalization.DateTimeStyles.RoundtripKind, out var exitedAt))
+        {
+            isCheckedIn = false;
+            return;
+        }
+
+        isCheckedIn = exitedAt == DateTime.MinValue;
+    }
+
+
+    private async Task ToggleCheckIn()
+    {
+        if (string.IsNullOrWhiteSpace(LoggedInUserId))
+            return;
+
+        try
+        {
+            isDoorBusy = true;
+            analyticsError = string.Empty;
+
+            var res = isCheckedIn
+                ? await AcessControlService.CloseDoorAsync(LoggedInUserId)
+                : await AcessControlService.OpenDoorAsync(LoggedInUserId);
+
+            if (!res.IsSuccessStatusCode)
+            {
+                analyticsError = await res.Content.ReadAsStringAsync();
+                return;
+            }
+
+            await RefreshCheckInStatus();
+            await LoadAnalyticsAsync();
+        }
+        catch (Exception ex)
+        {
+            analyticsError = ex.Message;
+        }
+        finally
+        {
+            isDoorBusy = false;
+        }
+    }
+
     private async Task SwitchTab(string tab)
     {
         if (activeFeedTab == tab) return;
@@ -410,31 +476,6 @@
         StreakWeeks = streakWeeks;
         StreakWorkouts = streakWorkouts;
     }
-    
-    
-    private void EvaluateStatus()
-    {
-        if (userStatus == null)
-        {
-            // aldrig været inde
-            isCheckedIn = false;
-            hasCheckedOut = false;
-        }
-        else if (userStatus == DateTime.MinValue)
-        {
-            // CHECKET IND
-            isCheckedIn = true;
-            hasCheckedOut = false;
-        }
-        else
-        {
-            // CHECKET UD
-            isCheckedIn = false;
-            hasCheckedOut = true;
-        }
-    }
-    
-        
 
     private async Task LoadFeedAsync()
     {

@@ -117,6 +117,14 @@ public class AccessControlController : ControllerBase
             var userStatus = await _accessControlRepository.GetUserStatus(userid);
             return Ok(userStatus); // null er gyldig status
         }
+        
+        
+        [HttpGet("LockerRoomId")]
+        public async Task<IActionResult> GetLockerRoomId()
+        {
+            var  lockerRoomId = await _accessControlRepository.GetLockerRoomId();
+            return Ok(lockerRoomId);
+        }
     
     
             
