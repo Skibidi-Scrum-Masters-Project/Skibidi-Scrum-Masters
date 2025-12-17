@@ -51,7 +51,7 @@
                         <p class="error-title">Noget gik galt</p>
                         <p class="error-message">Kunne ikke hente trænere. Prøv igen.</p>
 
-                        <button class="ghost-btn" type="button" @onclick="Reload">
+                        <button class="ghost-btn" type="button" >
                             Prøv igen
                         </button>
                     </div>
@@ -143,7 +143,7 @@
     private bool _isLoading = true;
     private bool _errorOccurred = false;
     private string? LoggedInUserId;
-
+    private string? Jwt { get; set; }
     private List<CoachModel> Coaches { get; set; } = new();
     private Dictionary<string, UserDto> UsersById { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -160,16 +160,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAsync();
-    }
-
-    private async Task Reload()
-    {
-        await LoadAsync();
-    }
-
-    private async Task LoadAsync()
-    {
+        Jwt = await TokenService.GetTokenAsync();
         _isLoading = true;
         _errorOccurred = false;
 
@@ -179,7 +170,7 @@
 
             await LoadUsersAsync();
 
-            var res = await CoachingService.GetAvailableSessionsAsync();
+            var res = await CoachingService.GetAvailableSessionsAsync(Jwt ?? "");
             res.EnsureSuccessStatusCode();
 
             var sessions = await res.Content.ReadFromJsonAsync<IEnumerable<CoachingSession.SessionDto>>()
@@ -231,7 +222,7 @@
     {
         try
         {
-            var res = await CoachingService.GetAvailableSessionsForCoachIdAsync(coachId);
+            var res = await CoachingService.GetAvailableSessionsForCoachIdAsync(coachId, Jwt ?? "");
             if (!res.IsSuccessStatusCode) return 0;
 
             var list = await res.Content.ReadFromJsonAsync<List<CoachingSession.SessionDto>>();

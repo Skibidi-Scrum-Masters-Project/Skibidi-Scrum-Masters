@@ -331,10 +331,12 @@
     private Dictionary<string, string> UsersMap { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     private bool HasAnyWorkouts => (ClassResults?.Count ?? 0) > 0 || (SoloTrainingResults?.Count ?? 0) > 0;
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
+        jwt = await TokenService.GetTokenAsync();
         await LoadStatisticsAsync();
     }
 
@@ -363,7 +365,7 @@
 
             await LoadUsersMapAsync();
 
-            var dashboardRes = await AnalyticsService.GetDashboardAsync(LoggedInUserId);
+            var dashboardRes = await AnalyticsService.GetDashboardAsync(LoggedInUserId, jwt);
 
             if (!dashboardRes.IsSuccessStatusCode)
             {
@@ -383,7 +385,7 @@
             ClassResults = dashboard?.ClassResults ?? new();
             SoloTrainingResults = dashboard?.SoloTrainingResults ?? new();
 
-            var compareRes = await AnalyticsService.GetCompareMonthAsync(LoggedInUserId);
+            var compareRes = await AnalyticsService.GetCompareMonthAsync(LoggedInUserId, jwt);
 
             if (!compareRes.IsSuccessStatusCode)
             {

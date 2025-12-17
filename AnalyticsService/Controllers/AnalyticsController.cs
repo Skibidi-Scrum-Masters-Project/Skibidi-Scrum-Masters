@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using AnalyticsService.Models;
+using Microsoft.AspNetCore.Authorization;
  
 
 namespace AnalyticsService.Controllers;
@@ -17,6 +18,7 @@ public class AnalyticsController : ControllerBase
 
     
     [HttpPost("classes")]
+    
     public async Task<IActionResult> PostClassesAnalytics(
         [FromBody] ClassResultDTO dto)
     {
@@ -36,6 +38,7 @@ public class AnalyticsController : ControllerBase
 
     // Post entered users
     [HttpPost("entered/{userId}/{entryTime}")]
+    [Authorize]
     public async Task<IActionResult> AddUserToCrowd(string userId, DateTime entryTime)
     {
         var PostedUser = await _analyticsRepository.PostEnteredUser(userId, entryTime, DateTime.MinValue);
@@ -44,6 +47,7 @@ public class AnalyticsController : ControllerBase
     
     // Change status to exit for entered users
     [HttpPut("Exited/{userId}/{exitTime}")]
+    [Authorize]
     public async Task<IActionResult> UpdateUserExitTime(string userId, DateTime exitTime)
     {
         var UpdatedExitTime = await _analyticsRepository.UpdateUserExitTime(userId, exitTime);
@@ -52,6 +56,7 @@ public class AnalyticsController : ControllerBase
     
     // Post solotraining results
     [HttpPost("solotraining")]
+    
     public async Task<IActionResult> PostSoloTrainingResult([FromBody] SoloTrainingResultsDTO dto)
     {
         if (dto == null)
@@ -66,6 +71,7 @@ public class AnalyticsController : ControllerBase
     
     // Get crowd result
     [HttpGet("crowd")]
+    [Authorize]
     public async Task<IActionResult> GetCrowdCount()
     {
         var crowdCount = await _analyticsRepository.GetCrowdCount();
@@ -74,7 +80,7 @@ public class AnalyticsController : ControllerBase
     
     // Get all solo training result
     [HttpGet("solotrainingresult/{userId}")]
-
+    [Authorize]
     public async Task<IActionResult> GetSoloTrainingResult(string userId)
     {
         var soloTrainingResult = await _analyticsRepository.GetSoloTrainingResult(userId);
@@ -84,7 +90,7 @@ public class AnalyticsController : ControllerBase
     // Get all class training results
 
     [HttpGet("classresult/{userId}")]
-
+    [Authorize]
     public async Task<IActionResult> GetClassResult(string userId)
     {
         var classTrainingResult = await _analyticsRepository.GetClassResult(userId);
@@ -92,6 +98,7 @@ public class AnalyticsController : ControllerBase
     }
     
     [HttpGet("dashboard/{userId}")]
+    [Authorize]
     public async Task<IActionResult> GetDashboard(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))
@@ -102,6 +109,7 @@ public class AnalyticsController : ControllerBase
     }
     
     [HttpGet("compare/month/{userId}")]
+    [Authorize]
     public async Task<IActionResult> GetCompareForMonth(string userId)
     {
         if (string.IsNullOrWhiteSpace(userId))

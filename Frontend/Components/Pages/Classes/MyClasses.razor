@@ -1,4 +1,5 @@
 @page "/classes"
+@rendermode InteractiveServer
 @layout PhoneLayout
 @using System.Net.Http.Json
 @using System.Globalization
@@ -162,6 +163,7 @@
 @code {
     private string? userId;
     private UserRole? userRole;
+    private string jwt = "";
 
     private bool isLoading;
     private string loadError = string.Empty;
@@ -192,26 +194,36 @@
     private IEnumerable<IGrouping<DateOnly, FitnessClass>> GroupedClasses =>
         VisibleClasses.GroupBy(c => c.Date);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await TokenService.FlushPendingAsync();
-        }
-    }
+    private bool _loaded; // prevents double execution
 
     protected override async Task OnInitializedAsync()
     {
-        userId = await TokenService.GetUserIdAsync();
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            Nav.NavigateTo("/login");
+        // DO NOT call authenticated APIs here
+        // This runs before ProtectedLocalStorage is available
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _loaded)
             return;
-        }
+
+        _loaded = true;
+
+        // Ensure buffered login data is persisted
+
+
+        // Load auth state
+        userId = await TokenService.GetUserIdAsync();
+     
 
         userRole = await TokenService.GetUserRoleAsync();
+        jwt = await TokenService.GetTokenAsync() ?? "";
+
         await LoadClassesAsync();
+
+        StateHasChanged();
     }
+
 
     private async Task LoadClassesAsync()
     {
@@ -228,8 +240,8 @@
 
             HttpResponseMessage response =
                 userRole == UserRole.Coach
-                    ? await ClassService.GetClassesByCoachIdAsync(userId)
-                    : await ClassService.GetClassesByUserIdAsync(userId);
+                    ? await ClassService.GetClassesByCoachIdAsync(userId, jwt)
+                    : await ClassService.GetClassesByUserIdAsync(userId, jwt);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -293,13 +305,9 @@
         }
 
         if (c.SeatBookingEnabled)
-        {
             Nav.NavigateTo($"/classes/seat/{c.Id}");
-        }
         else
-        {
             Nav.NavigateTo($"/classes/book/{c.Id}");
-        }
     }
 
     private static bool MatchesSearch(FitnessClass c, string needle)

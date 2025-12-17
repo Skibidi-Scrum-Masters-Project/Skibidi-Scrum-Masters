@@ -1,5 +1,5 @@
 @page "/trainer/session/select/{CoachId}"
-
+@inject TokenService TokenService
 @using System.Net.Http.Json
 @using Microsoft.AspNetCore.Components
 @using FitLifeFitness.Components.Layout
@@ -135,9 +135,11 @@
 
     private UserDto? _coachUser;
     private string _coachDisplayName = "Træner";
+    private string? jwt;
 
     protected override async Task OnParametersSetAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         await LoadAsync();
     }
 
@@ -159,7 +161,7 @@
 
             await LoadCoachAsync(CoachId);
 
-            var response = await CoachingService.GetAvailableSessionsForCoachIdAsync(CoachId);
+            var response = await CoachingService.GetAvailableSessionsForCoachIdAsync(CoachId, jwt ?? "");
 
             if (!response.IsSuccessStatusCode)
             {

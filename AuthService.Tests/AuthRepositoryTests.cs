@@ -4,6 +4,7 @@ using Moq;
 using FitnessApp.Shared.Models;
 using AuthService.Models;
 using System.IdentityModel.Tokens.Jwt;
+using MongoDB.Driver;
 
 namespace AuthService.Tests;
 
@@ -13,6 +14,8 @@ public class AuthRepositoryTests
     private AuthRepository _repository = null!;
     private Mock<IOptions<JwtSettings>> _mockJwtSettings = null!;
     private Mock<ILogger<AuthRepository>> _mockLogger = null!;
+    private readonly IMongoCollection<RefreshToken> _refresh = null!;
+    
 
     [TestInitialize]
     public void Setup()
@@ -31,7 +34,7 @@ public class AuthRepositoryTests
 
         _mockLogger = new Mock<ILogger<AuthRepository>>();
 
-        _repository = new AuthRepository(_mockJwtSettings.Object, _mockLogger.Object);
+        _repository = new AuthRepository(_mockJwtSettings.Object, _mockLogger.Object, Mock.Of<IMongoDatabase>());
     }
 
     [TestMethod]

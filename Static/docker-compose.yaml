@@ -5,7 +5,7 @@ services:
     container_name: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: secret123
+      MONGO_INITDB_ROOT_PASSWORD: abfmfitlifeskibidi
     ports:
       - 27018:27017
     volumes:
@@ -33,21 +33,6 @@ services:
       - loki
     networks:
       - skibidi
-  rabbitmq:
-    image: rabbitmq:management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"   # RabbitMQ main port (for apps)
-      - "15672:15672" # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    restart: unless-stopped
-    networks:
-      - skibidi
-
 volumes:
   mongodb-data:
   grafana_data:

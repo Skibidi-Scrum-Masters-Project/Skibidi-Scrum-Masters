@@ -244,6 +244,7 @@
         IsActive = true,
         SeatBookingEnabled = false
     };
+    private string? jwt;
 
     private string? errorMessage;
     private string? successMessage;
@@ -253,6 +254,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         LoggedInUserId = await TokenService.GetUserIdAsync();
         if (!string.IsNullOrEmpty(LoggedInUserId))
         {
@@ -286,7 +288,7 @@
         try
         {
             newClassModel.InstructorId = LoggedInUserId;
-            var response = await ClassService.CreateClassAsync(newClassModel);
+            var response = await ClassService.CreateClassAsync(newClassModel,jwt!);
 
             if (response.IsSuccessStatusCode)
             {

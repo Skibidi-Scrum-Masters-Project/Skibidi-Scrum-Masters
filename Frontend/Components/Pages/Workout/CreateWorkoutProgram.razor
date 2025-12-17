@@ -22,24 +22,19 @@
                         <p class="hero-subtitle">Byg et program med dine foretrukne øvelsestyper.</p>
                     </div>
                 </div>
-                
+
             </header>
 
             <section class="form-card">
                 <div class="field">
                     <label class="label">Navn</label>
-                    <input class="input"
-                           placeholder="Fx Push day"
-                           @bind="Name"
-                           @bind:event="oninput" />
+                    <input class="input" placeholder="Fx Push day" @bind="Name" @bind:event="oninput" />
                 </div>
 
                 <div class="field">
                     <label class="label">Beskrivelse</label>
-                    <textarea class="textarea"
-                              placeholder="Kort beskrivelse af programmet..."
-                              @bind="Description"
-                              @bind:event="oninput"></textarea>
+                    <textarea class="textarea" placeholder="Kort beskrivelse af programmet..." @bind="Description"
+                        @bind:event="oninput"></textarea>
                 </div>
 
                 <div class="divider"></div>
@@ -49,17 +44,10 @@
                     <p class="hint">Søg og tilføj. Tryk Enter for at vælge første forslag.</p>
 
                     <div class="search-row">
-                        <input list="exercises-datalist"
-                               class="input search"
-                               placeholder="Søg eller vælg..."
-                               @bind="SearchText"
-                               @bind:event="oninput"
-                               @onkeydown="OnSearchKeyDown" />
+                        <input list="exercises-datalist" class="input search" placeholder="Søg eller vælg..."
+                            @bind="SearchText" @bind:event="oninput" @onkeydown="OnSearchKeyDown" />
 
-                        <button class="pill-btn"
-                                type="button"
-                                @onclick="AddExerciseType"
-                                disabled="@(!CanAddExercise)">
+                        <button class="pill-btn" type="button" @onclick="AddExerciseType" disabled="@(!CanAddExercise)">
                             Tilføj
                         </button>
                     </div>
@@ -89,10 +77,8 @@
                             {
                                 <div class="chip">
                                     <span class="chip-text">@et.ToString()</span>
-                                    <button class="chip-x"
-                                            type="button"
-                                            @onclick="() => RemoveExerciseType(et)"
-                                            aria-label="Fjern">
+                                    <button class="chip-x" type="button" @onclick="() => RemoveExerciseType(et)"
+                                        aria-label="Fjern">
                                         ✕
                                     </button>
                                 </div>
@@ -119,7 +105,8 @@
 @code {
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
-
+    [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
+    private string? jwt;
     private string Name = string.Empty;
     private string Description = string.Empty;
 
@@ -130,21 +117,21 @@
     private string Message = string.Empty;
 
     private IEnumerable<ExerciseType> FilteredExerciseTypes =>
-        string.IsNullOrWhiteSpace(SearchText)
-            ? AllExerciseTypes
-            : AllExerciseTypes.Where(et =>
-                et.ToString().Contains(SearchText, StringComparison.OrdinalIgnoreCase));
+    string.IsNullOrWhiteSpace(SearchText)
+    ? AllExerciseTypes
+    : AllExerciseTypes.Where(et =>
+    et.ToString().Contains(SearchText, StringComparison.OrdinalIgnoreCase));
 
     private bool CanAddExercise =>
-        !string.IsNullOrWhiteSpace(SearchText)
-        && Enum.TryParse<ExerciseType>(SearchText, true, out _);
-    
+    !string.IsNullOrWhiteSpace(SearchText)
+    && Enum.TryParse<ExerciseType>(SearchText, true, out _);
+
 
     protected override void OnInitialized()
     {
         AllExerciseTypes = Enum.GetValues(typeof(ExerciseType))
-            .Cast<ExerciseType>()
-            .ToList();
+        .Cast<ExerciseType>()
+        .ToList();
     }
 
     private async Task CreateProgram()
@@ -170,12 +157,19 @@
             ExerciseTypes = SelectedExerciseTypes.ToList()
         };
 
-        var response = await SoloTrainingService.CreateWorkoutProgramAsync(program);
-
+        var response = await SoloTrainingService.CreateWorkoutProgramAsync(program, jwt ?? "");
         if (response.IsSuccessStatusCode)
             Nav.NavigateTo("/workouts");
         else
-            Message = "Kunne ikke oprette programmet.";
+        {
+            Message = "Failed to create program";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        jwt = await TokenService.GetTokenAsync();
+        AllExerciseTypes = Enum.GetValues(typeof(ExerciseType)).Cast<ExerciseType>().ToList();
     }
 
     private void AddExerciseType()

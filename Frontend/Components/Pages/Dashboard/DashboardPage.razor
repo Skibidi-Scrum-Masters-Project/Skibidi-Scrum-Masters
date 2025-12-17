@@ -1,5 +1,7 @@
+@page "/"
 @page "/dashboard"
 @layout PhoneLayout
+@rendermode InteractiveServer
 @using FitLifeFitness.Services
 @using FitLifeFitness.Models
 @using Microsoft.AspNetCore.Components
@@ -260,6 +262,8 @@
     private bool isFeedLoading;
     private string feedError = string.Empty;
     private List<Post> feedItems = new();
+    private bool _loaded = false;
+    private string? jwt;
 
     private bool isAnalyticsLoading;
     private string analyticsError = string.Empty;
@@ -311,14 +315,29 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // DO NOT access TokenService or make API calls here!
+        // JS interop is not available during static rendering
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _loaded)
+            return;
+
+        _loaded = true;
+
+        // NOW it's safe to access TokenService
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
+        jwt = await TokenService.GetTokenAsync();
 
         await Task.WhenAll(
             LoadAnalyticsAsync(),
             LoadFeedAsync(),
             RefreshCheckInStatus()
         );
+
+        StateHasChanged();
     }
 
     private async Task RefreshCheckInStatus()
@@ -326,7 +345,7 @@
         if (string.IsNullOrWhiteSpace(LoggedInUserId))
             return;
 
-        var res = await AcessControlService.GetUserStatus(LoggedInUserId);
+        var res = await AcessControlService.GetUserStatusAsync(LoggedInUserId,jwt);
         if (!res.IsSuccessStatusCode)
             return;
 
@@ -361,8 +380,8 @@
             analyticsError = string.Empty;
 
             var res = isCheckedIn
-                ? await AcessControlService.CloseDoorAsync(LoggedInUserId)
-                : await AcessControlService.OpenDoorAsync(LoggedInUserId);
+                ? await AcessControlService.CloseDoorAsync(LoggedInUserId, jwt)
+                : await AcessControlService.OpenDoorAsync(LoggedInUserId, jwt);
 
             if (!res.IsSuccessStatusCode)
             {
@@ -403,7 +422,7 @@
                 return;
             }
 
-            var res = await AnalyticsService.GetDashboardAsync(LoggedInUserId);
+            var res = await AnalyticsService.GetDashboardAsync(LoggedInUserId, jwt);
 
             if (!res.IsSuccessStatusCode)
             {
@@ -482,6 +501,7 @@
         isFeedLoading = true;
         feedError = string.Empty;
         feedItems.Clear();
+        StateHasChanged(); // Update UI to show loading state
 
         try
         {
@@ -493,8 +513,8 @@
 
             var res =
                 activeFeedTab == "ready"
-                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId)
-                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId);
+                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId,jwt ?? "")
+                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId,jwt ?? "");
 
             if (!res.IsSuccessStatusCode)
             {
@@ -511,6 +531,7 @@
         finally
         {
             isFeedLoading = false;
+            StateHasChanged();
         }
     }
 
@@ -539,6 +560,8 @@
         if (dt == default) return "";
         return dt.ToString("dd-MM-yyyy HH:mm");
     }
+
+
 
     private static string GetLevelLabel(int percent) => percent switch
     {

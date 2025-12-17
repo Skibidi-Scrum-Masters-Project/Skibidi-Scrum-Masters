@@ -1,8 +1,28 @@
-﻿
-<Router AppAssembly="@typeof(App).Assembly">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using FitLifeFitness.Components.UI
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)"/>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
+        @if (IsAllowAnonymous(routeData))
+        {
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        }
+        else
+        {
+            <AuthorizeView>
+                <Authorized>
+                    <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+                </Authorized>
+                <NotAuthorized>
+                    <LayoutView Layout="@typeof(Layout.MainLayout)">
+                        <RedirectToLogin />
+                    </LayoutView>
+                </NotAuthorized>
+            </AuthorizeView>
+        }
+
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
         <PageTitle>Not found</PageTitle>
@@ -10,4 +30,13 @@
             <p role="alert">Sorry, there's nothing at this address.</p>
         </LayoutView>
     </NotFound>
-</Router>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    private static bool IsAllowAnonymous(Microsoft.AspNetCore.Components.RouteData routeData)
+    {
+        var pageType = routeData.PageType;
+        return pageType.IsDefined(typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), inherit: true);
+    }
+}

@@ -120,8 +120,9 @@
 
 @code {
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-
+    [Inject] private TokenService TokenService { get; set; } = default!;
     private const int MaxPeopleCapacity = 20;
+    private string? jwt;
 
     // ✅ DATA FRA BACKEND
     private int CurrentPeople;
@@ -152,6 +153,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         await RefreshData();
     }
 
@@ -159,7 +161,7 @@
     {
         try
         {
-            var crowdRes = await AnalyticsService.GetCrowdCountAsync();
+            var crowdRes = await AnalyticsService.GetCrowdCountAsync(jwt);
 
             if (crowdRes.IsSuccessStatusCode)
             {

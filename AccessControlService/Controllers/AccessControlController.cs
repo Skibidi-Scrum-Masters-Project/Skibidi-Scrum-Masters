@@ -2,6 +2,7 @@ using AccessControlService.Models;
 using Microsoft.AspNetCore.Mvc;
 using FitnessApp.Shared.Models;
 using AccessControlService.Repositories;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AccessControlService.Controllers;
 
@@ -16,6 +17,7 @@ public class AccessControlController : ControllerBase
         _accessControlRepository = accessControlRepository;
     }
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreateLockerRoom([FromBody] LockerRoom lockerRoom)
     {
         LockerRoom createdLockerRoom = await _accessControlRepository.CreateLockerRoom(lockerRoom);
@@ -23,6 +25,7 @@ public class AccessControlController : ControllerBase
     }
 
     [HttpPost("door/{userid}")]
+    [Authorize]
     public async Task<IActionResult> OpenDoor(string userid)
     {
         var door = await _accessControlRepository.OpenDoor(userid);
@@ -35,6 +38,7 @@ public class AccessControlController : ControllerBase
         return Ok(door);
     }
     [HttpPut("door/{userid}/close")]
+    [Authorize]
     public async Task<IActionResult> CloseDoor(string userid)
     {
         var door = await _accessControlRepository.CloseDoor(userid);
@@ -51,6 +55,7 @@ public class AccessControlController : ControllerBase
 
     //GET ALL AVAILABLE LOCKERS IN A LOCKER ROOM
     [HttpGet("{lockerRoomId}/available")]
+    [Authorize]
     public async Task<IActionResult> GetAvailableLockersById(string lockerRoomId)
     {
         if (lockerRoomId == null)
@@ -65,6 +70,7 @@ public class AccessControlController : ControllerBase
 
         //LOCK A LOCKER AND ASSIGN IT TO A USER
         [HttpPut("{lockerRoomId}/{lockerId}/{userId}")]
+    [Authorize]
         public async Task<IActionResult> LockLocker(
             string lockerRoomId, string lockerId, string userId)
         {
@@ -92,6 +98,7 @@ public class AccessControlController : ControllerBase
 
         // UNLOCK A LOCKER AND REMOVE USER ASSIGNMENT
         [HttpPut("{lockerRoomId}/{lockerId}/{userId}/open")]
+        [Authorize]
         public async Task<IActionResult> OpenLocker(string lockerRoomId, string lockerId, string userId)
         {
             var locker = await _accessControlRepository.UnlockLocker(lockerRoomId, lockerId, userId);
@@ -105,6 +112,7 @@ public class AccessControlController : ControllerBase
         
         // Get Crowd
         [HttpGet("crowd")]
+        [Authorize]
         public async Task<IActionResult> GetCrowd()
         {
             var crowd = await _accessControlRepository.GetCrowd();

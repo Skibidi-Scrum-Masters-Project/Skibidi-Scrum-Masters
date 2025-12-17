@@ -3,18 +3,22 @@ using Microsoft.Extensions.Options;
 using AuthService.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using MongoDB.Driver;
 
 public class AuthRepository : IAuthRepository
 {
     private readonly JwtSettings _jwtSettings;
     private readonly ILogger<AuthRepository> _logger;
+    private readonly IMongoCollection<RefreshToken> _refresh;
 
-    public AuthRepository(IOptions<JwtSettings> jwtSettings, ILogger<AuthRepository> logger)
+    public AuthRepository(IOptions<JwtSettings> jwtSettings, ILogger<AuthRepository> logger, IMongoDatabase database)
     {
         _jwtSettings = jwtSettings.Value;
         _logger = logger;
+        _refresh = database.GetCollection<RefreshToken>("RefreshTokens");
     }
     //TBA
     public async Task<LoginResponse?> Login(LoginRequest request)
@@ -41,11 +45,13 @@ public class AuthRepository : IAuthRepository
                         Role = user.Role
                     };
                     var token = _GenerateJWT(userDto);
+                    var refreshToken = _GenerateRefreshToken(userDto);
                     return new LoginResponse
                     {
                         Token = token,
                         User = userDto,
-                        ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes)
+                        ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+                        RefreshToken = refreshToken
                     };
                 }
                 else if (user != null)
@@ -84,5 +90,32 @@ public class AuthRepository : IAuthRepository
 
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
+    }
+
+    public string _GenerateRefreshToken(UserDTO user)
+    {
+        var RandomBytes = RandomNumberGenerator.GetBytes(64);
+        var refreshToken = new RefreshToken();
+        refreshToken.UserId = user.Id;
+        refreshToken.Token = Convert.ToBase64String(RandomBytes);
+        _refresh.InsertOne(refreshToken);
+        return refreshToken.Token;
+    }
+
+    public string RefreshToken(string token, string userId, Role role)
+    { 
+        var userDto = new UserDTO();
+      RefreshToken refreshToken = _refresh.Find(c => c.UserId == userId).FirstOrDefault();
+      if (refreshToken == null) return null;
+      if (refreshToken.Token != token) return null;
+      userDto.Id = userId;
+      userDto.Role = role;
+      return _GenerateJWT(userDto);
+    }
+
+    public string Logout(string userId)
+    {
+       _refresh.DeleteMany(c => c.UserId == userId);
+        return "User logged out successfully";
     }
 }

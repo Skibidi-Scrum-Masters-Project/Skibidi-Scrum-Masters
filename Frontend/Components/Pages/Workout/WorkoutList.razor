@@ -44,10 +44,12 @@
 
     private List<WorkoutProgramDTO> Workouts { get; set; } = new();
     private bool ShowCreateProgramButton { get; set; } = false;
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
-        var response = await SoloTrainingService.GetWorkoutPrograms();
+        jwt = await TokenService.GetTokenAsync();
+        var response = await SoloTrainingService.GetWorkoutProgramsAsync(jwt ?? "");
         if (response.IsSuccessStatusCode)
         {
             List<WorkoutProgramDTO>? programs = await response.Content.ReadFromJsonAsync<List<WorkoutProgramDTO>>();

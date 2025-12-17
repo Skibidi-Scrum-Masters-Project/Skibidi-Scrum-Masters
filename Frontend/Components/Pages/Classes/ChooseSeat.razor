@@ -232,6 +232,7 @@
     private List<SeatRow> SeatRows { get; set; } = new();
     private List<int> SelectedSeats { get; set; } = new();
     private string? userId { get; set; }
+    private string? jwt { get; set; }
     private string BookingMessage { get; set; } = string.Empty;
 
     private bool ShowFriendsMenu { get; set; }
@@ -268,14 +269,14 @@
             Nav.NavigateTo("/login");
             return;
         }
-
+        jwt = await TokenService.GetTokenAsync();
         await LoadFriendsAsync();
         await LoadClassAsync();
     }
 
     private async Task LoadFriendsAsync()
     {
-        var response = await SocialService.GetAllFriendsAsync(userId!);
+        var response = await SocialService.GetAllFriendsAsync(userId!, jwt!);
         if (response.IsSuccessStatusCode)
         {
             var friendships = await response.Content.ReadFromJsonAsync<List<Friendship>>() ?? new();
@@ -296,7 +297,7 @@
 
     private async Task LoadClassAsync()
     {
-        var response = await ClassService.GetClassByIdAsync(Id);
+        var response = await ClassService.GetClassByIdAsync(Id!, jwt!);
         if (response.IsSuccessStatusCode)
         {
             SelectedClass = await response.Content.ReadFromJsonAsync<FitnessClass>();
@@ -367,8 +368,8 @@
         if (SelectedFriends.Count == 0)
         {
             var response = await ClassService.BookSeatForClassAsync(
-                SelectedClass.Id!.ToString(), userId!, SelectedSeats[0]);
-
+                SelectedClass.Id!.ToString(), userId!, SelectedSeats[0], jwt!);
+            
             if (response.IsSuccessStatusCode)
             {
                 BookingMessage = $"Din plads {SelectedSeats[0] + 1} er nu booket!";
@@ -390,7 +391,7 @@
         };
 
         var groupResponse = await ClassService.BookSeatForClassWithFriendsAsync(
-            SelectedClass.Id!.ToString(), userId!, request);
+            SelectedClass.Id!.ToString(), userId!, request, jwt!);
 
         if (groupResponse.IsSuccessStatusCode)
         {
@@ -410,8 +411,8 @@
         if (SelectedClass == null || string.IsNullOrEmpty(userId)) return;
 
         var response = await ClassService.CancelClassBookingForUserAsync(
-            SelectedClass.Id!.ToString(), userId!);
-
+            SelectedClass.Id!.ToString(), userId!, jwt!);
+        
         if (response.IsSuccessStatusCode)
         {
             BookingMessage = "Din booking er annulleret.";

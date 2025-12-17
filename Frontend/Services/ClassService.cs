@@ -1,76 +1,104 @@
 using FitlifeFitness.Models;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 
 namespace FitLifeFitness.Services;
 
 public class ClassService
 {
     private readonly HttpClient _httpClient;
-    private readonly TokenService _tokenService;
 
-    public ClassService(HttpClient httpClient, TokenService tokenService)
+    public ClassService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _tokenService = tokenService;
     }
-    public async Task<HttpResponseMessage> GetAllClassesAsync()
+
+    private void AddJwtHeader(string jwt)
     {
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+    }
+
+    public async Task<HttpResponseMessage> GetAllClassesAsync(string jwt)
+    {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync("/api/classes/classes");
     }
 
-    public async Task<HttpResponseMessage> GetClassByIdAsync(string classId)
+    public async Task<HttpResponseMessage> GetClassByIdAsync(string classId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/classes/classes/{classId}");
     }
 
-    public async Task<HttpResponseMessage> CreateClassAsync(object classData)
+    public async Task<HttpResponseMessage> CreateClassAsync(object classData, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PostAsJsonAsync("/api/classes/classes", classData);
     }
 
-    public async Task<HttpResponseMessage> JoinClassAsync(string classId, string userId)
+    public async Task<HttpResponseMessage> JoinClassAsync(string classId, string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}", null);
     }
 
-    public async Task<HttpResponseMessage> FinishClassAsync(string classId)
+    public async Task<HttpResponseMessage> FinishClassAsync(string classId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PostAsync($"/api/classes/classes/{classId}/finish", null);
     }
-    public async Task<HttpResponseMessage> DeleteClassAsync(string classId)
+
+    public async Task<HttpResponseMessage> DeleteClassAsync(string classId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.DeleteAsync($"/api/classes/classes/{classId}");
     }
-    public async Task<HttpResponseMessage> GetClassesByUserIdAsync(string userId)
+
+    public async Task<HttpResponseMessage> GetClassesByUserIdAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/classes/classes/user/{userId}");
     }
-    public async Task<HttpResponseMessage> GetClassesByCoachIdAsync(string coachId)
+
+    public async Task<HttpResponseMessage> GetClassesByCoachIdAsync(string coachId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/classes/classes/coach/{coachId}");
     }
-    public async Task<HttpResponseMessage> CancelClassBookingForUserAsync(string classId, string userId)
+
+    public async Task<HttpResponseMessage> CancelClassBookingForUserAsync(string classId, string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}/cancel", null);
     }
-    public async Task<HttpResponseMessage> GetAllAvailableClassesAsync(string userId)
+
+    public async Task<HttpResponseMessage> GetAllAvailableClassesAsync(string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.GetAsync($"/api/classes/classes/available/{userId}");
     }
-    public async Task<HttpResponseMessage> BookSeatForClassAsync(string classId,string userId, int seatNumber)
+
+    public async Task<HttpResponseMessage> BookSeatForClassAsync(string classId, string userId, int seatNumber, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}/{seatNumber}", null);
     }
-    public async Task<HttpResponseMessage> BookSeatForClassWithFriendsAsync(string classId, string userId, BookClassWithFriendsRequestDTO request)
+
+    public async Task<HttpResponseMessage> BookSeatForClassWithFriendsAsync(string classId, string userId, BookClassWithFriendsRequestDTO request, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsJsonAsync($"/api/classes/classes/{classId}/{userId}/friends/seats", request);
     }
-    public async Task<HttpResponseMessage> BookClassForUser(string classId, string userId)
+
+    public async Task<HttpResponseMessage> BookClassForUserAsync(string classId, string userId, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsync($"/api/classes/classes/{classId}/{userId}", null);
     }
-    public async Task<HttpResponseMessage> BookClassForUserWithFriendsAsync(string classId, string userId, List<string> friends)
+
+    public async Task<HttpResponseMessage> BookClassForUserWithFriendsAsync(string classId, string userId, List<string> friends, string jwt)
     {
+        AddJwtHeader(jwt);
         return await _httpClient.PutAsJsonAsync($"/api/classes/classes/{classId}/{userId}/friends", friends);
     }
-
 }
