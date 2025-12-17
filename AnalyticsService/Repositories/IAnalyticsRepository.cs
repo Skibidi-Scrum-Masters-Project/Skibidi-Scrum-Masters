@@ -5,13 +5,12 @@ public interface IAnalyticsRepository
 {
 
    public Task<int> GetCrowdCount();
-   public Task<ClassResultDTO> PostClassesAnalytics(string classId, string userId, double caloriesBurned, Double watt, Category category, int durationMin, DateTime date);
+   public Task<ClassResultDTO> PostClassesAnalytics(ClassResultDTO dto);
    public Task<string> PostEnteredUser(string userId, DateTime entryTime, DateTime exitTime);
 
    public Task<string> UpdateUserExitTime(string userId, DateTime exitTime);
 
-   public Task<string> PostSoloTrainingResult(string userId, DateTime date, List<Exercise> exercises,
-       TrainingTypes trainingType, double durationMinutes);
+   public Task<string> PostSoloTrainingResult(SoloTrainingResultsDTO dto);
 
    public Task<List<SoloTrainingResultsDTO>> GetSoloTrainingResult(string userId);
 

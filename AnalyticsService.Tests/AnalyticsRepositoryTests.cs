@@ -26,11 +26,16 @@ namespace AnalyticsService.Tests
             _mockCrowdCollection = new Mock<IMongoCollection<CrowdResultDTO>>();
             _mockSoloCollection = new Mock<IMongoCollection<SoloTrainingResultsDTO>>();
 
-            _mockDatabase.Setup(db => db.GetCollection<ClassResultDTO>("ClassResults", null))
+            _mockDatabase
+                .Setup(db => db.GetCollection<ClassResultDTO>("ClassResults", null))
                 .Returns(_mockClassCollection.Object);
-            _mockDatabase.Setup(db => db.GetCollection<CrowdResultDTO>("CrowdResults", null))
+
+            _mockDatabase
+                .Setup(db => db.GetCollection<CrowdResultDTO>("CrowdResults", null))
                 .Returns(_mockCrowdCollection.Object);
-            _mockDatabase.Setup(db => db.GetCollection<SoloTrainingResultsDTO>("SoloTrainingResults", null))
+
+            _mockDatabase
+                .Setup(db => db.GetCollection<SoloTrainingResultsDTO>("SoloTrainingResults", null))
                 .Returns(_mockSoloCollection.Object);
 
             _mockClassCollection
@@ -41,6 +46,14 @@ namespace AnalyticsService.Tests
                 .Setup(c => c.InsertOneAsync(It.IsAny<CrowdResultDTO>(), null, default))
                 .Returns(Task.CompletedTask);
 
+            _mockSoloCollection
+                .Setup(c => c.InsertOneAsync(It.IsAny<SoloTrainingResultsDTO>(), null, default))
+                .Returns(Task.CompletedTask);
+
+            _mockCrowdCollection
+                .Setup(c => c.CountDocumentsAsync(It.IsAny<FilterDefinition<CrowdResultDTO>>(), null, default))
+                .ReturnsAsync(0);
+
             _mockCrowdCollection
                 .Setup(c => c.FindOneAndUpdateAsync(
                     It.IsAny<FilterDefinition<CrowdResultDTO>>(),
@@ -48,10 +61,6 @@ namespace AnalyticsService.Tests
                     It.IsAny<FindOneAndUpdateOptions<CrowdResultDTO>>(),
                     default))
                 .ReturnsAsync((CrowdResultDTO?)null);
-
-            _mockCrowdCollection
-                .Setup(c => c.CountDocumentsAsync(It.IsAny<FilterDefinition<CrowdResultDTO>>(), null, default))
-                .ReturnsAsync(0);
 
             _repository = new AnalyticsRepository(_mockDatabase.Object, new HttpClient());
         }
@@ -63,14 +72,18 @@ namespace AnalyticsService.Tests
         [TestMethod]
         public async Task PostClassesAnalytics_ShouldInsertAndReturnClassResult()
         {
-            var result = await _repository.PostClassesAnalytics(
-                "class123",
-                "user123",
-                500,
-                200,
-                Category.Yoga,
-                60,
-                DateTime.UtcNow);
+            var dto = new ClassResultDTO
+            {
+                ClassId = "class123",
+                UserId = "user123",
+                CaloriesBurned = 500,
+                Watt = 200,
+                Category = Category.Yoga,
+                DurationMin = 60,
+                Date = DateTime.UtcNow
+            };
+
+            var result = await _repository.PostClassesAnalytics(dto);
 
             Assert.IsNotNull(result);
             Assert.AreEqual("class123", result.ClassId);
@@ -81,31 +94,10 @@ namespace AnalyticsService.Tests
         }
 
         [TestMethod]
-        public async Task PostClassesAnalytics_ShouldThrow_OnEmptyClassId()
+        public async Task PostClassesAnalytics_ShouldThrow_OnNullDto()
         {
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() =>
-                _repository.PostClassesAnalytics(
-                    "",
-                    "user",
-                    100,
-                    50,
-                    Category.Yoga,
-                    30,
-                    DateTime.UtcNow));
-        }
-
-        [TestMethod]
-        public async Task PostClassesAnalytics_ShouldThrow_OnNegativeDuration()
-        {
-            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() =>
-                _repository.PostClassesAnalytics(
-                    "c1",
-                    "u1",
-                    100,
-                    50,
-                    Category.Yoga,
-                    -1,
-                    DateTime.UtcNow));
+                _repository.PostClassesAnalytics(null!));
         }
 
         // -----------------------------
@@ -158,39 +150,43 @@ namespace AnalyticsService.Tests
         // -----------------------------
 
         [TestMethod]
-        public async Task PostSoloTrainingResult_ShouldThrow_OnMissingUserId()
+        public async Task PostSoloTrainingResult_ShouldInsertSoloTraining()
         {
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() =>
-                _repository.PostSoloTrainingResult(
-                    null!,
-                    DateTime.UtcNow,
-                    new List<Exercise>(),
-                    TrainingTypes.UpperBody,
-                    30));
+            var dto = new SoloTrainingResultsDTO
+            {
+                UserId = "user123",
+                Date = DateTime.UtcNow,
+                TrainingType = TrainingTypes.UpperBody,
+                DurationMinutes = 30,
+                Exercises = new List<Exercise>
+                {
+                    new Exercise
+                    {
+                        ExerciseType = ExerciseType.BenchPress,
+                        Volume = 100,
+                        Sets = new List<Set>
+                        {
+                            new Set { Repetitions = 10, Weight = 50 }
+                        }
+                    }
+                }
+            };
+
+            var result = await _repository.PostSoloTrainingResult(dto);
+
+            Assert.IsNotNull(result);
+
+            _mockSoloCollection.Verify(
+                c => c.InsertOneAsync(It.IsAny<SoloTrainingResultsDTO>(), null, default),
+                Times.Once);
         }
 
-        [TestMethod]
-        public async Task PostSoloTrainingResult_ShouldThrow_OnNullExercises()
-        {
-            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() =>
-                _repository.PostSoloTrainingResult(
-                    "u1",
-                    DateTime.UtcNow,
-                    null!,
-                    TrainingTypes.UpperBody,
-                    30));
-        }
 
         [TestMethod]
-        public async Task PostSoloTrainingResult_ShouldThrow_OnNegativeDuration()
+        public async Task PostSoloTrainingResult_ShouldThrow_OnNullDto()
         {
-            await Assert.ThrowsExceptionAsync<ArgumentOutOfRangeException>(() =>
-                _repository.PostSoloTrainingResult(
-                    "u1",
-                    DateTime.UtcNow,
-                    new List<Exercise>(),
-                    TrainingTypes.UpperBody,
-                    -5));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() =>
+                _repository.PostSoloTrainingResult(null!));
         }
 
         [TestMethod]
