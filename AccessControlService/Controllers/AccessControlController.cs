@@ -75,6 +75,19 @@ public class AccessControlController : ControllerBase
             var locker = await _accessControlRepository.LockLocker(lockerRoomId, lockerId, userId);
             return Ok(locker);
         }
+        
+        
+        // Get locker on user id
+        [HttpGet("{lockerRoomId}/{userId}")]
+        public async Task<IActionResult> GetLocker(string lockerRoomId,string userId)
+        {
+            if (lockerRoomId == null)
+            {
+                return BadRequest("LockerRoomId is required");
+            }
+            var locker = await _accessControlRepository.GetLocker(lockerRoomId, userId);
+            return Ok(locker);
+        }
 
 
         // UNLOCK A LOCKER AND REMOVE USER ASSIGNMENT
@@ -96,6 +109,13 @@ public class AccessControlController : ControllerBase
         {
             var crowd = await _accessControlRepository.GetCrowd();
             return Ok(crowd);
+        }
+
+        [HttpGet("userstatus/{userid}")]
+        public async Task<IActionResult> GetUserStatus(string userid)
+        {
+            var userStatus = await _accessControlRepository.GetUserStatus(userid);
+            return Ok(userStatus); // null er gyldig status
         }
     
     

@@ -92,6 +92,7 @@
     private List<Locker> Lockers = new();
     private bool isLoading = true;
     private string? error;
+    private Locker? userLocker;
 
     private string lockerRoomId = "694132d584029a38d3635884";
     private string? userId;
@@ -103,6 +104,7 @@
     {
         userId = await TokenService.GetUserIdAsync();
         await LoadLockers();
+        await GetLockerForUser();
     }
 
     private async Task LoadLockers()
@@ -133,6 +135,22 @@
             isLoading = false;
         }
     }
+    
+    private async Task GetLockerForUser()
+    {
+        if (userId == null)
+            return;
+
+        var response =
+            await AccessControlService.GetLockerForUserAsync(lockerRoomId, userId);
+
+        if (response.IsSuccessStatusCode)
+        {
+            userLocker =
+                await response.Content.ReadFromJsonAsync<Locker>();
+        }
+    }
+
 
     private async Task LockLocker(Locker locker)
     {
