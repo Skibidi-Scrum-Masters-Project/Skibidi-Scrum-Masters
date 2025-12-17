@@ -252,6 +252,14 @@
     private List<Post> feedItems = new();
 
     private bool checkedIn;
+    
+    // Check Status
+    private DateTime? userStatus;
+    private bool isCheckedIn;
+    private bool hasCheckedOut;
+    
+    // Get User Locker
+    private Locker? userLocker;
 
     private bool isAnalyticsLoading;
     private string analyticsError = string.Empty;
@@ -402,6 +410,31 @@
         StreakWeeks = streakWeeks;
         StreakWorkouts = streakWorkouts;
     }
+    
+    
+    private void EvaluateStatus()
+    {
+        if (userStatus == null)
+        {
+            // aldrig været inde
+            isCheckedIn = false;
+            hasCheckedOut = false;
+        }
+        else if (userStatus == DateTime.MinValue)
+        {
+            // CHECKET IND
+            isCheckedIn = true;
+            hasCheckedOut = false;
+        }
+        else
+        {
+            // CHECKET UD
+            isCheckedIn = false;
+            hasCheckedOut = true;
+        }
+    }
+    
+        
 
     private async Task LoadFeedAsync()
     {

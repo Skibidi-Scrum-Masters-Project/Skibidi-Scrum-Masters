@@ -16,7 +16,10 @@ public interface IAccessControlRepository
 
     Task<Locker> UnlockLocker(string lockerRoomId, string lockerId, string userId);
     Task<int> GetCrowd();
-    
-    Task<LockerRoom?> GetByIdAsync(string id);
-    Task<LockerRoom> SaveAsync(LockerRoom lockerRoom);
+
+    Task<DateTime?> GetUserStatus(string userid);
+
+    Task<Locker?> GetLocker(string lockerRoomId,string userId);
+
+
 }

@@ -165,21 +165,48 @@ public class AccessControlRepository : IAccessControlRepository
         return Task.FromResult(locker);
     }
 
+    public Task<DateTime?> GetUserStatus(string userId)
+    {
+        var entry = _entryPoints
+            .Find(ep => ep.UserId == userId)
+            .SortByDescending(ep => ep.EnteredAt)
+            .FirstOrDefault();
+
+        if (entry == null)
+        {
+            // User has never checked in
+            return Task.FromResult<DateTime?>(null);
+        }
+
+        // Return ExitedAt
+        return Task.FromResult<DateTime?>(entry.ExitedAt);
+    }
+
     public Task<int> GetCrowd()
     {
         var count = _entryPoints.CountDocuments(ep => ep.ExitedAt == DateTime.MinValue);
         return Task.FromResult((int)count);
     }
 
-    public Task<LockerRoom?> GetByIdAsync(string id)
+    public Task<Locker?> GetLocker(string lockerRoomId, string userId)
     {
-        var lockerRoom = _lockerRooms.Find(lr => lr.Id == id).FirstOrDefault();
-        return Task.FromResult(lockerRoom);
-    }
+        if (string.IsNullOrEmpty(lockerRoomId) || string.IsNullOrEmpty(userId))
+        {
+            return Task.FromResult<Locker?>(null);
+        }
 
-    public Task<LockerRoom> SaveAsync(LockerRoom lockerRoom)
-    {
-        _lockerRooms.ReplaceOne(lr => lr.Id == lockerRoom.Id, lockerRoom);
-        return Task.FromResult(lockerRoom);
+        var lockerRoom = _lockerRooms
+            .Find(lr => lr.Id == lockerRoomId)
+            .FirstOrDefault();
+
+        if (lockerRoom?.Lockers == null)
+        {
+            return Task.FromResult<Locker?>(null);
+        }
+
+        var locker = lockerRoom.Lockers
+            .FirstOrDefault(l => l.UserId == userId);
+
+        return Task.FromResult(locker);
     }
 }
