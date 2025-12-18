@@ -379,9 +379,7 @@ public class SocialRepositoryTests
         Assert.AreEqual("New comment", result.Comments[0].CommentText);
         Assert.IsFalse(string.IsNullOrWhiteSpace(result.Comments[0].Id));
     }
-
-    // Event dedupe (vigtig fordi du bruger det i controlleren)
-
+    
     [TestMethod]
     [DoNotParallelize]
     public async Task CreateDraftFromClassWorkoutCompletedAsync_WhenCalledTwice_ReturnsNullSecondTime()
@@ -392,7 +390,6 @@ public class SocialRepositoryTests
             EventId: eventId,
             ClassId: "class-1",
             UserId: "user-1",
-            UserName: "Kent",
             CaloriesBurned: 123.4,
             Watt: 250.0,
             DurationMin: 60,

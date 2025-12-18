@@ -34,13 +34,28 @@
                     ⋯
                 </button>
 
-                @if (openPostMenu)
+                @if (openPostMenu && (!post.IsDraft))
                 {
                     <div class="comment-menu-dropdown" style="right:0;" @onclick:stopPropagation="true">
                         <button class="menu-item"
                                 type="button"
                                 @onclick="StartEditPost">
                             ✏️ Rediger post
+                        </button>
+                        <button class="menu-item delete"
+                                type="button"
+                                @onclick="ConfirmDeletePost">
+                            🗑️ Slet post
+                        </button>
+                    </div>
+                }
+                @if (openPostMenu && (post.IsDraft))
+                {
+                    <div class="comment-menu-dropdown" style="right:0;" @onclick:stopPropagation="true">
+                        <button class="menu-item"
+                                type="button"
+                                @onclick="PostDraft">
+                            ✏️ Del post
                         </button>
                         <button class="menu-item delete"
                                 type="button"
@@ -619,6 +634,39 @@
         showDeleteConfirm = false;
         deleteCommentId = null;
     }
+
+    private async Task PostDraft()
+    {
+        if (string.IsNullOrWhiteSpace(PostId))
+        {
+            error = "Mangler post id.";
+            return;
+        }
+
+        error = string.Empty;
+
+        try
+        {
+            var res = await SocialService.ChangeDraftStatusForPostAsync(PostId, jwt ?? "");
+
+            if (!res.IsSuccessStatusCode)
+            {
+                var body = await res.Content.ReadAsStringAsync();
+                error = $"Kunne ikke dele post: {(int)res.StatusCode} {res.ReasonPhrase}. {body}";
+                return;
+            }
+
+            openPostMenu = false;
+
+            // Tilbage til feed (Alle tabben)
+            Nav.NavigateTo("/feedpage");
+        }
+        catch (Exception ex)
+        {
+            error = $"Kunne ikke dele post: {ex.Message}";
+        }
+    }
+
 
     private async Task SendComment()
     {

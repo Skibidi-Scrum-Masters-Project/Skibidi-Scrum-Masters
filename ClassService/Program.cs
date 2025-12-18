@@ -129,10 +129,17 @@ builder.Services.AddScoped<IClassRepository, ClassRepository>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Program.cs
 builder.Services.AddHttpClient("SocialService", client =>
 {
     client.BaseAddress = new Uri("http://socialservice:8080");
 });
+
+builder.Services.AddHttpClient("AnalyticsService", client =>
+{
+    client.BaseAddress = new Uri("http://analyticsservice:8080");
+});
+
 
 
 var app = builder.Build();

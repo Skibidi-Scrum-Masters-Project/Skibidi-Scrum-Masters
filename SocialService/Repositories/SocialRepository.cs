@@ -406,7 +406,6 @@ public class SocialRepository : ISocialRepository
 
         var draft = new Post
         {
-            UserName = metric.UserName,
             UserId = metric.UserId,
             FitnessClassId = metric.ClassId,
             PostDate = metric.Date,
@@ -429,30 +428,45 @@ public class SocialRepository : ISocialRepository
 
     public async Task<string?> CreateDraftFromSoloTrainingCompletedAsync(SoloTrainingCompletedEventDto metric)
     {
-        var already = await _postCollection.Find(p => p.SourceEventId == metric.EventId).AnyAsync();
+        if (string.IsNullOrWhiteSpace(metric.EventId))
+            throw new ArgumentException("EventId is required for dedupe.");
+
+        if (string.IsNullOrWhiteSpace(metric.UserId))
+            throw new ArgumentException("UserId is required.");
+
+        if (string.IsNullOrWhiteSpace(metric.SoloTrainingSessionId))
+            throw new ArgumentException("SoloTrainingSessionId is required.");
+
+        var already = await _postCollection
+            .Find(p => p.SourceEventId == metric.EventId)
+            .AnyAsync();
+
         if (already) return null;
+
+        var programName = string.IsNullOrWhiteSpace(metric.WorkoutProgramName)
+            ? "Unknown program"
+            : metric.WorkoutProgramName;
 
         var draft = new Post
         {
-            UserName = metric.UserName,
-            UserId = metric.UserId!,
-            WorkoutId = metric.SoloTrainingSessionId!,
-            PostDate = metric.Date,
-            PostTitle = "SoloTraining completed",
-            PostContent =
-                $"Just Finished a {metric.WorkoutProgramName} Duration: {metric.DurationMinutes} min Exercises: {metric.ExerciseCount}",
+            UserId = metric.UserId,
+            WorkoutId = metric.SoloTrainingSessionId,
+            PostDate = metric.Date == default ? DateTime.UtcNow : metric.Date,
+            PostTitle = "Træning færdig!",
+            PostContent = $"Blev lige færdig med {programName} Varighed: {metric.DurationMinutes} min Gentagelser: {metric.ExerciseCount}",
             Type = PostType.Workout,
             IsDraft = true,
             SourceEventId = metric.EventId,
             WorkoutStats = new WorkoutStatsSnapshot
             {
-                DurationSeconds = metric.DurationMinutes * 60
+                DurationSeconds = Math.Max(metric.DurationMinutes, 0) * 60
             }
         };
-        
-        await  _postCollection.InsertOneAsync(draft);
+
+        await _postCollection.InsertOneAsync(draft);
         return draft.Id;
     }
+
 
     
     public async Task<IEnumerable<Post>> SeeAllDraftPostsForUser(string userId)
