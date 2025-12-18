@@ -9,6 +9,7 @@
 
 @inject FitLifeFitness.Services.ClassService ClassService
 @inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.AuthService _authservice
 @inject FitLifeFitness.Services.UserService UserService
 @inject NavigationManager Nav
 @inject Microsoft.JSInterop.IJSRuntime JS
@@ -359,9 +360,23 @@
 
     private bool HasAnythingVisible =>
         activeTab == "bookings" ? FilteredBookings.Count > 0 : FilteredWaitlist.Count > 0;
+    private string? jwt;
+    private string? username;
+
 
     protected override async Task OnInitializedAsync()
     {
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        jwt = await TokenService.GetTokenAsync();
+        username = await TokenService.GetUsernameAsync();
+        if(jwt == null)
+        {
+            await _authservice.LogoutAsync(username!);
+            Nav.NavigateTo("/login");
+        }
         if (string.IsNullOrWhiteSpace(classId))
         {
             loadError = true;
@@ -403,7 +418,7 @@
 
         try
         {
-            var resp = await ClassService.GetClassByIdAsync(classId!);
+            var resp = await ClassService.GetClassByIdAsync(classId!, jwt!);
             if (!resp.IsSuccessStatusCode)
             {
                 loadError = true;
@@ -422,6 +437,8 @@
         {
             isLoading = false;
         }
+
+        StateHasChanged();
     }
 
     private void GoToClasses() => Nav.NavigateTo("/classes");
@@ -479,7 +496,7 @@
 
         try
         {
-            var resp = await ClassService.FinishClassAsync(fitnessClass.Id);
+            var resp = await ClassService.FinishClassAsync(fitnessClass.Id, jwt!);
             if (resp.IsSuccessStatusCode)
             {
                 Nav.NavigateTo("/classes");
@@ -508,7 +525,7 @@
 
         try
         {
-            var resp = await ClassService.DeleteClassAsync(fitnessClass.Id);
+            var resp = await ClassService.DeleteClassAsync(fitnessClass.Id, jwt!);
             if (resp.IsSuccessStatusCode)
             {
                 showDeleteConfirm = false;

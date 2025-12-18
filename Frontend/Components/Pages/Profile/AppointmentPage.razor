@@ -297,6 +297,7 @@
 
 @code {
     private string? userId;
+    private string? jwt; 
     private bool IsCoachView;
 
     private List<AppointmentDto> upcomingAppointments = new();
@@ -322,8 +323,8 @@
 
         try
         {
-            await TokenService.FlushPendingAsync();
 
+            jwt = await TokenService.GetTokenAsync();
             userId = await TokenService.GetUserIdAsync();
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -378,7 +379,7 @@
     {
         var list = new List<AppointmentDto>();
 
-        var resp = await ClassService.GetClassesByUserIdAsync(uid);
+        var resp = await ClassService.GetClassesByUserIdAsync(uid, jwt);
         if (!resp.IsSuccessStatusCode) return list;
 
         await using var stream = await resp.Content.ReadAsStreamAsync();
@@ -453,7 +454,7 @@
     {
         var list = new List<AppointmentDto>();
 
-        var resp = await CoachingService.GetAllSessionsAsync();
+        var resp = await CoachingService.GetAllSessionsAsync(jwt);
         if (!resp.IsSuccessStatusCode) return list;
 
         await using var stream = await resp.Content.ReadAsStreamAsync();
@@ -525,7 +526,7 @@
     {
         var list = new List<CoachAppointmentDto>();
 
-        var resp = await CoachingService.GetAllSessionsAsync();
+        var resp = await CoachingService.GetAllSessionsAsync(jwt);
         if (!resp.IsSuccessStatusCode) return list;
 
         await using var stream = await resp.Content.ReadAsStreamAsync();

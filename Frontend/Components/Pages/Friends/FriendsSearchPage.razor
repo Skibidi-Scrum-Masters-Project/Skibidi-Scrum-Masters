@@ -119,6 +119,7 @@
 
     private bool isLoading = true;
     private string? feedError;
+    private string? jwt;
 
     private IEnumerable<UserDto> VisibleUsers =>
         userList
@@ -130,6 +131,7 @@
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
+        jwt = await TokenService.GetTokenAsync();
 
         await LoadPageAsync();
     }
@@ -178,9 +180,9 @@
         outgoingPendingIds.Clear();
         incomingPendingIds.Clear();
 
-        var friendsRes = await SocialService.GetAllFriendsAsync(userId);
-        var outgoingRes = await SocialService.GetOutgoingFriendRequestsAsync(userId);
-        var incomingRes = await SocialService.GetIncomingFriendRequestsAsync(userId);
+        var friendsRes = await SocialService.GetAllFriendsAsync(userId, jwt ?? "");
+        var outgoingRes = await SocialService.GetOutgoingFriendRequestsAsync(userId, jwt ?? "");
+        var incomingRes = await SocialService.GetIncomingFriendRequestsAsync(userId, jwt ?? "");
 
         if (friendsRes.IsSuccessStatusCode)
         {
@@ -223,7 +225,7 @@
         if (string.IsNullOrWhiteSpace(LoggedInUserId) || string.IsNullOrWhiteSpace(userDto.Id))
             return;
 
-        var res = await SocialService.SendFriendRequestAsync(LoggedInUserId, userDto.Id);
+        var res = await SocialService.SendFriendRequestAsync(LoggedInUserId, userDto.Id, jwt ?? "");
 
         if (!res.IsSuccessStatusCode)
         {
@@ -241,7 +243,7 @@
         if (string.IsNullOrWhiteSpace(LoggedInUserId) || string.IsNullOrWhiteSpace(userDto.Id))
             return;
 
-        var res = await SocialService.CancelFriendRequestAsync(LoggedInUserId, userDto.Id);
+        var res = await SocialService.CancelFriendRequestAsync(LoggedInUserId, userDto.Id, jwt ?? "");
 
         if (!res.IsSuccessStatusCode)
         {
@@ -259,7 +261,7 @@
         if (string.IsNullOrWhiteSpace(LoggedInUserId) || string.IsNullOrWhiteSpace(userDto.Id))
             return;
 
-        var res = await SocialService.AcceptFriendRequestAsync(userDto.Id, LoggedInUserId);
+        var res = await SocialService.AcceptFriendRequestAsync(userDto.Id, LoggedInUserId, jwt ?? "");
 
         if (!res.IsSuccessStatusCode)
         {
@@ -277,7 +279,7 @@
         if (string.IsNullOrWhiteSpace(LoggedInUserId) || string.IsNullOrWhiteSpace(userDto.Id))
             return;
 
-        var res = await SocialService.DeclineFriendRequestAsync(LoggedInUserId, userDto.Id);
+        var res = await SocialService.DeclineFriendRequestAsync(LoggedInUserId, userDto.Id, jwt ?? "");
 
         if (!res.IsSuccessStatusCode)
         {

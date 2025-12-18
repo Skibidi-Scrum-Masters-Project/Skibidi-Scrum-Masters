@@ -44,4 +44,40 @@ public class AuthController : ControllerBase
         // TBA: Implement status check logic
         return Ok(new { message = "Status endpoint - TBA" });
     }
+
+    [HttpPost("refresh/{userId}/{refreshToken}/{role}")]
+    public async Task<IActionResult> RefreshToken(string userId, string refreshToken, Role role)
+    {
+        if (userId == null)
+        {
+            return BadRequest("userid cannot be null");
+        }
+
+        if (refreshToken == null)
+        {
+            return BadRequest("RefreshToken cannot be null");
+        }
+
+        if (role == null)
+        {
+            return BadRequest("role cannot be null");
+        }
+        
+        if (refreshToken.Length < 10) return Unauthorized();
+
+        return Ok(_authRepository.RefreshToken(userId, refreshToken, role));
+    }
+
+
+    [HttpPost("Logout/{userId}")]
+
+    public async Task<IActionResult> Logout(string userId)
+    {
+        if (userId == null)
+        {
+            return BadRequest("userid cannot be null");
+        }
+
+        return Ok(_authRepository.Logout(userId));
+    }
 }

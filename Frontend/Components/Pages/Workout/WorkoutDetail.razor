@@ -148,7 +148,8 @@
     [Inject] private FitLifeFitness.Services.SoloTrainingService SoloTrainingService { get; set; } = default!;
     [Inject] private FitLifeFitness.Services.TokenService TokenService { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    private string? jwt;
     public List<ExerciseDTO> PreviousExercises { get; set; } = new List<ExerciseDTO>();
     private List<ExerciseDTO> Exercises { get; set; } = new List<ExerciseDTO>();
     private SoloTrainingSessionDTO? Session { get; set; } = new SoloTrainingSessionDTO();
@@ -165,9 +166,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         string? userId = await TokenService.GetUserIdAsync();
-
-        HttpResponseMessage? response = await SoloTrainingService.GetWorkoutProgramByIdAsync(Id);
+        HttpResponseMessage? response = await SoloTrainingService.GetWorkoutProgramByIdAsync(Id, jwt ?? "");
         if (response.IsSuccessStatusCode)
         {
             WorkoutProgramDTO? program = await response.Content.ReadFromJsonAsync<WorkoutProgramDTO>();
@@ -197,7 +198,8 @@
             }
         }
 
-        HttpResponseMessage? response2 = await SoloTrainingService.GetMostRecentSoloTrainingForUserAndProgramAsync(userId ?? "", Id);
+        HttpResponseMessage? response2 = await SoloTrainingService.GetMostRecentSoloTrainingForUserAndProgramAsync(userId ?? "",
+        Id, jwt ?? "");
         if (response2.IsSuccessStatusCode)
         {
             SoloTrainingSessionDTO? session = await response2.Content.ReadFromJsonAsync<SoloTrainingSessionDTO>();
@@ -417,7 +419,8 @@
         Session.DurationMinutes = Math.Max(0, (int)(DateTime.UtcNow - Session.Date).TotalMinutes);
         Session.Exercises = FinishedExercises;
 
-        HttpResponseMessage? response = await SoloTrainingService.CreateSoloTrainingSessionAsync(Session.UserId, Session.WorkoutProgramId!, Session);
+        HttpResponseMessage? response = await SoloTrainingService.CreateSoloTrainingSessionAsync(Session.UserId,
+        Session.WorkoutProgramId!, Session, jwt ?? "");
         if (response.IsSuccessStatusCode)
         {
             toastMessage = "Workout saved";

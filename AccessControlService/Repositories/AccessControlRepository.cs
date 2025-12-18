@@ -1,5 +1,7 @@
 // AccessControlService/Repositories/AccessControlRepository.cs
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using AccessControlService.Models;
@@ -20,6 +22,35 @@ public class AccessControlRepository : IAccessControlRepository
         _lockerRooms = database.GetCollection<LockerRoom>("LockerRooms");
         _entryPoints = database.GetCollection<EntryPoint>("EntryPoints");
         _httpClient = httpClient;
+        try
+        {
+            var existing = _lockerRooms.CountDocuments(Builders<LockerRoom>.Filter.Empty);
+            if (existing == 0)
+            {
+                Console.WriteLine("LockerRooms collection empty — seeding default locker room with 20 lockers");
+                var lockers = Enumerable.Range(1, 20)
+                    .Select(i => new Locker
+                    {
+                        LockerId = i.ToString(),
+                        IsLocked = false,
+                        UserId = null
+                    })
+                    .ToList();
+
+                var lockerRoom = new LockerRoom
+                {
+                    Capacity = lockers.Count,
+                    Lockers = lockers
+                };
+
+                _lockerRooms.InsertOne(lockerRoom);
+                Console.WriteLine("Seeded locker room with 20 lockers");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error while seeding locker room: {ex.Message}");
+        }
     }
 
    

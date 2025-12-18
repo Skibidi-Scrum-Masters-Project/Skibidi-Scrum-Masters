@@ -1,8 +1,10 @@
-@page "/"
 @page "/login"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
 @layout PhoneLayoutWithoutNav
 @inject FitLifeFitness.Services.AuthService AuthService
 @inject FitLifeFitness.Services.TokenService TokenService
+@inject FitLifeFitness.Services.TokenAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Nav
 @using System.ComponentModel.DataAnnotations
 @using System.Net.Http.Json
@@ -74,6 +76,8 @@
             Fortsæt til dashboard
         </button>
 
+        <button type="button" class="ghost" @onclick="OnLogoutClicked">Log ud (test)</button>
+
     </main>
 </section>
 
@@ -91,6 +95,7 @@
 
         try
         {
+            Console.WriteLine("=== LOGIN: Starting login process ===");
             var response = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
 
             if (response.IsSuccessStatusCode)
@@ -99,16 +104,35 @@
 
                 if (result != null)
                 {
-                    await TokenService.SaveTokenAsync(result.Token, result.User.Id, result.User.Username, result.User.Role);
+                    Console.WriteLine($"=== LOGIN: Received token for user {result.User.Username} ===");
+                    
+                    // Save token to localStorage
+                    await TokenService.SaveTokenAsync(
+                        result.Token, 
+                        result.User.Id!, 
+                        result.User.Username, 
+                        result.User.Role, 
+                        result.RefreshToken
+                    );
 
+                    Console.WriteLine("=== LOGIN: Token saved, waiting 100ms ===");
+                    // Give localStorage a moment to persist
+                    await Task.Delay(100);
+
+                    // Notify authentication state provider
                     try
                     {
-                        await TokenService.FlushPendingAsync();
-                        await Task.Delay(50);
+                        await AuthStateProvider.NotifyAuthenticationStateChangedAsync();
+                        Console.WriteLine("=== LOGIN: Auth state notified ===");
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"!!! LOGIN: Auth state notification failed: {ex.Message}");
+                    }
 
-                    Nav.NavigateTo("/dashboard", forceLoad: false);
+                    Console.WriteLine("=== LOGIN: Navigating to dashboard ===");
+                    // Navigate to dashboard
+                    Nav.NavigateTo("/dashboard", forceLoad: true);
                     return;
                 }
             }
@@ -122,14 +146,17 @@
         }
         catch (NavigationException)
         {
+            // Allow navigation exceptions to propagate
             throw;
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
+            Console.WriteLine($"!!! LOGIN: HTTP error: {ex.Message}");
             errorMessage = "Kunne ikke oprette forbindelse til serveren.";
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"!!! LOGIN: Unexpected error: {ex.Message}");
             errorMessage = "Der opstod en fejl. Prøv igen senere.";
         }
         finally
@@ -146,6 +173,34 @@
     }
 
     private void GoToCreateUser() => Nav.NavigateTo("/create-user");
+
+    private async Task OnLogoutClicked()
+    {
+        try
+        {
+            var LoggedInUserId = await TokenService.GetUserIdAsync();
+            if (!string.IsNullOrEmpty(LoggedInUserId))
+            {
+                await AuthService.LogoutAsync(LoggedInUserId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Logout API call failed: {ex.Message}");
+        }
+
+        try
+        {
+            await TokenService.ClearAsync();
+            AuthStateProvider.MarkUserLoggedOut();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Logout cleanup failed: {ex.Message}");
+        }
+        
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
 
     public class LoginModel
     {

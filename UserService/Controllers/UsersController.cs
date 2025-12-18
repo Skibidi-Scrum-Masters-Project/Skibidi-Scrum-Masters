@@ -20,7 +20,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    // [Authorize(Roles = "Admin,Coach")]
+    
     public ActionResult<IEnumerable<UserDTO>> GetUsers()
     {
         try
@@ -34,6 +34,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpPost]
+    
     public ActionResult<User> CreateUser(User user)
     {
         _logger.LogInformation("Creating a new user with username: {Username}", user.Username);
@@ -76,7 +77,7 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
-        [HttpGet("username/{username}/secure")]
+    [HttpGet("username/{username}/secure")]
     public ActionResult<User> GetUserByUsernameSecure(string username)
     {
         try
@@ -111,6 +112,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpDelete("{id}")]
+    [Authorize]
     public ActionResult DeleteUser(string id)
     {
         try
@@ -128,6 +130,7 @@ public class UsersController : ControllerBase
         }
     }
     [HttpPut("{id}")]
+    [Authorize]
     public ActionResult<UserDTO> UpdateUser(User updatedUser)
     {
         try

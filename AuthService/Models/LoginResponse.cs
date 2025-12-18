@@ -7,5 +7,7 @@ namespace AuthService.Models
         public string Token { get; set; } = string.Empty;
         public UserDTO User { get; set; } = null!;
         public DateTime ExpiresAt { get; set; }
+        
+        public string RefreshToken { get; set; }
     }
 }

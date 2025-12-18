@@ -74,7 +74,7 @@
                     <span>Dit skab er aktivt</span>
                 </div>
             </section>
-            
+
 
             <section class="action-cards">
                 <button class="action-card danger" type="button" @onclick="ReleaseMyLocker" disabled="@isLockerBusy">
@@ -174,12 +174,14 @@
 
     private Locker? myLocker;
     private List<Locker> availableLockers = new();
+    private string? jwt;
 
     protected override async Task OnInitializedAsync()
     {
-        await TokenService.FlushPendingAsync();
+
 
         userId = await TokenService.GetUserIdAsync();
+        jwt = await TokenService.GetTokenAsync();
         if (string.IsNullOrWhiteSpace(userId))
         {
             Nav.NavigateTo("/login", forceLoad: true);
@@ -201,7 +203,7 @@
     {
         try
         {
-            var res = await AccessControlService.GetLockerRoomId();
+            var res = await AccessControlService.GetLockerRoomIdAsync(jwt);
 
             if (!res.IsSuccessStatusCode)
             {
@@ -261,7 +263,7 @@
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(lockerRoomId))
             return;
 
-        var res = await AccessControlService.GetLockerForUserAsync(lockerRoomId, userId);
+        var res = await AccessControlService.GetLockerForUserAsync(lockerRoomId, userId, jwt);
 
         if (!res.IsSuccessStatusCode)
             return;
@@ -294,7 +296,7 @@
         if (string.IsNullOrWhiteSpace(lockerRoomId))
             return;
 
-        var res = await AccessControlService.GetAvailableLockersAsync(lockerRoomId);
+        var res = await AccessControlService.GetAvailableLockersAsync(lockerRoomId, jwt);
 
         if (!res.IsSuccessStatusCode)
         {
@@ -323,8 +325,8 @@
     private async Task ClaimLocker(Locker locker)
     {
         if (string.IsNullOrWhiteSpace(userId) ||
-            string.IsNullOrWhiteSpace(lockerRoomId) ||
-            string.IsNullOrWhiteSpace(locker?.LockerId))
+        string.IsNullOrWhiteSpace(lockerRoomId) ||
+        string.IsNullOrWhiteSpace(locker?.LockerId))
             return;
 
         try
@@ -334,7 +336,7 @@
             error = null;
             StateHasChanged();
 
-            var res = await AccessControlService.LockLockerAsync(lockerRoomId, locker.LockerId, userId);
+            var res = await AccessControlService.LockLockerAsync(lockerRoomId, locker.LockerId, userId, jwt);
 
             if (!res.IsSuccessStatusCode)
             {
@@ -360,8 +362,8 @@
     private async Task UnlockMyLocker()
     {
         if (string.IsNullOrWhiteSpace(userId) ||
-            string.IsNullOrWhiteSpace(lockerRoomId) ||
-            string.IsNullOrWhiteSpace(myLocker?.LockerId))
+        string.IsNullOrWhiteSpace(lockerRoomId) ||
+        string.IsNullOrWhiteSpace(myLocker?.LockerId))
             return;
 
         try
@@ -371,7 +373,7 @@
             error = null;
             StateHasChanged();
 
-            var res = await AccessControlService.OpenLockerAsync(lockerRoomId, myLocker.LockerId, userId);
+            var res = await AccessControlService.OpenLockerAsync(lockerRoomId, myLocker.LockerId, userId, jwt);
 
             if (!res.IsSuccessStatusCode)
             {
@@ -400,8 +402,8 @@
     private async Task ReleaseMyLocker()
     {
         if (string.IsNullOrWhiteSpace(userId) ||
-            string.IsNullOrWhiteSpace(lockerRoomId) ||
-            string.IsNullOrWhiteSpace(myLocker?.LockerId))
+        string.IsNullOrWhiteSpace(lockerRoomId) ||
+        string.IsNullOrWhiteSpace(myLocker?.LockerId))
             return;
 
         try
@@ -411,7 +413,7 @@
             error = null;
             StateHasChanged();
 
-            var res = await AccessControlService.OpenLockerAsync(lockerRoomId, myLocker.LockerId, userId);
+            var res = await AccessControlService.OpenLockerAsync(lockerRoomId, myLocker.LockerId, userId, jwt);
 
             if (!res.IsSuccessStatusCode)
             {

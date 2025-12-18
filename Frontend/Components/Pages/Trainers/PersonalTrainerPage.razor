@@ -269,6 +269,7 @@
     private bool _showCreateModal = false;
     private DateTime _newStartTime;
     private DateTime _newEndTime;
+    private string? jwt;
 
     private CoachingSession.SessionDto? _deleteCandidate;
     private bool _isDeleting = false;
@@ -276,6 +277,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         await LoadSessions();
     }
 
@@ -295,8 +297,8 @@
             if (string.IsNullOrEmpty(coachId))
                 return;
 
-            var response = await CoachingService.GetAllSessionsByCoachIdAsync(coachId);
-            response.EnsureSuccessStatusCode();
+        var response = await CoachingService.GetAllSessionsByCoachIdAsync(coachId, jwt ?? "");
+        response.EnsureSuccessStatusCode();
 
             var sessions =
                 await response.Content.ReadFromJsonAsync<List<CoachingSession.SessionDto>>()
@@ -365,7 +367,7 @@
             endTime = _newEndTime.ToUniversalTime()
         };
 
-        var response = await CoachingService.CreateSessionAsCoachAsync(payload);
+        var response = await CoachingService.CreateSessionAsCoachAsync(payload, jwt ?? "");
         response.EnsureSuccessStatusCode();
 
         _showCreateModal = false;
@@ -452,7 +454,7 @@
                 return;
             }
 
-            var res = await CoachingService.DeleteSessionAsCoachAsync(_deleteCandidate.Id);
+            var res = await CoachingService.DeleteSessionAsCoachAsync(_deleteCandidate.Id, jwt ?? "");
             if (!res.IsSuccessStatusCode)
             {
                 _deleteError = $"Kunne ikke slette: {(int)res.StatusCode} {res.ReasonPhrase}";

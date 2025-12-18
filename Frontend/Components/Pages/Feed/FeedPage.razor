@@ -239,6 +239,7 @@
 
     private bool isSharing;
     private string? sharingPostId;
+    private string? jwt;
 
     private readonly Dictionary<string, int> commentCounts = new();
 
@@ -253,6 +254,7 @@
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
+        jwt = await TokenService.GetTokenAsync();
         await LoadFeedAsync();
     }
 
@@ -276,8 +278,8 @@
 
             var res =
                 activeFeedTab == "ready"
-                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId)
-                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId);
+                    ? await SocialService.SeeAllDraftPostsForUserAsync(LoggedInUserId,jwt ?? "")
+                    : await SocialService.SeeAllFriendsPostsAsync(LoggedInUserId,jwt ?? "");
 
             if (!res.IsSuccessStatusCode)
             {
@@ -318,7 +320,7 @@
         {
             try
             {
-                var res = await SocialService.SeeAllCommentForPostAsync(id!);
+                var res = await SocialService.SeeAllCommentForPostAsync(id!, jwt ?? "");
 
                 if (!res.IsSuccessStatusCode)
                 {
@@ -395,12 +397,12 @@
             var payload = new Post
             {
                 UserId = LoggedInUserId,
-                UserName = Username,
+                UserName = Username!,
                 PostTitle = Title.Trim(),
                 PostContent = newPostText.Trim()
             };
 
-            var res = await SocialService.PostAPostAsync(payload);
+            var res = await SocialService.PostAPostAsync(payload, jwt ?? "");
 
             if (!res.IsSuccessStatusCode)
             {
@@ -434,7 +436,7 @@
 
         try
         {
-            var res = await SocialService.ChangeDraftStatusForPostAsync(post.Id);
+            var res = await SocialService.ChangeDraftStatusForPostAsync(post.Id, jwt ?? "");
 
             if (!res.IsSuccessStatusCode)
             {

@@ -123,6 +123,7 @@
 
     private string? feedError;
     private bool isLoading = true;
+    private string? jwt = string.Empty;
 
     private Dictionary<string, UserDto> usersById = new();
 
@@ -130,6 +131,7 @@
     {
         LoggedInUserId = await TokenService.GetUserIdAsync();
         Username = await TokenService.GetUsernameAsync();
+        jwt = await TokenService.GetTokenAsync();
 
         await LoadPageAsync();
     }
@@ -148,7 +150,7 @@
 
         try
         {
-            var incomingRes = await SocialService.GetIncomingFriendRequestsAsync(LoggedInUserId);
+            var incomingRes = await SocialService.GetIncomingFriendRequestsAsync(LoggedInUserId, jwt ?? "");
             var incoming = await incomingRes.Content.ReadFromJsonAsync<List<Friendship>>() ?? new List<Friendship>();
 
             PendingList = incoming
@@ -185,7 +187,7 @@
 
         var senderId = friendship.SenderId;
 
-        var res = await SocialService.AcceptFriendRequestAsync(senderId, LoggedInUserId);
+        var res = await SocialService.AcceptFriendRequestAsync(senderId, LoggedInUserId, jwt ?? "");
 
         if (!res.IsSuccessStatusCode)
         {
@@ -208,7 +210,7 @@
 
         var senderId = friendship.SenderId;
 
-        var res = await SocialService.DeclineFriendRequestAsync(LoggedInUserId, senderId);
+        var res = await SocialService.DeclineFriendRequestAsync(LoggedInUserId, senderId, jwt ?? "");
 
         if (!res.IsSuccessStatusCode)
         {

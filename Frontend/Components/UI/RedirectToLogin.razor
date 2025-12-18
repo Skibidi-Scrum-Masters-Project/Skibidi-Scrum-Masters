@@ -1,0 +1,23 @@
+@namespace FitLifeFitness.Components.UI
+@inject NavigationManager Navigation
+
+<div class="redirect-to-login">
+    <p>Redirecting to login...</p>
+    <a href="@LoginUrl">Go to login</a>
+</div>
+
+@code {
+    private string LoginUrl = "/login";
+
+    protected override void OnInitialized()
+    {
+        var relative = Navigation.ToBaseRelativePath(Navigation.Uri);
+        if (!string.IsNullOrEmpty(relative))
+        {
+            var returnUrl = "/" + relative;
+            LoginUrl = $"/login?returnUrl={System.Uri.EscapeDataString(returnUrl)}";
+        }
+
+        Navigation.NavigateTo(LoginUrl, forceLoad: false);
+    }
+}

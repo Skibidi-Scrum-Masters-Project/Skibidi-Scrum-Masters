@@ -1,10 +1,12 @@
+using FitLifeFitness.Models;
+using System.Net.Http.Json;
 namespace FitLifeFitness.Services;
 
 public class AuthService
 {
     private readonly HttpClient _http;
     private readonly TokenService _tokenService;
-    
+
     public AuthService(HttpClient httpClient, TokenService tokenService)
     {
         _http = httpClient;
@@ -13,32 +15,37 @@ public class AuthService
     
     public async Task<HttpResponseMessage> LoginAsync(string username, string password)
     {
-        var loginData = new 
-        { 
+        var loginData = new
+        {
             Username = username,
-            Password = password 
+            Password = password
         };
-        
-        return await _http.PostAsJsonAsync("/api/auth/login", loginData);
+
+        return await _http.PostAsJsonAsync<object>("/api/auth/login", loginData);
     }
-    
+
     public async Task<HttpResponseMessage> RegisterAsync(string email, string password, string name)
     {
-        return await _http.PostAsJsonAsync("/api/auth/register", new { email, password, name });
+        return await _http.PostAsJsonAsync<object>("/api/auth/register", new { email, password, name });
     }
-    
-    public async Task LogoutAsync()
+
+    public async Task LogoutAsync(string userId)
     {
         await _tokenService.ClearAsync();
+        await _http.PostAsync($"/api/auth/logout/{userId}", null);
     }
-    
+    public async Task<HttpResponseMessage> RefreshTokenAsync(string userId, string refreshToken, UserRole role)
+    {
+        return await _http.PostAsync($"/api/auth/refresh/{userId}/{refreshToken}/{role}", null);
+    }
+
     // Helper method to add token to requests
     public async Task AddAuthorizationHeaderAsync()
     {
         var token = await _tokenService.GetTokenAsync();
         if (!string.IsNullOrEmpty(token))
         {
-            _http.DefaultRequestHeaders.Authorization = 
+            _http.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
     }
