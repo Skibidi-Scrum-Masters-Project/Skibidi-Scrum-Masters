@@ -9,6 +9,7 @@
     flex-direction: column;
     gap: 14px;
     scrollbar-width: none;
+    position: relative; /* tilføj denne */
 }
 
 .appointments-page::-webkit-scrollbar {
@@ -336,8 +337,8 @@
 
 /* FAB (Floating Action Button) */
 .fab {
-    position: fixed;
-    right: 20px;
+    position: absolute;
+    right: 16px;
     bottom: calc(100px + env(safe-area-inset-bottom));
     width: 60px;
     height: 60px;
