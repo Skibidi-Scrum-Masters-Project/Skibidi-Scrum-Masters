@@ -220,6 +220,8 @@ public async Task FinishClass(string classId)
 
     foreach (var attendant in finishedClass.BookingList)
     {
+        var eventId = Guid.NewGuid().ToString();
+
         var metric = new ClassResult
         {
             ClassId = classId,
@@ -228,7 +230,7 @@ public async Task FinishClass(string classId)
             Watt = wattTotal,
             DurationMin = finishedClass.Duration,
             Date = occurredAtUtc,
-            EventId = Guid.NewGuid().ToString()
+            EventId = eventId
         };
 
         await _classResultsCollection.InsertOneAsync(metric);
@@ -236,9 +238,20 @@ public async Task FinishClass(string classId)
         try
         {
             // SocialService
+            var socialPayload = new
+            {
+                EventId = eventId,
+                UserId = metric.UserId,
+                ClassId = metric.ClassId,
+                CaloriesBurned = metric.CaloriesBurned,
+                Watt = metric.Watt,
+                DurationMin = metric.DurationMin,
+                Date = metric.Date
+            };
+
             var socialRes = await socialClient.PostAsJsonAsync(
-                "/internal/events/class-workout-completed",
-                metric
+                "internal/events/class-workout-completed",
+                socialPayload
             );
 
             if (!socialRes.IsSuccessStatusCode)
@@ -250,7 +263,7 @@ public async Task FinishClass(string classId)
             // AnalyticsService
             var analyticsRes = await analyticsClient.PostAsJsonAsync(
                 "http://analyticsservice:8080/api/analytics/classes",
-                new ClassResult
+                new
                 {
                     ClassId = metric.ClassId,
                     UserId = metric.UserId,
@@ -265,19 +278,20 @@ public async Task FinishClass(string classId)
             if (!analyticsRes.IsSuccessStatusCode)
             {
                 var body = await analyticsRes.Content.ReadAsStringAsync();
-                Console.WriteLine($"AnalyticsService event failed: {(int)analyticsRes.StatusCode} {body}");
+                Console.WriteLine($"AnalyticsService event failed: {(int)socialRes.StatusCode} {body}");
             }
         }
         catch (Exception ex)
         {
             // stopper ikke finish hvis services er nede
-            Console.WriteLine($"FinishClass notify failed for user {attendant.UserId} in class {classId}: {ex.Message}");
+            Console.WriteLine($"FinishClass notify failed for user {attendant.UserId} in class {classId}: {ex}");
         }
     }
 
     finishedClass.IsActive = false;
     await _classesCollection.ReplaceOneAsync(c => c.Id == classId, finishedClass);
 }
+
 
 
 
