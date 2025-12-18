@@ -27,9 +27,9 @@ docker compose up --build -d
 👤 Testbrugere (Seeded)
 
 Følgende konti er præ-konfigureret i systemet:
-Rolle	Brugernavn	Password
-Coach	coach	skibidicoach
-Admin	admin	skibidiadmin
+
+Brugernavn: coach	Password: skibidicoach
+Brugernavn: admin	Password: skibidiadmin
 💾 Database Konfiguration
 
 Hvis du ønsker at benytte den lokale database, skal Program.cs i hvert projekt opdateres med følgende MongoDB connection string:
