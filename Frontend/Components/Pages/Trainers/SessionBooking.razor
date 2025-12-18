@@ -178,6 +178,7 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        jwt = await TokenService.GetTokenAsync();
         await LoadAsync();
     }
 
