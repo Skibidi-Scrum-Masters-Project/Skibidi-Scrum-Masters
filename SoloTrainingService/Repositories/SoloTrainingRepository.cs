@@ -19,44 +19,75 @@ public class SoloTrainingRepository : ISoloTrainingRepository
         _workoutProgramCollection = database.GetCollection<WorkoutProgram>("WorkoutPrograms");
     }
 
-    public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining, string programId)
+public async Task<SoloTrainingSession> CreateSoloTraining(string userId, SoloTrainingSession soloTraining, string programId)
+{
+    // Server-side felter
+    soloTraining.UserId = userId;
+    soloTraining.WorkoutProgramId = programId;
+
+    if (string.IsNullOrWhiteSpace(soloTraining.WorkoutProgramName))
+        soloTraining.WorkoutProgramName = "Unknown program";
+
+    if (soloTraining.Date == default)
+        soloTraining.Date = DateTime.UtcNow;
+
+    // Sikrer at Id findes til eventet (Mongo kan også generere, men så risikerer du Id stadig er null i objektet)
+    if (string.IsNullOrWhiteSpace(soloTraining.Id))
+        soloTraining.Id = ObjectId.GenerateNewId().ToString();
+
+    await _SolotrainingCollection.InsertOneAsync(soloTraining);
+
+    // Analytics
+    try
     {
-        soloTraining.UserId = userId;
-        soloTraining.WorkoutProgramId = programId;
+        var response = await _httpClient.PostAsJsonAsync(
+            "http://analyticsservice:8080/api/Analytics/solotraining",
+            soloTraining
+        );
 
-        await _SolotrainingCollection.InsertOneAsync(soloTraining);
-
-        try
+        Console.WriteLine($"Analytics response: {(int)response.StatusCode} {response.StatusCode}");
+        if (!response.IsSuccessStatusCode)
         {
-            var response = await _httpClient.PostAsJsonAsync(
-                "http://analyticsservice:8080/api/Analytics/solotraining",
-                soloTraining
-            );
-
-            Console.WriteLine($"Analytics response: {response.StatusCode}");
+            var body = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Analytics error body: {body}");
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error calling analytics service: {ex.Message}");
-        }
-
-        try
-        {
-            
-            var response = await _httpClient.PostAsJsonAsync(
-                "http://socialservice:8080/internal/events/solo-training-completed",
-                soloTraining
-            );
-
-            Console.WriteLine($"Social response: {response.StatusCode}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error calling social service: {ex.Message}");
-        }
-
-        return soloTraining;
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error calling analytics service: {ex}");
+    }
+
+    // Social (event payload der matcher SocialService DTO)
+    try
+    {
+        var evt = new SoloTrainingCompletedEvent
+        {
+            EventId = Guid.NewGuid().ToString(),
+            UserId = soloTraining.UserId,
+            SoloTrainingSessionId = soloTraining.Id,
+            Date = soloTraining.Date,
+            WorkoutProgramName = soloTraining.WorkoutProgramName,
+            DurationMinutes = soloTraining.DurationMinutes,
+            ExerciseCount = soloTraining.Exercises?.Count ?? 0,
+            TrainingType = null
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(
+            "http://socialservice:8080/internal/events/solo-training-completed",
+            evt
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Console.WriteLine($"Social response: {(int)response.StatusCode} {response.StatusCode} body: {body}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error calling social service: {ex}");
+    }
+
+    return soloTraining;
+}
+
 
     public async Task<WorkoutProgram> CreateWorkoutProgram(WorkoutProgram workoutProgram)
     {
