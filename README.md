@@ -28,8 +28,11 @@ docker compose up --build -d
 
 Følgende konti er præ-konfigureret i systemet:
 
-Brugernavn: coach	Password: skibidicoach
-Brugernavn: admin	Password: skibidiadmin
+Brugernavn: coach
+Password: skibidicoach
+
+Brugernavn: admin
+Password: skibidiadmin
 💾 Database Konfiguration
 
 Hvis du ønsker at benytte den lokale database, skal Program.cs i hvert projekt opdateres med følgende MongoDB connection string:
@@ -48,6 +51,6 @@ Da dette er en tidlig prototype, er følgende funktioner endnu ikke implementere
 
     Lokationer: Understøttelse af flere fitnesscentre.
 
-    Sikkerhed: RefreshToken funktionalitet.
+    Sikkerhed: RefreshToken funktionalitet. - Dette gør at man er nødsaget til at logge ud hver 90 minut og så logge ind igen for at få en ny jwt token
 
     Økonomi: Betalingsservice integration.
