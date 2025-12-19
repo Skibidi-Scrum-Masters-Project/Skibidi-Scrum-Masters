@@ -50,7 +50,8 @@ public class AuthRepository : IAuthRepository
                     {
                         Token = token,
                         User = userDto,
-                        ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+                        ExpiresAt = DateTime.UtcNow.AddDays(365), //Dette er kun for PoC da refreshtoken ikke er implementeret fuldt
+                                                                  // Til når det skal implementeres burde det være omkring 15 minutter
                         RefreshToken = refreshToken
                     };
                 }
